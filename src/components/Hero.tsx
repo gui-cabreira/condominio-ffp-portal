@@ -11,26 +11,23 @@ const Hero = () => {
   };
 
   return (
-    <section id="inicio" className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-ffp-navy via-ffp-navy-light to-ffp-navy-dark" />
-      
+    <section id="inicio" className="relative min-h-screen flex items-center overflow-hidden bg-white">
       {/* Geometric Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-20 right-20 w-64 h-64 border border-ffp-gold rounded-full" />
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute top-20 right-20 w-64 h-64 border border-ffp-navy rounded-full" />
         <div className="absolute bottom-20 left-20 w-48 h-48 border border-ffp-gold rounded-full" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-ffp-gold rounded-full opacity-50" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-ffp-navy rounded-full opacity-50" />
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="text-white animate-fade-in">
+          <div className="text-ffp-navy animate-fade-in">
             <h1 className="font-playfair text-5xl lg:text-6xl font-bold mb-6 leading-tight">
               Especialistas em
               <span className="text-ffp-gold block">Direito Condominial</span>
             </h1>
             
-            <p className="text-xl mb-8 text-gray-300 leading-relaxed">
+            <p className="text-xl mb-8 text-gray-700 leading-relaxed">
               Soluções jurídicas personalizadas para acordos condominiais, gestão e cobrança. 
               Protegemos seus direitos com excelência e confiança.
             </p>
@@ -46,7 +43,7 @@ const Hero = () => {
               
               <button 
                 onClick={() => scrollToSection('servicos')}
-                className="border-2 border-ffp-gold text-ffp-gold px-8 py-4 rounded-lg font-semibold hover:bg-ffp-gold hover:text-ffp-navy transition-all duration-300"
+                className="border-2 border-ffp-navy text-ffp-navy px-8 py-4 rounded-lg font-semibold hover:bg-ffp-navy hover:text-white transition-all duration-300"
               >
                 Nossos Serviços
               </button>
@@ -55,15 +52,15 @@ const Hero = () => {
             <div className="grid grid-cols-3 gap-6">
               <div className="text-center">
                 <Shield className="w-8 h-8 text-ffp-gold mx-auto mb-2" />
-                <p className="text-sm text-gray-300">Proteção Legal</p>
+                <p className="text-sm text-gray-600">Proteção Legal</p>
               </div>
               <div className="text-center">
                 <Users className="w-8 h-8 text-ffp-gold mx-auto mb-2" />
-                <p className="text-sm text-gray-300">Gestão Condominial</p>
+                <p className="text-sm text-gray-600">Gestão Condominial</p>
               </div>
               <div className="text-center">
                 <Scale className="w-8 h-8 text-ffp-gold mx-auto mb-2" />
-                <p className="text-sm text-gray-300">Acordos & Cobranças</p>
+                <p className="text-sm text-gray-600">Acordos & Cobranças</p>
               </div>
             </div>
           </div>
