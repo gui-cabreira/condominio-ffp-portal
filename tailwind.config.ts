@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -18,12 +19,24 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'playfair': ['Playfair Display', 'serif'],
+				'inter': ['Inter', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				ffp: {
+					navy: '#1e2a5e',
+					gold: '#c09853',
+					'navy-light': '#2d3a6e',
+					'navy-dark': '#151f45',
+					'gold-light': '#d4a863',
+					'gold-dark': '#a67d3a',
+				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'
@@ -84,11 +97,51 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(20px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
+				},
+				'scale-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'scale(0.8)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'scale(1)'
+					}
+				},
+				'logo-glow': {
+					'0%': {
+						opacity: '0',
+						transform: 'scale(0.8)',
+						filter: 'blur(4px)'
+					},
+					'50%': {
+						opacity: '0.8',
+						transform: 'scale(1.1)',
+						filter: 'blur(0px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'scale(1)',
+						filter: 'blur(0px)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.6s ease-out',
+				'scale-in': 'scale-in 0.5s ease-out',
+				'logo-glow': 'logo-glow 2s ease-out forwards'
 			}
 		}
 	},
