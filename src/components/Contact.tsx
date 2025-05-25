@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Phone, Mail, MapPin, Clock, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -36,22 +35,22 @@ const Contact = () => {
   };
 
   return (
-    <section id="contato" className="py-20 bg-gray-50">
+    <section id="contato" className="py-20 bg-white">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="font-playfair text-4xl font-bold text-ffp-navy mb-4">
             Entre em Contato
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Estamos prontos para ajudar com suas questões condominiais. 
-            Entre em contato e agende sua consulta gratuita.
+            Segurança jurídica para seu patrimônio e negócios. 
+            Agende uma consulta e conheça nossas soluções estratégicas.
           </p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12">
           {/* Contact Info */}
           <div className="space-y-8">
-            <div className="bg-white rounded-xl p-8 shadow-lg">
+            <div className="bg-gray-50 rounded-xl p-8 shadow-lg">
               <h3 className="font-playfair text-2xl font-semibold text-ffp-navy mb-6">
                 Informações de Contato
               </h3>
@@ -110,11 +109,11 @@ const Contact = () => {
 
             <div className="bg-ffp-navy text-white rounded-xl p-8">
               <h3 className="font-playfair text-xl font-semibold mb-4">
-                Consulta Gratuita
+                Agende uma Consulta
               </h3>
               <p className="text-gray-300 mb-4">
-                Oferecemos uma primeira consulta gratuita para avaliar seu caso 
-                e apresentar as melhores soluções jurídicas.
+                Especialistas em soluções estratégicas para questões condominiais. 
+                Entre em contato e proteja seu patrimônio com segurança jurídica.
               </p>
               <button className="bg-ffp-gold text-ffp-navy px-6 py-3 rounded-lg font-semibold hover:bg-ffp-gold-light transition-colors">
                 Agendar Consulta
@@ -123,7 +122,7 @@ const Contact = () => {
           </div>
 
           {/* Contact Form */}
-          <div className="bg-white rounded-xl p-8 shadow-lg">
+          <div className="bg-gray-50 rounded-xl p-8 shadow-lg">
             <h3 className="font-playfair text-2xl font-semibold text-ffp-navy mb-6">
               Envie sua Mensagem
             </h3>

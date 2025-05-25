@@ -23,13 +23,13 @@ const Hero = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="text-ffp-navy animate-fade-in">
             <h1 className="font-playfair text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              Especialistas em
-              <span className="text-ffp-gold block">Direito Condominial</span>
+              Fermiano, Ferreira Pinto
+              <span className="text-ffp-gold block">Advogados</span>
             </h1>
             
             <p className="text-xl mb-8 text-gray-700 leading-relaxed">
-              Soluções jurídicas personalizadas para acordos condominiais, gestão e cobrança. 
-              Protegemos seus direitos com excelência e confiança.
+              Segurança jurídica para seu patrimônio e negócios. Especialistas em soluções estratégicas 
+              para acordos condominiais, gestão e cobrança.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
@@ -37,7 +37,7 @@ const Hero = () => {
                 onClick={() => scrollToSection('contato')}
                 className="bg-ffp-gold text-ffp-navy px-8 py-4 rounded-lg font-semibold hover:bg-ffp-gold-light transition-all duration-300 flex items-center justify-center space-x-2 group"
               >
-                <span>Consulta Gratuita</span>
+                <span>Agende uma Consulta</span>
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </button>
               

@@ -16,14 +16,14 @@ const Footer = () => {
                 className="h-12 w-auto"
               />
               <div>
-                <h3 className="font-playfair text-xl font-bold">FFP Advogados</h3>
+                <h3 className="font-playfair text-xl font-bold">Fermiano, Ferreira Pinto Advogados</h3>
                 <p className="text-ffp-gold text-sm">Direito Condominial</p>
               </div>
             </div>
             
             <p className="text-gray-300 mb-6 leading-relaxed">
-              Especialistas em direito condominial, oferecendo soluções jurídicas 
-              personalizadas para acordos, gestão e cobrança. Sua confiança é nossa prioridade.
+              Segurança jurídica para seu patrimônio e negócios. Especialistas em soluções estratégicas 
+              para acordos condominiais, gestão e cobrança.
             </p>
 
             <div className="flex space-x-4">
@@ -79,7 +79,7 @@ const Footer = () => {
         <div className="border-t border-ffp-navy-light mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              © 2024 FFP Advogados. Todos os direitos reservados.
+              © 2024 Fermiano, Ferreira Pinto Advogados. Todos os direitos reservados.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-gray-400 hover:text-ffp-gold text-sm transition-colors">
