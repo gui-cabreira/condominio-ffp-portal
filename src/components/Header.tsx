@@ -70,11 +70,13 @@ const Header = () => {
 
           <div className="hidden lg:flex items-center space-x-4">
             <a 
-              href="tel:+5511999999999" 
+              href="https://wa.me/+5519999331777" 
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center space-x-2 text-ffp-navy hover:text-ffp-gold transition-colors"
             >
               <Phone size={16} />
-              <span className="text-sm font-medium">(11) 99999-9999</span>
+              <span className="text-sm font-medium">(19) 99933-1777</span>
             </a>
           </div>
 
@@ -116,11 +118,13 @@ const Header = () => {
               </button>
               <div className="pt-4 border-t">
                 <a 
-                  href="tel:+5511999999999" 
+                  href="https://wa.me/+5519999331777" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center space-x-2 text-ffp-navy hover:text-ffp-gold transition-colors"
                 >
                   <Phone size={16} />
-                  <span className="text-sm font-medium">(11) 99999-9999</span>
+                  <span className="text-sm font-medium">(19) 99933-1777</span>
                 </a>
               </div>
             </nav>
