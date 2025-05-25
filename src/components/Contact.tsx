@@ -62,8 +62,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h4 className="font-semibold text-ffp-navy mb-1">Telefone</h4>
-                    <p className="text-gray-600">(11) 99999-9999</p>
-                    <p className="text-gray-600">(11) 3333-3333</p>
+                    <p className="text-gray-600">(19) 99933-1777</p>
                   </div>
                 </div>
 
@@ -73,8 +72,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h4 className="font-semibold text-ffp-navy mb-1">E-mail</h4>
-                    <p className="text-gray-600">contato@ffpadvogados.com.br</p>
-                    <p className="text-gray-600">atendimento@ffpadvogados.com.br</p>
+                    <p className="text-gray-600">contato@advogados.com.br</p>
                   </div>
                 </div>
 
