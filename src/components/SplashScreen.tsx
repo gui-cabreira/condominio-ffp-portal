@@ -19,14 +19,14 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
   if (!isVisible) {
     return (
-      <div className="fixed inset-0 bg-ffp-navy z-50 flex items-center justify-center transition-opacity duration-500 opacity-0 pointer-events-none" />
+      <div className="fixed inset-0 bg-white z-50 flex items-center justify-center transition-opacity duration-500 opacity-0 pointer-events-none" />
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-ffp-navy z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-ffp-gold/20 to-transparent rounded-full blur-xl animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-r from-ffp-gold/10 to-ffp-navy/10 rounded-full blur-xl animate-pulse" />
         <img 
           src="/lovable-uploads/51d17d9a-87dc-4294-a89e-d45f9db1b00f.png" 
           alt="FFP Advogados"
