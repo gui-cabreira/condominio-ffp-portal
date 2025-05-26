@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Phone, Mail } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,6 +18,12 @@ const Header = () => {
   }, []);
 
   const scrollToSection = (sectionId: string) => {
+    if (location.pathname !== '/') {
+      // If not on home page, navigate to home first
+      window.location.href = `/#${sectionId}`;
+      return;
+    }
+    
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
@@ -29,17 +37,17 @@ const Header = () => {
     }`}>
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between h-20">
-          <div className="flex items-center space-x-4">
+          <Link to="/" className="flex items-center space-x-4">
             <img 
               src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
               alt="FFP Advogados" 
               className="h-12 w-auto"
             />
             <div className="hidden md:block">
-              <h1 className="font-playfair text-xl font-bold text-ffp-navy">FFP Advogados</h1>
+              <h1 className="font-georgia text-xl font-bold text-ffp-navy">FFP Advogados</h1>
               <p className="text-sm text-ffp-gold font-medium">Direito Condominial</p>
             </div>
-          </div>
+          </Link>
 
           <nav className="hidden lg:flex items-center space-x-8">
             <button 
@@ -60,6 +68,12 @@ const Header = () => {
             >
               Sobre
             </button>
+            <Link 
+              to="/noticias"
+              className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium"
+            >
+              Notícias
+            </Link>
             <button 
               onClick={() => scrollToSection('contato')}
               className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium"
@@ -110,6 +124,13 @@ const Header = () => {
               >
                 Sobre
               </button>
+              <Link 
+                to="/noticias"
+                className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium text-left"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Notícias
+              </Link>
               <button 
                 onClick={() => scrollToSection('contato')}
                 className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium text-left"
