@@ -19,7 +19,7 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				'playfair': ['Playfair Display', 'serif'],
+				'playfair': ['Georgia', 'Times New Roman', 'serif'],
 				'inter': ['Inter', 'sans-serif'],
 				'sans': ['Arial', 'Helvetica', 'sans-serif'], // Define Arial como fonte padrão
 			},
