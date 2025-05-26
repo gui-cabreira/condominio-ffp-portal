@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -22,6 +21,7 @@ export default {
 			fontFamily: {
 				'playfair': ['Playfair Display', 'serif'],
 				'inter': ['Inter', 'sans-serif'],
+				'sans': ['Playfair Display', 'serif'], // Define Playfair como fonte padrão
 			},
 			colors: {
 				border: 'hsl(var(--border))',
