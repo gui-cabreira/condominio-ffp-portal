@@ -15,7 +15,7 @@ const newsData = [
     author: "Dr. Carlos Silva",
     date: "2024-01-15",
     category: "Legislação",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&h=400&fit=crop"
   },
   {
     id: 2,
@@ -25,7 +25,7 @@ const newsData = [
     author: "Eng. Marina Santos",
     date: "2024-01-12",
     category: "Economia",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop"
   },
   {
     id: 3,
@@ -35,7 +35,7 @@ const newsData = [
     author: "Dra. Ana Paula Rocha",
     date: "2024-01-10",
     category: "Gestão",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=400&fit=crop"
   },
   {
     id: 4,
@@ -45,7 +45,7 @@ const newsData = [
     author: "Roberto Fernandes",
     date: "2024-01-08",
     category: "Cobrança",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=400&fit=crop"
   },
   {
     id: 5,
@@ -55,7 +55,7 @@ const newsData = [
     author: "Bióloga Fernanda Lima",
     date: "2024-01-05",
     category: "Sustentabilidade",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&h=400&fit=crop"
   },
   {
     id: 6,
@@ -65,7 +65,7 @@ const newsData = [
     author: "Especialista José Carlos",
     date: "2024-01-03",
     category: "Segurança",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=400&fit=crop"
   },
   {
     id: 7,
@@ -75,7 +75,7 @@ const newsData = [
     author: "Eng. Paulo Mendes",
     date: "2023-12-28",
     category: "Manutenção",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&h=400&fit=crop"
   },
   {
     id: 8,
@@ -85,7 +85,7 @@ const newsData = [
     author: "Advogada Luciana Martins",
     date: "2023-12-25",
     category: "Direitos",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1589216532372-af77b5562c7d?w=800&h=400&fit=crop"
   },
   {
     id: 9,
@@ -95,7 +95,7 @@ const newsData = [
     author: "Consultor Marcus Oliveira",
     date: "2023-12-22",
     category: "Gestão",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800&h=400&fit=crop"
   },
   {
     id: 10,
@@ -105,7 +105,7 @@ const newsData = [
     author: "Arquiteta Sandra Costa",
     date: "2023-12-20",
     category: "Obras",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&h=400&fit=crop"
   },
   {
     id: 11,
@@ -115,7 +115,7 @@ const newsData = [
     author: "TI Especialista Rafael Tech",
     date: "2023-12-18",
     category: "Tecnologia",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=400&fit=crop"
   },
   {
     id: 12,
@@ -125,7 +125,7 @@ const newsData = [
     author: "RH Consultora Isabel Ramos",
     date: "2023-12-15",
     category: "RH",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&h=400&fit=crop"
   },
   {
     id: 13,
@@ -135,7 +135,7 @@ const newsData = [
     author: "Mediador Dr. Antônio Paz",
     date: "2023-12-12",
     category: "Conflitos",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=800&h=400&fit=crop"
   },
   {
     id: 14,
@@ -145,7 +145,7 @@ const newsData = [
     author: "Contador João Silva",
     date: "2023-12-10",
     category: "Finanças",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&h=400&fit=crop"
   },
   {
     id: 15,
@@ -155,7 +155,7 @@ const newsData = [
     author: "Advogada Patrícia Lopes",
     date: "2023-12-08",
     category: "Regulamento",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1436450412740-6b988f486c6b?w=800&h=400&fit=crop"
   },
   {
     id: 16,
@@ -165,7 +165,7 @@ const newsData = [
     author: "Arquiteta Inclusiva Maria José",
     date: "2023-12-05",
     category: "Acessibilidade",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop"
   },
   {
     id: 17,
@@ -175,7 +175,7 @@ const newsData = [
     author: "Corretor Especialista Pedro Santos",
     date: "2023-12-03",
     category: "Seguros",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800&h=400&fit=crop"
   },
   {
     id: 18,
@@ -185,7 +185,7 @@ const newsData = [
     author: "Veterinária Dra. Carla Pet",
     date: "2023-12-01",
     category: "Convivência",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=400&fit=crop"
   },
   {
     id: 19,
@@ -195,7 +195,7 @@ const newsData = [
     author: "Comunicadora Social Rita Informa",
     date: "2023-11-28",
     category: "Comunicação",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=400&fit=crop"
   },
   {
     id: 20,
@@ -205,7 +205,7 @@ const newsData = [
     author: "Planejador Financeiro Carlos Money",
     date: "2023-11-25",
     category: "Finanças",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&h=400&fit=crop"
   },
   {
     id: 21,
@@ -215,7 +215,7 @@ const newsData = [
     author: "Especialista em Lazer Bruno Diversão",
     date: "2023-11-22",
     category: "Lazer",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=400&fit=crop"
   },
   {
     id: 22,
@@ -225,7 +225,7 @@ const newsData = [
     author: "Consultor em Terceirização Luis Prático",
     date: "2023-11-20",
     category: "Terceirização",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&h=400&fit=crop"
   },
   {
     id: 23,
@@ -235,7 +235,7 @@ const newsData = [
     author: "Síndico Experiente Jorge Prático",
     date: "2023-11-18",
     category: "Reformas",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=800&h=400&fit=crop"
   },
   {
     id: 24,
@@ -245,7 +245,7 @@ const newsData = [
     author: "Ambientalista Verde Silva",
     date: "2023-11-15",
     category: "Meio Ambiente",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800&h=400&fit=crop"
   },
   {
     id: 25,
@@ -255,7 +255,7 @@ const newsData = [
     author: "Contador Transparente Honesto Números",
     date: "2023-11-12",
     category: "Transparência",
-    image: "/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+    image: "https://images.unsplash.com/photo-1554224155-1696413565d3?w=800&h=400&fit=crop"
   }
 ];
 
