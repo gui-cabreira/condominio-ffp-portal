@@ -2,6 +2,7 @@
 import React from 'react';
 import { Calendar, User, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 
 interface Article {
   id: number;
@@ -63,10 +64,13 @@ const NewsCard = ({ article }: NewsCardProps) => {
       </CardContent>
       
       <CardFooter className="pt-0">
-        <button className="flex items-center text-ffp-navy hover:text-ffp-gold transition-colors text-sm font-semibold group">
+        <Link 
+          to={`/noticias/${article.id}`}
+          className="flex items-center text-ffp-navy hover:text-ffp-gold transition-colors text-sm font-semibold group"
+        >
           Ler mais
           <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-        </button>
+        </Link>
       </CardFooter>
     </Card>
   );
