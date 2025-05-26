@@ -25,12 +25,11 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
   return (
     <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-ffp-gold/10 to-ffp-navy/10 rounded-full blur-xl animate-pulse" />
+      <div className="relative bg-white p-8 rounded-lg">
         <img 
           src="/lovable-uploads/51d17d9a-87dc-4294-a89e-d45f9db1b00f.png" 
           alt="FFP Advogados"
-          className="w-96 h-auto animate-logo-glow"
+          className="w-96 h-auto"
         />
       </div>
     </div>
