@@ -74,6 +74,12 @@ const Header = () => {
             >
               Notícias
             </Link>
+            <Link 
+              to="/portal"
+              className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium"
+            >
+              Portal Corporativo
+            </Link>
             <button 
               onClick={() => scrollToSection('contato')}
               className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium"
@@ -130,6 +136,13 @@ const Header = () => {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Notícias
+              </Link>
+              <Link 
+                to="/portal"
+                className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium text-left"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Portal Corporativo
               </Link>
               <button 
                 onClick={() => scrollToSection('contato')}
