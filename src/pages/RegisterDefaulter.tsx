@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Save, Eye, Send, Calculator, Building2, User, Phone, Mail, Calendar, DollarSign, Percent, FileText, Settings, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -88,7 +88,7 @@ FFP Advogados`
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedCondominium) {
       calculateValues();
     }
