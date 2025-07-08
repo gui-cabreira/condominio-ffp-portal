@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Save, Play, MessageCircle, Mail, FileText, Clock, Settings2 } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Play, MessageCircle, Mail, FileText, Clock, Settings2, Wand2, Copy, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ReactFlow,
   MiniMap,
@@ -140,6 +141,7 @@ const nodeTypes = {
 const WorkflowConfig = () => {
   const [workflowName, setWorkflowName] = useState('Workflow Padrão');
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [activeTab, setActiveTab] = useState('flow');
 
   // Estados do React Flow
   const initialNodes: Node[] = [
@@ -190,6 +192,90 @@ const WorkflowConfig = () => {
     },
   ];
 
+  // Templates de mensagem pré-definidos
+  const messageTemplates = {
+    whatsapp: [
+      {
+        name: 'Primeiro Contato - Amigável',
+        content: `Olá {nome}! 😊
+
+Seu boleto do condomínio no valor de {valor} vence em {dias} dias.
+
+📱 Acesse facilmente: {link}
+
+Qualquer dúvida, estou aqui para ajudar!`,
+        variables: ['nome', 'valor', 'dias', 'link']
+      },
+      {
+        name: 'Lembrete - Vencimento Próximo',
+        content: `Oi {nome}! ⏰
+
+Lembrete: seu boleto de {valor} vence amanhã.
+
+💳 Pague agora: {link}
+
+Evite juros e mantenha sua situação em dia! 👍`,
+        variables: ['nome', 'valor', 'link']
+      },
+      {
+        name: 'Cobrança - Vencido',
+        content: `{nome}, seu boleto de {valor} está vencido há {dias_vencido} dias.
+
+🚨 URGENTE: Regularize sua situação
+💰 Valor atualizado: {valor_atualizado}
+📞 Em caso de dúvidas: {telefone}
+
+Acesse: {link}`,
+        variables: ['nome', 'valor', 'dias_vencido', 'valor_atualizado', 'telefone', 'link']
+      }
+    ],
+    email: [
+      {
+        name: 'E-mail Formal - Primeira Cobrança',
+        content: `Prezado(a) {nome},
+
+Esperamos que este e-mail o(a) encontre bem.
+
+Informamos que o boleto referente ao condomínio no valor de {valor} encontra-se em aberto, com vencimento para {data_vencimento}.
+
+Para sua comodidade, disponibilizamos o link direto para pagamento:
+{link}
+
+Atenciosamente,
+FFP Advogados`,
+        variables: ['nome', 'valor', 'data_vencimento', 'link']
+      },
+      {
+        name: 'E-mail - Segunda Via',
+        content: `{nome},
+
+Segue segunda via do seu boleto:
+
+Valor: {valor}
+Vencimento: {data_vencimento}
+Link: {link}
+
+Caso já tenha efetuado o pagamento, desconsidere este e-mail.
+
+Atenciosamente,
+Equipe de Cobrança`,
+        variables: ['nome', 'valor', 'data_vencimento', 'link']
+      }
+    ],
+    sms: [
+      {
+        name: 'SMS - Lembrete',
+        content: `{nome}, seu boleto de {valor} vence em {dias} dias. Acesse: {link_curto}`,
+        variables: ['nome', 'valor', 'dias', 'link_curto']
+      },
+      {
+        name: 'SMS - Vencido',
+        content: `URGENTE: {nome}, boleto vencido de {valor}. Regularize: {link_curto}`,
+        variables: ['nome', 'valor', 'link_curto']
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -208,6 +294,10 @@ const WorkflowConfig = () => {
               <h1 className="text-xl font-semibold text-ffp-navy">Configuração de Workflow</h1>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline">
+                <Download className="w-4 h-4 mr-2" />
+                Exportar
+              </Button>
               <Button variant="outline">Pré-visualizar</Button>
               <Button className="bg-ffp-navy hover:bg-ffp-navy-dark text-white">
                 <Save className="w-4 h-4 mr-2" />
@@ -219,141 +309,370 @@ const WorkflowConfig = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Painel Lateral */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Configurações Gerais */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-ffp-navy text-sm">Configurações</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="workflow-name">Nome do Workflow</Label>
-                  <Input
-                    id="workflow-name"
-                    value={workflowName}
-                    onChange={(e) => setWorkflowName(e.target.value)}
-                    placeholder="Nome do workflow..."
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="template">Template Inicial</Label>
-                  <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Escolher template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {templates.map((template, index) => (
-                        <SelectItem key={index} value={template.name}>
-                          {template.name}
-                        </SelectItem>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="flow">Designer Visual</TabsTrigger>
+            <TabsTrigger value="templates">Templates de Mensagem</TabsTrigger>
+            <TabsTrigger value="automation">Automação</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="flow">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Painel Lateral */}
+              <div className="lg:col-span-1 space-y-6">
+                {/* Configurações Gerais */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-ffp-navy text-sm">Configurações</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="workflow-name">Nome do Workflow</Label>
+                      <Input
+                        id="workflow-name"
+                        value={workflowName}
+                        onChange={(e) => setWorkflowName(e.target.value)}
+                        placeholder="Nome do workflow..."
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="template">Template Inicial</Label>
+                      <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Escolher template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {templates.map((template, index) => (
+                            <SelectItem key={index} value={template.name}>
+                              {template.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Elementos */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-ffp-navy text-sm">Adicionar Elementos</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => addNode('whatsapp', 'message')}
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2 text-green-600" />
+                      WhatsApp
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => addNode('email', 'message')}
+                    >
+                      <Mail className="w-4 h-4 mr-2 text-blue-600" />
+                      E-mail
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => addNode('sms', 'message')}
+                    >
+                      <FileText className="w-4 h-4 mr-2 text-purple-600" />
+                      SMS
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => addNode('delay', 'delay')}
+                    >
+                      <Clock className="w-4 h-4 mr-2 text-yellow-600" />
+                      Aguardar
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Templates */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-ffp-navy text-sm">Templates</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {templates.map((template, index) => (
+                      <div key={index} className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <h4 className="font-medium text-sm">{template.name}</h4>
+                        <p className="text-xs text-gray-600 mt-1">{template.description}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Área do Flow */}
+              <div className="lg:col-span-3">
+                <Card className="h-[600px]">
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <CardTitle className="text-ffp-navy">Designer de Workflow</CardTitle>
+                        <CardDescription>
+                          Arraste e conecte os elementos para criar seu fluxo de cobrança
+                        </CardDescription>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Settings2 className="w-4 h-4 mr-2" />
+                        Configurações Avançadas
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0 h-full">
+                    <div className="h-[500px] border rounded-lg overflow-hidden">
+                      <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        onConnect={onConnect}
+                        nodeTypes={nodeTypes}
+                        fitView
+                        className="bg-gray-50"
+                      >
+                        <Controls />
+                        <MiniMap />
+                        <Background gap={12} size={1} />
+                      </ReactFlow>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="templates">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* WhatsApp Templates */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-ffp-navy flex items-center">
+                      <MessageCircle className="w-5 h-5 mr-2 text-green-600" />
+                      WhatsApp
+                    </CardTitle>
+                    <Button variant="outline" size="sm">
+                      <Plus className="w-4 h-4 mr-1" />
+                      Novo
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {messageTemplates.whatsapp.map((template, index) => (
+                    <div key={index} className="border rounded-lg p-3 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium text-sm">{template.name}</h4>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm">
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Wand2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-xs bg-gray-50 p-2 rounded">
+                        {template.content.substring(0, 100)}...
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {template.variables.map((variable, i) => (
+                          <span key={i} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            {`{${variable}}`}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* E-mail Templates */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-ffp-navy flex items-center">
+                      <Mail className="w-5 h-5 mr-2 text-blue-600" />
+                      E-mail
+                    </CardTitle>
+                    <Button variant="outline" size="sm">
+                      <Plus className="w-4 h-4 mr-1" />
+                      Novo
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {messageTemplates.email.map((template, index) => (
+                    <div key={index} className="border rounded-lg p-3 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium text-sm">{template.name}</h4>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm">
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Wand2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-xs bg-gray-50 p-2 rounded">
+                        {template.content.substring(0, 100)}...
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {template.variables.map((variable, i) => (
+                          <span key={i} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            {`{${variable}}`}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* SMS Templates */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-ffp-navy flex items-center">
+                      <FileText className="w-5 h-5 mr-2 text-purple-600" />
+                      SMS
+                    </CardTitle>
+                    <Button variant="outline" size="sm">
+                      <Plus className="w-4 h-4 mr-1" />
+                      Novo
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {messageTemplates.sms.map((template, index) => (
+                    <div key={index} className="border rounded-lg p-3 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium text-sm">{template.name}</h4>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm">
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Wand2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-xs bg-gray-50 p-2 rounded">
+                        {template.content}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {template.variables.map((variable, i) => (
+                          <span key={i} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            {`{${variable}}`}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="automation">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-ffp-navy">Geração Automática de Templates</CardTitle>
+                  <CardDescription>Configure a personalização automática das mensagens</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Variáveis Disponíveis</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['nome', 'valor', 'data_vencimento', 'dias', 'link', 'telefone', 'condominio'].map((variable) => (
+                        <div key={variable} className="flex items-center justify-between p-2 border rounded">
+                          <span className="text-sm">{`{${variable}}`}</span>
+                          <Button variant="ghost" size="sm">
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Elementos */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-ffp-navy text-sm">Adicionar Elementos</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => addNode('whatsapp', 'message')}
-                >
-                  <MessageCircle className="w-4 h-4 mr-2 text-green-600" />
-                  WhatsApp
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => addNode('email', 'message')}
-                >
-                  <Mail className="w-4 h-4 mr-2 text-blue-600" />
-                  E-mail
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => addNode('sms', 'message')}
-                >
-                  <FileText className="w-4 h-4 mr-2 text-purple-600" />
-                  SMS
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => addNode('delay', 'delay')}
-                >
-                  <Clock className="w-4 h-4 mr-2 text-yellow-600" />
-                  Aguardar
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Templates */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-ffp-navy text-sm">Templates</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {templates.map((template, index) => (
-                  <div key={index} className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <h4 className="font-medium text-sm">{template.name}</h4>
-                    <p className="text-xs text-gray-600 mt-1">{template.description}</p>
+                    </div>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Área do Flow */}
-          <div className="lg:col-span-3">
-            <Card className="h-[600px]">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-ffp-navy">Designer de Workflow</CardTitle>
-                    <CardDescription>
-                      Arraste e conecte os elementos para criar seu fluxo de cobrança
-                    </CardDescription>
+                  
+                  <div className="space-y-2">
+                    <Label>Personalização por Condomínio</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Escolher condomínio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="villa-real">Villa Real</SelectItem>
+                        <SelectItem value="jardins">Residencial Jardins</SelectItem>
+                        <SelectItem value="central-park">Central Park</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Button variant="outline" size="sm">
-                    <Settings2 className="w-4 h-4 mr-2" />
-                    Configurações Avançadas
+
+                  <Button className="w-full bg-ffp-gold hover:bg-ffp-gold-dark text-ffp-navy">
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Gerar Templates Personalizados
                   </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0 h-full">
-                <div className="h-[500px] border rounded-lg overflow-hidden">
-                  <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodesChange={onNodesChange}
-                    onEdgesChange={onEdgesChange}
-                    onConnect={onConnect}
-                    nodeTypes={nodeTypes}
-                    fitView
-                    className="bg-gray-50"
-                  >
-                    <Controls />
-                    <MiniMap />
-                    <Background gap={12} size={1} />
-                  </ReactFlow>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-ffp-navy">Integração com Boletos</CardTitle>
+                  <CardDescription>Configure a atualização automática de dados</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>URL do Webhook</Label>
+                    <Input placeholder="https://api.banco.com/webhook" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Frequência de Sincronização</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="A cada 4 horas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1h">A cada 1 hora</SelectItem>
+                        <SelectItem value="4h">A cada 4 horas</SelectItem>
+                        <SelectItem value="12h">A cada 12 horas</SelectItem>
+                        <SelectItem value="24h">Uma vez por dia</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded">
+                    <div>
+                      <p className="font-medium text-sm">Status da Sincronização</p>
+                      <p className="text-xs text-gray-600">Última: 2 horas atrás</p>
+                    </div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
+
+                  <Button variant="outline" className="w-full">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Testar Integração
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

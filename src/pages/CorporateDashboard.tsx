@@ -1,13 +1,14 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LogOut, FileText, DollarSign, Users, Calendar, Search, Plus, Filter, Building2, Settings, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
+import { LogOut, FileText, DollarSign, Users, Calendar, Search, Plus, Filter, Building2, Settings, BarChart3, TrendingUp, AlertTriangle, Clock, RefreshCw, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, ComposedChart } from 'recharts';
 
 const CorporateDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,6 +41,43 @@ const CorporateDashboard = () => {
     { method: 'WhatsApp', sent: 1200, opened: 980, responded: 750 },
     { method: 'E-mail', sent: 800, opened: 420, responded: 180 },
     { method: 'SMS', sent: 400, opened: 350, responded: 120 },
+  ];
+
+  // Novos dados para gráficos adicionais
+  const resolutionTimeData = [
+    { range: '0-3 dias', count: 45, percentage: 35 },
+    { range: '4-7 dias', count: 38, percentage: 30 },
+    { range: '8-15 dias', count: 25, percentage: 20 },
+    { range: '16-30 dias', count: 12, percentage: 10 },
+    { range: '30+ dias', count: 6, percentage: 5 },
+  ];
+
+  const paymentMethodsData = [
+    { method: 'PIX', value: 45, color: '#22c55e' },
+    { method: 'Boleto', value: 35, color: '#3b82f6' },
+    { method: 'Cartão', value: 15, color: '#f59e0b' },
+    { method: 'Transferência', value: 5, color: '#8b5cf6' },
+  ];
+
+  const weeklyPerformanceData = [
+    { week: 'Sem 1', enviados: 280, respondidos: 180, pagos: 120 },
+    { week: 'Sem 2', enviados: 320, respondidos: 210, pagos: 150 },
+    { week: 'Sem 3', enviados: 290, respondidos: 195, pagos: 135 },
+    { week: 'Sem 4', enviados: 350, respondidos: 240, pagos: 180 },
+  ];
+
+  const conversionFunnelData = [
+    { stage: 'Enviado', count: 1000, percentage: 100 },
+    { stage: 'Aberto', count: 750, percentage: 75 },
+    { stage: 'Clicado', count: 450, percentage: 45 },
+    { stage: 'Visualizado', count: 300, percentage: 30 },
+    { stage: 'Pago', count: 180, percentage: 18 },
+  ];
+
+  const automationStatusData = [
+    { name: 'Boletos Atualizados', count: 450, status: 'success' },
+    { name: 'Pendentes Sync', count: 12, status: 'warning' },
+    { name: 'Falhas', count: 3, status: 'error' },
   ];
 
   const getStatusColor = (status: string) => {
@@ -113,12 +151,23 @@ const CorporateDashboard = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Inadimplência</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Automação</CardTitle>
+              <RefreshCw className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-ffp-navy">18%</div>
-              <p className="text-xs text-muted-foreground">-2% este mês</p>
+              <div className="text-2xl font-bold text-ffp-navy">98%</div>
+              <p className="text-xs text-muted-foreground">Boletos sincronizados</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tempo Médio</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-ffp-navy">7,2 dias</div>
+              <p className="text-xs text-muted-foreground">Para resolução</p>
             </CardContent>
           </Card>
         </div>
@@ -128,9 +177,14 @@ const CorporateDashboard = () => {
             <TabsList>
               <TabsTrigger value="condominiums">Condomínios</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="automation">Automação</TabsTrigger>
               <TabsTrigger value="workflow">Workflow</TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
+              <Button variant="outline" className="flex items-center">
+                <Zap className="w-4 h-4 mr-2" />
+                Sync Boletos
+              </Button>
               <Link to="/portal/corporativo/workflow">
                 <Button variant="outline" className="flex items-center">
                   <Settings className="w-4 h-4 mr-2" />
@@ -214,9 +268,9 @@ const CorporateDashboard = () => {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {/* Gráfico de Arrecadação */}
-              <Card>
+              <Card className="xl:col-span-2">
                 <CardHeader>
                   <CardTitle className="text-ffp-navy">Arrecadação Mensal</CardTitle>
                   <CardDescription>Valores arrecadados vs esperados</CardDescription>
@@ -239,7 +293,7 @@ const CorporateDashboard = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-ffp-navy">Status dos Pagamentos</CardTitle>
-                  <CardDescription>Distribuição atual dos pagamentos</CardDescription>
+                  <CardDescription>Distribuição atual</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -262,8 +316,98 @@ const CorporateDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Eficácia da Comunicação */}
+              {/* Tempo de Resolução */}
+              <Card className="xl:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-ffp-navy">Tempo de Resolução</CardTitle>
+                  <CardDescription>Distribuição dos dias para pagamento</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <ComposedChart data={resolutionTimeData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="range" />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip />
+                      <Bar yAxisId="left" dataKey="count" fill="#1f2937" name="Quantidade" />
+                      <Line yAxisId="right" type="monotone" dataKey="percentage" stroke="#f59e0b" strokeWidth={2} name="%" />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Métodos de Pagamento */}
               <Card>
+                <CardHeader>
+                  <CardTitle className="text-ffp-navy">Métodos de Pagamento</CardTitle>
+                  <CardDescription>Preferência dos clientes</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={paymentMethodsData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        dataKey="value"
+                        label={({ name, value }) => `${name}: ${value}%`}
+                      >
+                        {paymentMethodsData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Performance Semanal */}
+              <Card className="xl:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-ffp-navy">Performance Semanal</CardTitle>
+                  <CardDescription>Evolução dos resultados por semana</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={weeklyPerformanceData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="week" />
+                      <YAxis />
+                      <Tooltip />
+                      <Area type="monotone" dataKey="enviados" stackId="1" stroke="#ddd" fill="#ddd" name="Enviados" />
+                      <Area type="monotone" dataKey="respondidos" stackId="1" stroke="#f59e0b" fill="#f59e0b" name="Respondidos" />
+                      <Area type="monotone" dataKey="pagos" stackId="1" stroke="#22c55e" fill="#22c55e" name="Pagos" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Funil de Conversão */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-ffp-navy">Funil de Conversão</CardTitle>
+                  <CardDescription>Jornada do cliente</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {conversionFunnelData.map((stage, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">{stage.stage}</span>
+                          <span className="text-sm text-gray-600">{stage.count} ({stage.percentage}%)</span>
+                        </div>
+                        <Progress value={stage.percentage} className="h-2" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Eficácia da Comunicação */}
+              <Card className="xl:col-span-3">
                 <CardHeader>
                   <CardTitle className="text-ffp-navy">Eficácia da Comunicação</CardTitle>
                   <CardDescription>Performance dos canais de cobrança</CardDescription>
@@ -282,29 +426,110 @@ const CorporateDashboard = () => {
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
+            </div>
+          </TabsContent>
 
-              {/* Tendência de Inadimplência */}
+          <TabsContent value="automation">
+            <div className="space-y-6">
+              {/* Status da Automação */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {automationStatusData.map((item, index) => (
+                  <Card key={index}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">{item.name}</CardTitle>
+                      <div className={`w-3 h-3 rounded-full ${
+                        item.status === 'success' ? 'bg-green-500' : 
+                        item.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                      }`} />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-ffp-navy">{item.count}</div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Configurações de Automação */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-ffp-navy">Sincronização de Boletos</CardTitle>
+                    <CardDescription>Configure a atualização automática dos boletos</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Sincronização Automática</span>
+                      <Button variant="outline" size="sm">Ativado</Button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Frequência</span>
+                      <span className="text-sm text-gray-600">A cada 4 horas</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Última sincronização</span>
+                      <span className="text-sm text-gray-600">Há 2 horas</span>
+                    </div>
+                    <Button className="w-full bg-ffp-navy hover:bg-ffp-navy-dark text-white">
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Sincronizar Agora
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-ffp-navy">Templates de Mensagem</CardTitle>
+                    <CardDescription>Geração automática de templates personalizados</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">WhatsApp - 1º Contato</Label>
+                      <div className="p-3 bg-gray-50 rounded text-sm">
+                        "Olá {'nome'}, seu boleto de {'valor'} vence em {'dias_vencimento'} dias. Clique aqui para visualizar: {'link_boleto'}"
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">E-mail - Lembrete</Label>
+                      <div className="p-3 bg-gray-50 rounded text-sm">
+                        "Prezado(a) {'nome'}, este é um lembrete amigável sobre seu boleto de {'valor'}..."
+                      </div>
+                    </div>
+                    <Button variant="outline" className="w-full">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Editar Templates
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Logs de Automação */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-ffp-navy">Tendência de Inadimplência</CardTitle>
-                  <CardDescription>Evolução da inadimplência nos últimos meses</CardDescription>
+                  <CardTitle className="text-ffp-navy">Logs de Automação</CardTitle>
+                  <CardDescription>Histórico das operações automáticas</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line 
-                        type="monotone" 
-                        dataKey="collected" 
-                        stroke="#1f2937" 
-                        strokeWidth={2}
-                        name="Arrecadação"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <div className="space-y-3">
+                    {[
+                      { time: '14:30', action: 'Sincronização de boletos', status: 'success', details: '450 boletos atualizados' },
+                      { time: '12:15', action: 'Envio automático WhatsApp', status: 'success', details: '120 mensagens enviadas' },
+                      { time: '10:00', action: 'Geração de templates', status: 'success', details: '3 templates atualizados' },
+                      { time: '09:45', action: 'Sincronização de boletos', status: 'warning', details: '12 boletos com erro' },
+                    ].map((log, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            log.status === 'success' ? 'bg-green-500' : 'bg-yellow-500'
+                          }`} />
+                          <div>
+                            <p className="text-sm font-medium">{log.action}</p>
+                            <p className="text-xs text-gray-600">{log.details}</p>
+                          </div>
+                        </div>
+                        <span className="text-xs text-gray-500">{log.time}</span>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>
