@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import CondominiumAgent from '@/components/CondominiumAgent';
 
 const CondominiumDetails = () => {
   const { id } = useParams();
@@ -288,6 +289,12 @@ const CondominiumDetails = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Condominium-specific Agent */}
+      <CondominiumAgent 
+        condominiumId={id || ''} 
+        condominiumName={condominium.name}
+      />
     </div>
   );
 };
