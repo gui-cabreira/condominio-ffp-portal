@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, ComposedChart } from 'recharts';
+import StatisticsAgent from '@/components/StatisticsAgent';
 
 const CorporateDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -574,6 +575,9 @@ const CorporateDashboard = () => {
         </Tabs>
 
       </div>
+
+      {/* Statistics Agent */}
+      <StatisticsAgent />
     </div>
   );
 };

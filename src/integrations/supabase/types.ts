@@ -14,6 +14,137 @@ export type Database = {
   }
   public: {
     Tables: {
+      charges: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          due_date: string
+          id: string
+          payment_date: string | null
+          reference_month: string | null
+          status: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          payment_date?: string | null
+          reference_month?: string | null
+          status?: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          payment_date?: string | null
+          reference_month?: string | null
+          status?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charges_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      condominiums: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          total_units: number
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          total_units?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          total_units?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          charge_id: string | null
+          content: string
+          created_at: string
+          id: string
+          opened_at: string | null
+          responded_at: string | null
+          sent_at: string
+          status: string
+          type: string
+          unit_id: string
+        }
+        Insert: {
+          charge_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          opened_at?: string | null
+          responded_at?: string | null
+          sent_at?: string
+          status?: string
+          type: string
+          unit_id: string
+        }
+        Update: {
+          charge_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          opened_at?: string | null
+          responded_at?: string | null
+          sent_at?: string
+          status?: string
+          type?: string
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -41,6 +172,61 @@ export type Database = {
         }
         Relationships: []
       }
+      units: {
+        Row: {
+          condominium_id: string
+          created_at: string
+          id: string
+          owner_email: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          unit_number: string
+          updated_at: string
+        }
+        Insert: {
+          condominium_id: string
+          created_at?: string
+          id?: string
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          unit_number: string
+          updated_at?: string
+        }
+        Update: {
+          condominium_id?: string
+          created_at?: string
+          id?: string
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          unit_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "condominiums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "units_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "defaulter_statistics"
+            referencedColumns: ["condominium_id"]
+          },
+          {
+            foreignKeyName: "units_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "message_statistics"
+            referencedColumns: ["condominium_id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -64,7 +250,29 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      defaulter_statistics: {
+        Row: {
+          condominium_id: string | null
+          condominium_name: string | null
+          defaulter_units: number | null
+          paid_units: number | null
+          total_paid_amount: number | null
+          total_pending_amount: number | null
+          total_units: number | null
+        }
+        Relationships: []
+      }
+      message_statistics: {
+        Row: {
+          condominium_id: string | null
+          condominium_name: string | null
+          messages_not_opened: number | null
+          messages_opened: number | null
+          messages_responded: number | null
+          total_messages_sent: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
