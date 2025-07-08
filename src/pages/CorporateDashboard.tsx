@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, ComposedChart } from 'recharts';
 import StatisticsAgent from '@/components/StatisticsAgent';
+import WeeklyReports from '@/components/WeeklyReports';
 
 const CorporateDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -180,6 +181,7 @@ const CorporateDashboard = () => {
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="automation">Automação</TabsTrigger>
               <TabsTrigger value="workflow">Workflow</TabsTrigger>
+              <TabsTrigger value="reports">Relatórios</TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
               <Link to="/portal/corporativo/importar">
@@ -571,6 +573,10 @@ const CorporateDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <WeeklyReports />
           </TabsContent>
         </Tabs>
 
