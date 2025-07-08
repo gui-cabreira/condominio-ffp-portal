@@ -83,8 +83,11 @@ serve(async (req) => {
 
     console.log('Context prepared:', JSON.stringify(context, null, 2));
 
-    // Create context message with all data
-    const contextMessage = `Dados atualizados do sistema FFP Advogados:
+    let answer = '';
+
+    try {
+      // First try using Assistants API
+      const contextMessage = `Dados atualizados do sistema FFP Advogados:
 
 RESUMO GERAL:
 - Total de condomínios: ${context.condominiums.length}
@@ -107,111 +110,167 @@ Data atual: ${context.current_date}
 
 Pergunta do usuário: ${question}`;
 
-    // Create a thread with OpenAI Assistants API
-    const threadResponse = await fetch('https://api.openai.com/v1/threads', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2',
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'user',
-            content: contextMessage
-          }
-        ]
-      }),
-    });
+      // Try Assistants API first
+      console.log('Trying Assistants API...');
+      
+      const threadResponse = await fetch('https://api.openai.com/v1/threads', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+          'OpenAI-Beta': 'assistants=v2',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'user',
+              content: contextMessage
+            }
+          ]
+        }),
+      });
 
-    if (!threadResponse.ok) {
-      throw new Error(`Error creating thread: ${threadResponse.statusText}`);
-    }
-
-    const threadData = await threadResponse.json();
-    const threadId = threadData.id;
-
-    console.log('Thread created:', threadId);
-
-    // Run the assistant
-    const runResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2',
-      },
-      body: JSON.stringify({
-        assistant_id: assistantId,
-      }),
-    });
-
-    if (!runResponse.ok) {
-      throw new Error(`Error running assistant: ${runResponse.statusText}`);
-    }
-
-    const runData = await runResponse.json();
-    const runId = runData.id;
-
-    console.log('Run started:', runId);
-
-    // Poll for completion
-    let runStatus = 'in_progress';
-    let attempts = 0;
-    const maxAttempts = 30; // 30 seconds timeout
-
-    while (runStatus === 'in_progress' || runStatus === 'queued') {
-      if (attempts >= maxAttempts) {
-        throw new Error('Assistant timeout');
+      if (!threadResponse.ok) {
+        throw new Error(`Assistants API not available: ${threadResponse.status}`);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-      attempts++;
+      const threadData = await threadResponse.json();
+      const threadId = threadData.id;
 
-      const statusResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+      const runResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+          'OpenAI-Beta': 'assistants=v2',
+        },
+        body: JSON.stringify({
+          assistant_id: assistantId,
+        }),
+      });
+
+      if (!runResponse.ok) {
+        throw new Error(`Error running assistant: ${runResponse.status}`);
+      }
+
+      const runData = await runResponse.json();
+      const runId = runData.id;
+
+      // Poll for completion
+      let runStatus = 'in_progress';
+      let attempts = 0;
+      const maxAttempts = 30;
+
+      while (runStatus === 'in_progress' || runStatus === 'queued') {
+        if (attempts >= maxAttempts) {
+          throw new Error('Assistant timeout');
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+
+        const statusResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'OpenAI-Beta': 'assistants=v2',
+          },
+        });
+
+        if (!statusResponse.ok) {
+          throw new Error(`Error checking run status: ${statusResponse.status}`);
+        }
+
+        const statusData = await statusResponse.json();
+        runStatus = statusData.status;
+      }
+
+      if (runStatus !== 'completed') {
+        throw new Error(`Assistant run failed with status: ${runStatus}`);
+      }
+
+      // Get the assistant's response
+      const messagesResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
         headers: {
           'Authorization': `Bearer ${openAIApiKey}`,
           'OpenAI-Beta': 'assistants=v2',
         },
       });
 
-      if (!statusResponse.ok) {
-        throw new Error(`Error checking run status: ${statusResponse.statusText}`);
+      if (!messagesResponse.ok) {
+        throw new Error(`Error getting messages: ${messagesResponse.status}`);
       }
 
-      const statusData = await statusResponse.json();
-      runStatus = statusData.status;
+      const messagesData = await messagesResponse.json();
+      const assistantMessage = messagesData.data.find((msg: any) => msg.role === 'assistant');
+      
+      if (!assistantMessage || !assistantMessage.content || !assistantMessage.content[0]) {
+        throw new Error('No response from assistant');
+      }
 
-      console.log(`Run status: ${runStatus}, attempt: ${attempts}`);
+      answer = assistantMessage.content[0].text.value;
+      console.log('Assistants API Response:', answer);
+
+    } catch (assistantError) {
+      console.log('Assistants API failed, falling back to Chat Completions:', assistantError.message);
+      
+      // Fallback to Chat Completions API
+      const systemPrompt = `Você é um assistente especializado em análise de dados de cobrança condominial da FFP Advogados.
+
+Dados disponíveis:
+- Total de condomínios: ${context.condominiums.length}
+- Total de cobranças: ${context.total_charges}
+- Cobranças pagas: ${context.paid_charges}
+- Cobranças pendentes: ${context.pending_charges}
+- Cobranças vencidas: ${context.overdue_charges}
+- Total de mensagens enviadas: ${context.total_messages}
+- Mensagens abertas: ${context.opened_messages}
+- Mensagens não abertas: ${context.not_opened_messages}
+- Mensagens respondidas: ${context.responded_messages}
+
+Estatísticas por condomínio:
+${JSON.stringify(context.defaulter_statistics, null, 2)}
+
+Estatísticas de mensagens por condomínio:
+${JSON.stringify(context.message_statistics, null, 2)}
+
+Instruções:
+1. Responda sempre em português brasileiro
+2. Seja preciso com os números
+3. Use formatação clara com bullet points quando necessário
+4. Quando falar de valores monetários, use formato brasileiro (R$ 1.234,56)
+5. Seja conciso mas informativo
+6. Se não tiver dados suficientes para responder algo específico, informe isso
+7. Calcule percentuais quando relevante
+8. Foque na pergunta específica do usuário
+
+Data atual: ${context.current_date}`;
+
+      const chatResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: question }
+          ],
+          max_tokens: 1000,
+          temperature: 0.3,
+        }),
+      });
+
+      if (!chatResponse.ok) {
+        const errorText = await chatResponse.text();
+        throw new Error(`OpenAI Chat API error: ${chatResponse.status} - ${errorText}`);
+      }
+
+      const chatData = await chatResponse.json();
+      answer = chatData.choices[0].message.content;
+      console.log('Chat Completions API Response:', answer);
     }
-
-    if (runStatus !== 'completed') {
-      throw new Error(`Assistant run failed with status: ${runStatus}`);
-    }
-
-    // Get the assistant's response
-    const messagesResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'OpenAI-Beta': 'assistants=v2',
-      },
-    });
-
-    if (!messagesResponse.ok) {
-      throw new Error(`Error getting messages: ${messagesResponse.statusText}`);
-    }
-
-    const messagesData = await messagesResponse.json();
-    const assistantMessage = messagesData.data.find((msg: any) => msg.role === 'assistant');
-    
-    if (!assistantMessage || !assistantMessage.content || !assistantMessage.content[0]) {
-      throw new Error('No response from assistant');
-    }
-
-    const answer = assistantMessage.content[0].text.value;
-
-    console.log('AI Response:', answer);
 
     return new Response(JSON.stringify({ 
       answer,
