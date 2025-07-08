@@ -14,6 +14,8 @@ import CorporateDashboard from "./pages/CorporateDashboard";
 import ClientDashboard from "./pages/ClientDashboard";
 import CondominiumDetails from "./pages/CondominiumDetails";
 import WorkflowConfig from "./pages/WorkflowConfig";
+import ImportCharges from "./pages/ImportCharges";
+import RegisterDefaulter from "./pages/RegisterDefaulter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
           <Route path="/portal/corporativo/dashboard" element={<CorporateDashboard />} />
           <Route path="/portal/corporativo/condominio/:id" element={<CondominiumDetails />} />
           <Route path="/portal/corporativo/workflow" element={<WorkflowConfig />} />
+          <Route path="/portal/corporativo/importar" element={<ImportCharges />} />
+          <Route path="/portal/corporativo/cadastrar-inadimplente" element={<RegisterDefaulter />} />
           <Route path="/portal/cliente/dashboard" element={<ClientDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LogOut, FileText, DollarSign, Users, Calendar, Search, Plus, Filter, Building2, Settings, BarChart3, TrendingUp, AlertTriangle, Clock, RefreshCw, Zap } from 'lucide-react';
+import { LogOut, FileText, DollarSign, Users, Calendar, Search, Plus, Filter, Building2, Settings, BarChart3, TrendingUp, AlertTriangle, Clock, RefreshCw, Zap, Upload, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -181,6 +181,18 @@ const CorporateDashboard = () => {
               <TabsTrigger value="workflow">Workflow</TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
+              <Link to="/portal/corporativo/importar">
+                <Button variant="outline" className="flex items-center">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Importar Cobranças
+                </Button>
+              </Link>
+              <Link to="/portal/corporativo/cadastrar-inadimplente">
+                <Button variant="outline" className="flex items-center">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Cadastrar Inadimplente
+                </Button>
+              </Link>
               <Button variant="outline" className="flex items-center">
                 <Zap className="w-4 h-4 mr-2" />
                 Sync Boletos
