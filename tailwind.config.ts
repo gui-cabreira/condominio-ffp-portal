@@ -31,11 +31,11 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				ffp: {
 					navy: '#1E2C54',
-					gold: '#c09853',
+					gold: '#b37834',
 					'navy-light': '#2d3a6e',
 					'navy-dark': '#151f45',
-					'gold-light': '#d4a863',
-					'gold-dark': '#a67d3a',
+					'gold-light': '#c5884a',
+					'gold-dark': '#9a6628',
 				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
