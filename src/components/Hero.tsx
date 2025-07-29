@@ -68,7 +68,7 @@ const Hero = () => {
           <div className="relative animate-scale-in">
             <div className="absolute inset-0 bg-ffp-gold/20 rounded-3xl blur-3xl" />
             <img 
-              src="/lovable-uploads/51d17d9a-87dc-4294-a89e-d45f9db1b00f.png" 
+              src="/lovable-uploads/1b1a978c-89e0-4816-b68e-de6446f18cd1.png" 
               alt="FFP Advogados"
               className="relative w-full max-w-md mx-auto drop-shadow-2xl"
             />

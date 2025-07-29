@@ -39,7 +39,7 @@ const Header = () => {
         <div className="flex items-center justify-between h-20">
           <Link to="/" className="flex items-center space-x-4">
             <img 
-              src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
+              src="/lovable-uploads/c5515a32-7de1-46ce-b62d-8d29f4750130.png" 
               alt="FFP Advogados" 
               className="h-12 w-auto"
             />

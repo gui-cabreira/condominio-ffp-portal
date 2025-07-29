@@ -27,7 +27,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
       <div className="relative bg-white p-8 rounded-lg">
         <img 
-          src="/lovable-uploads/51d17d9a-87dc-4294-a89e-d45f9db1b00f.png" 
+          src="/lovable-uploads/c5515a32-7de1-46ce-b62d-8d29f4750130.png" 
           alt="FFP Advogados"
           className="w-96 h-auto"
         />
