@@ -19,9 +19,9 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				'playfair': ['Georgia', 'Times New Roman', 'serif'],
-				'inter': ['Inter', 'sans-serif'],
-				'sans': ['Arial', 'Helvetica', 'sans-serif'], // Define Arial como fonte padrão
+				'montserrat': ['Montserrat', 'sans-serif'],
+				'playfair': ['Playfair Display', 'serif'],
+				'sans': ['Montserrat', 'sans-serif'], // Define Montserrat como fonte padrão
 			},
 			colors: {
 				border: 'hsl(var(--border))',
