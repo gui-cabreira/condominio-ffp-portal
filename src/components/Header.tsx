@@ -41,7 +41,7 @@ const Header = () => {
             <img 
               src="/lovable-uploads/c5515a32-7de1-46ce-b62d-8d29f4750130.png" 
               alt="FFP Advogados" 
-              className="h-10 w-auto"
+              className="h-8 w-auto"
             />
           </Link>
 

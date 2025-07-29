@@ -14,7 +14,7 @@ const Hero = () => {
   };
 
   return (
-    <section id="inicio" className="relative min-h-screen flex items-center overflow-hidden">
+    <section id="inicio" className="relative min-h-screen flex items-center overflow-hidden pt-24">
       <AnimatedBackground />
       
       {/* Geometric Pattern with Parallax */}
