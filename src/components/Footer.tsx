@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Phone, Mail, MapPin, Facebook, Instagram, Linkedin, Globe } from 'lucide-react';
+import { Phone, Mail, Instagram, Globe } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -27,14 +27,8 @@ const Footer = () => {
             </p>
 
             <div className="flex space-x-4">
-              <a href="#" className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-ffp-gold hover:text-white transition-all">
-                <Facebook size={20} className="text-gray-600 hover:text-white" />
-              </a>
               <a href="https://instagram.com/ffpadvogados.com.br" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-ffp-gold hover:text-white transition-all">
                 <Instagram size={20} className="text-gray-600 hover:text-white" />
-              </a>
-              <a href="#" className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-ffp-gold hover:text-white transition-all">
-                <Linkedin size={20} className="text-gray-600 hover:text-white" />
               </a>
             </div>
           </div>
@@ -70,14 +64,6 @@ const Footer = () => {
                 <a href="http://www.ffpadvogados.com.br" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-ffp-gold text-sm transition-colors">
                   www.ffpadvogados.com.br
                 </a>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <MapPin size={16} className="text-ffp-gold mt-1" />
-                <span className="text-gray-600 text-sm">
-                  Av. Paulista, 1000 - Conjunto 101<br />
-                  Bela Vista, São Paulo - SP
-                </span>
               </div>
             </div>
           </div>

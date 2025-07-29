@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Users, FileText, Scale, UserCheck, FileCheck, AlertCircle, Shield, MessageSquare } from 'lucide-react';
+import { Users, FileText, Scale, UserCheck, FileCheck, AlertCircle, Shield, MessageSquare, Building } from 'lucide-react';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 
 const Services = () => {
-  const services = [
+  const condominialServices = [
     {
       icon: Users,
       title: 'Reuniões',
@@ -47,6 +47,39 @@ const Services = () => {
     }
   ];
 
+  const businessServices = [
+    {
+      icon: Building,
+      title: 'Constituição e Reestruturação Societária',
+      description: 'Elaboração e revisão de contratos sociais, estatutos e acordos de sócios.'
+    },
+    {
+      icon: FileText,
+      title: 'Contratos Empresariais',
+      description: 'Redação, revisão e análise de contratos comerciais, parcerias, prestação de serviços, entre outros.'
+    },
+    {
+      icon: AlertCircle,
+      title: 'Cobrança Judicial e Extrajudicial',
+      description: 'Atuação eficiente na recuperação de créditos empresariais, com foco em soluções céleres e eficazes.'
+    },
+    {
+      icon: Scale,
+      title: 'Assessoria Contenciosa Estratégica',
+      description: 'Representação em disputas judiciais e arbitrais envolvendo relações comerciais, responsabilidade civil empresarial, quebra de contrato e conflitos societários.'
+    },
+    {
+      icon: FileCheck,
+      title: 'Due Diligence e Fusões e Aquisições (M&A)',
+      description: 'Apoio jurídico na análise de riscos e estruturação de operações de compra, venda ou incorporação de empresas.'
+    },
+    {
+      icon: UserCheck,
+      title: 'Assessoria Jurídica Trabalhista',
+      description: 'Soluções jurídicas eficazes e estratégicas para lidar com questões relacionadas ao contrato de trabalho, buscando a redução do passivo trabalhista.'
+    }
+  ];
+
   return (
     <section id="servicos" className="py-20 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
       {/* Background Elements */}
@@ -62,14 +95,55 @@ const Services = () => {
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Oferecemos soluções jurídicas completas e especializadas para todas as necessidades 
-            do direito condominial, com foco na excelência e resultados.
+            do direito condominial e empresarial, com foco na excelência e resultados.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {services.map((service, index) => {
-            return <ServiceCard key={index} service={service} index={index} />;
-          })}
+        {/* Direito Condominial */}
+        <div className="mb-20">
+          <div className="text-center mb-12">
+            <h3 className="font-playfair text-3xl font-bold text-ffp-navy mb-4">
+              Direito Condominial
+            </h3>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Especialistas em soluções estratégicas para acordos condominiais, gestão e cobrança.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {condominialServices.map((service, index) => {
+              return <ServiceCard key={index} service={service} index={index} />;
+            })}
+          </div>
+        </div>
+
+        {/* Direito Empresarial */}
+        <div className="mb-12">
+          <div className="text-center mb-12">
+            <h3 className="font-playfair text-3xl font-bold text-ffp-navy mb-4">
+              Direito Empresarial
+            </h3>
+            <div className="max-w-4xl mx-auto">
+              <p className="text-lg text-gray-600 mb-6">
+                <strong className="text-ffp-navy">Segurança jurídica para o crescimento do seu negócio.</strong>
+              </p>
+              <p className="text-gray-600 leading-relaxed mb-6">
+                Na FFP Advogados, oferecemos assessoria jurídica completa e personalizada para empresas de todos os portes, 
+                atuando de forma estratégica para prevenir litígios, garantir conformidade legal e viabilizar o crescimento 
+                sustentável das atividades empresariais.
+              </p>
+              <p className="text-gray-600 leading-relaxed">
+                Nosso trabalho é ser parceiro do seu negócio, com atuação consultiva e contenciosa nas mais diversas 
+                frentes do Direito Empresarial.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {businessServices.map((service, index) => {
+              return <ServiceCard key={`business-${index}`} service={service} index={index} />;
+            })}
+          </div>
         </div>
 
         <div className="text-center mt-12">

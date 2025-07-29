@@ -97,8 +97,7 @@ const Contact = () => {
                   <div>
                     <h4 className="font-semibold text-ffp-navy mb-1">Horário de Atendimento</h4>
                     <p className="text-gray-600">
-                      Segunda a Sexta: 8h às 18h<br />
-                      Sábado: 8h às 12h
+                      Segunda a Sexta: 8h às 18h
                     </p>
                   </div>
                 </div>
