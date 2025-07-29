@@ -37,16 +37,12 @@ const Header = () => {
     }`}>
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between h-20">
-          <Link to="/" className="flex items-center space-x-4">
+          <Link to="/" className="flex items-center">
             <img 
               src="/lovable-uploads/c5515a32-7de1-46ce-b62d-8d29f4750130.png" 
               alt="FFP Advogados" 
               className="h-12 w-auto"
             />
-            <div className="hidden md:block">
-              <h1 className="font-georgia text-xl font-bold text-white">FFP Advogados</h1>
-              <p className="text-sm text-ffp-gold font-medium">Direito Condominial</p>
-            </div>
           </Link>
 
           <nav className="hidden lg:flex items-center space-x-8">
