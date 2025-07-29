@@ -101,8 +101,9 @@ const About = () => {
               </div>
               
               <p className="text-gray-700 leading-relaxed">
-                Com mais de 15 anos de experiência e uma sólida formação, tornou-se uma referência no setor, 
-                oferecendo soluções jurídicas eficazes e personalizadas para seus clientes.
+                Possuo uma sólida experiência de mais de 11 anos na atuação condominial, o que me permite 
+                oferecer serviços jurídicos de qualidade, atendendo às demandas específicas dos clientes 
+                de maneira eficaz e especializada.
               </p>
             </div>
 
