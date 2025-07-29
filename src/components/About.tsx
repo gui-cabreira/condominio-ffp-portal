@@ -207,7 +207,7 @@ const About = () => {
               {/* Photo with INCREDIBLE reveal animation */}
               <div 
                 ref={photoRef2.elementRef}
-                className={`relative mb-10 mx-auto lg:mx-0 w-80 h-96 transition-all duration-2000 delay-700 ${
+                className={`relative mb-10 mx-auto lg:mx-0 w-64 h-80 transition-all duration-2000 delay-700 ${
                   photoRef2.isVisible 
                     ? 'opacity-100 animate-photo-reveal' 
                     : 'opacity-0 transform scale-125 rotate-12'
