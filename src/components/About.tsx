@@ -131,9 +131,8 @@ const About = () => {
               </div>
               
               <p className="text-gray-700 leading-relaxed">
-                Com mais de 12 anos de experiência no campo do Direito Imobiliário e Condominial, 
-                oferece um conhecimento sólido e atualizado que garante soluções jurídicas eficazes 
-                e de confiança para seus clientes.
+                Com mais de 08 anos de experiência no campo do Direito Imobiliário e Condominial, 
+                trago um conhecimento sólido e atualizado para oferecer soluções jurídicas eficientes.
               </p>
             </div>
           </div>
