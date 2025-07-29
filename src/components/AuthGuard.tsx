@@ -1,10 +1,13 @@
 import { ReactNode, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
+
+type UserRole = Database['public']['Enums']['user_role'];
 
 interface AuthGuardProps {
   children: ReactNode;
-  requiredRole?: string;
+  requiredRole?: UserRole;
   redirectTo?: string;
 }
 

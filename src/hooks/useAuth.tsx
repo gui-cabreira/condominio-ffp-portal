@@ -2,6 +2,9 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
+
+type UserRole = Database['public']['Enums']['user_role'];
 
 interface AuthContextType {
   user: User | null;
@@ -9,7 +12,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  hasRole: (role: string) => Promise<boolean>;
+  hasRole: (role: UserRole) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -146,7 +149,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const hasRole = async (role: string): Promise<boolean> => {
+  const hasRole = async (role: UserRole): Promise<boolean> => {
     if (!user) return false;
     
     try {
