@@ -68,6 +68,76 @@ const About = () => {
           </div>
         </div>
 
+        {/* Founders Section */}
+        <div className="mt-20 pt-20 border-t border-gray-200">
+          <h3 className="font-playfair text-3xl font-bold text-ffp-navy text-center mb-16">
+            Nossos Fundadores
+          </h3>
+          
+          <div className="grid lg:grid-cols-2 gap-16">
+            {/* Dra. Carla Fermiano */}
+            <div className="text-center lg:text-left">
+              <div className="relative mb-8 mx-auto lg:mx-0 w-72 h-80">
+                <div className="absolute inset-0 bg-gradient-to-br from-ffp-navy/20 to-ffp-gold/20 rounded-2xl transform rotate-3" />
+                <img 
+                  src="/lovable-uploads/7b7904db-b831-475f-8e20-7d9b94ecec7e.png"
+                  alt="Dra. Carla Fermiano"
+                  className="relative rounded-2xl shadow-2xl w-full h-full object-cover"
+                />
+              </div>
+              
+              <h4 className="font-playfair text-2xl font-bold text-ffp-navy mb-2">
+                Dra. Carla Fermiano
+              </h4>
+              <p className="text-ffp-gold font-semibold mb-4">OAB/SP 297.099</p>
+              
+              <div className="space-y-2 mb-6 text-gray-600">
+                <p>• Bacharel em Direito pela FACAMP</p>
+                <p>• Pós-Graduação em Direito Público pela Escola Superior de Magistratura – EPM Campinas</p>
+                <p>• Pós-Graduação em Direito e Processo do Trabalho Universidade Presbiteriana Mackenzie</p>
+                <p>• Especialização de Técnicas Procedimentais Trabalhistas, pela FACAMP</p>
+                <p>• Pós-Graduação em Direito Negocial e Imobiliário, pelo Ebradi</p>
+                <p>• Membro da ANACON – Associação Nacional da Advocacia Condominial</p>
+              </div>
+              
+              <p className="text-gray-700 leading-relaxed">
+                Com mais de 15 anos de experiência e uma sólida formação, tornou-se uma referência no setor, 
+                oferecendo soluções jurídicas eficazes e personalizadas para seus clientes.
+              </p>
+            </div>
+
+            {/* Dr. Wilson Ferreira Pinto */}
+            <div className="text-center lg:text-left">
+              <div className="relative mb-8 mx-auto lg:mx-0 w-72 h-80">
+                <div className="absolute inset-0 bg-gradient-to-br from-ffp-gold/20 to-ffp-navy/20 rounded-2xl transform -rotate-3" />
+                <img 
+                  src="/lovable-uploads/f9ca14a4-23f3-42e1-8d55-aa3e85727a6e.png"
+                  alt="Dr. Wilson Ferreira Pinto"
+                  className="relative rounded-2xl shadow-2xl w-full h-full object-cover"
+                />
+              </div>
+              
+              <h4 className="font-playfair text-2xl font-bold text-ffp-navy mb-2">
+                Dr. Wilson Ferreira Pinto
+              </h4>
+              <p className="text-ffp-gold font-semibold mb-4">OAB/SP 341.125</p>
+              
+              <div className="space-y-2 mb-6 text-gray-600">
+                <p>• Bacharel em Direito pela UNITOLEDO</p>
+                <p>• Pós-Graduação lato sensu em Direito Público pela Pontifícia Universidade Católica de Campinas</p>
+                <p>• Pós-Graduação em Direito Condominial e Imobiliário pela Pontifícia Universidade Católica de Campinas</p>
+                <p>• Membro da ANACON – Associação Nacional da Advocacia Condominial</p>
+              </div>
+              
+              <p className="text-gray-700 leading-relaxed">
+                Com mais de 12 anos de experiência no campo do Direito Imobiliário e Condominial, 
+                oferece um conhecimento sólido e atualizado que garante soluções jurídicas eficazes 
+                e de confiança para seus clientes.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Statistics */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mt-16 pt-16 border-t border-gray-200">
           {stats.map((stat, index) => (
