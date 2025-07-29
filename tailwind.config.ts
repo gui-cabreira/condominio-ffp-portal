@@ -30,7 +30,7 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				ffp: {
-					navy: '#1e2a5e',
+					navy: '#1E2C54',
 					gold: '#c09853',
 					'navy-light': '#2d3a6e',
 					'navy-dark': '#151f45',
