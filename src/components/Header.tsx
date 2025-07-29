@@ -37,12 +37,17 @@ const Header = () => {
     }`}>
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between h-20">
-          <Link to="/" className="flex items-center">
-            <img 
-              src="/lovable-uploads/c5515a32-7de1-46ce-b62d-8d29f4750130.png" 
-              alt="FFP Advogados" 
-              className="h-8 w-auto"
-            />
+          <Link to="/" className="flex items-center group">
+            <div className="relative">
+              {/* Brilho sutil atrás do logo */}
+              <div className="absolute inset-0 bg-ffp-gold/20 rounded-full blur-lg group-hover:bg-ffp-gold/30 transition-all duration-500 animate-pulse" />
+              <div className="absolute -inset-2 bg-gradient-to-r from-ffp-gold/10 via-ffp-gold/20 to-ffp-gold/10 rounded-full blur-xl group-hover:from-ffp-gold/20 group-hover:via-ffp-gold/30 group-hover:to-ffp-gold/20 transition-all duration-700" />
+              <img 
+                src="/lovable-uploads/33cfb7d4-6c60-414d-8f2b-599c21ac2ff4.png" 
+                alt="FFP Advogados" 
+                className="h-8 w-auto relative z-10 group-hover:scale-105 transition-transform duration-300"
+              />
+            </div>
           </Link>
 
           <nav className="hidden lg:flex items-center space-x-8">
