@@ -14,7 +14,7 @@ const AnimatedBackground = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
-    }, 6000); // Increased to 6 seconds for smoother viewing
+    }, 12000); // Troca mais lenta - 12 segundos
 
     return () => clearInterval(interval);
   }, [images.length]);
@@ -24,23 +24,24 @@ const AnimatedBackground = () => {
       {images.map((image, index) => (
         <div
           key={index}
-          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[8000ms] ease-in-out ${
+          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[10000ms] ease-in-out ${
             index === currentImageIndex 
-              ? 'opacity-40 scale-110 rotate-1' 
+              ? 'opacity-50 scale-110 animate-zoom-in-out' 
               : index === (currentImageIndex - 1 + images.length) % images.length
-                ? 'opacity-0 scale-100 rotate-0' 
-                : 'opacity-0 scale-95 -rotate-1'
+                ? 'opacity-0 scale-100' 
+                : 'opacity-0 scale-95'
           }`}
           style={{
             backgroundImage: `url(${image})`,
-            filter: 'blur(0.5px) brightness(0.7) contrast(1.1) saturate(1.1)',
+            filter: 'blur(0.5px) brightness(0.8) contrast(1.2) saturate(1.2)',
             transformOrigin: 'center center',
+            animation: index === currentImageIndex ? 'zoom-in-out 12s ease-in-out infinite' : 'none',
           }}
         />
       ))}
       
-      {/* Enhanced gradient overlay - stronger on the left */}
-      <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/60 to-white/20" />
+      {/* Degradê da esquerda para direita - mais sólido na esquerda, mais claro na direita */}
+      <div className="absolute inset-0 bg-gradient-to-r from-white/98 via-white/85 via-white/60 to-white/15" />
       
       {/* Additional subtle gradient for depth */}
       <div className="absolute inset-0 bg-gradient-to-br from-ffp-navy/10 via-transparent to-ffp-gold/5" />

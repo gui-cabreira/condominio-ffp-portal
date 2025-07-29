@@ -193,6 +193,11 @@ export default {
 				'spin-slow': {
 					'0%': { transform: 'rotate(0deg)' },
 					'100%': { transform: 'rotate(360deg)' }
+				},
+				'zoom-in-out': {
+					'0%': { transform: 'scale(1)' },
+					'50%': { transform: 'scale(1.08)' },
+					'100%': { transform: 'scale(1)' }
 				}
 			},
 			animation: {
@@ -205,7 +210,8 @@ export default {
 				'float-up': 'float-up 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
 				'photo-reveal': 'photo-reveal 1.5s cubic-bezier(0.16, 1, 0.3, 1)',
 				'logo-glow': 'logo-glow 2s ease-out forwards',
-				'spin-slow': 'spin-slow 20s linear infinite'
+				'spin-slow': 'spin-slow 20s linear infinite',
+				'zoom-in-out': 'zoom-in-out 12s ease-in-out infinite'
 			}
 		}
 	},
