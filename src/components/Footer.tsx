@@ -59,12 +59,6 @@ const Footer = () => {
                 <span className="text-gray-600 text-sm">contato@ffpadvogados.com.br</span>
               </div>
               
-              <div className="flex items-center space-x-3">
-                <Globe size={16} className="text-ffp-gold" />
-                <a href="http://www.ffpadvogados.com.br" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-ffp-gold text-sm transition-colors">
-                  www.ffpadvogados.com.br
-                </a>
-              </div>
             </div>
           </div>
         </div>
