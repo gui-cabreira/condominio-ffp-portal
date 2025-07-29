@@ -1,44 +1,48 @@
 
 import React from 'react';
-import { FileText, Users, DollarSign, Shield, Building, Gavel } from 'lucide-react';
+import { Users, FileText, Scale, UserCheck, FileCheck, AlertCircle, Shield, MessageSquare } from 'lucide-react';
 
 const Services = () => {
   const services = [
     {
-      icon: FileText,
-      title: 'Acordos Condominiais',
-      description: 'Elaboração e revisão de contratos, regulamentos internos e convenções condominiais.',
-      features: ['Contratos personalizados', 'Revisão jurídica', 'Adequação legal']
-    },
-    {
       icon: Users,
-      title: 'Gestão Condominial',
-      description: 'Assessoria completa para administração de condomínios e resolução de conflitos.',
-      features: ['Assessoria jurídica', 'Mediação de conflitos', 'Consultoria administrativa']
+      title: 'Reuniões',
+      description: 'Participação de reuniões com os membros do conselho e síndico, sempre que solicitado.'
     },
     {
-      icon: DollarSign,
-      title: 'Cobrança Judicial',
-      description: 'Recuperação de inadimplência condominial através de ações judiciais eficientes.',
-      features: ['Ações de cobrança', 'Execução de débitos', 'Negociação extrajudicial']
+      icon: FileText,
+      title: 'Assembleias',
+      description: 'Assessoria e realização de assembleias ordinárias e extraordinárias, sem custo adicional.'
+    },
+    {
+      icon: Scale,
+      title: 'Ações Movidas',
+      description: 'Acompanhamento de ações movidas em face do condomínio tanto na área cível quanto trabalhista.'
+    },
+    {
+      icon: UserCheck,
+      title: 'Trabalhista',
+      description: 'Acompanhamento de reclamações trabalhistas de funcionários orgânicos e terceirizados.'
+    },
+    {
+      icon: FileCheck,
+      title: 'Contratos',
+      description: 'Análise de contratos dos prestadores de serviços, bem como verificação da documentação da empresa a ser contratada.'
+    },
+    {
+      icon: AlertCircle,
+      title: 'Inadimplências',
+      description: 'Medidas extrajudiciais de cobranças, como realização de plantões online e presenciais, para evitar o aumento da inadimplência. Ajuizamento de ações de execução de taxa condominial. Apresentação de relatórios com a descrição das medidas tomadas, acordos realizados e percentual de inadimplência.'
     },
     {
       icon: Shield,
-      title: 'Defesa de Direitos',
-      description: 'Proteção dos direitos dos condôminos e síndicos em todas as instâncias.',
-      features: ['Defesa judicial', 'Recursos', 'Acompanhamento processual']
+      title: 'Regimento e Multas',
+      description: 'Confecção e alteração de regimento interno, sem custo adicional. Confecção de advertências e multas, com base nas solicitações da sindicância.'
     },
     {
-      icon: Building,
-      title: 'Consultoria Imobiliária',
-      description: 'Orientação jurídica para questões relacionadas ao direito imobiliário.',
-      features: ['Análise de contratos', 'Due diligence', 'Regularização']
-    },
-    {
-      icon: Gavel,
-      title: 'Mediação e Arbitragem',
-      description: 'Resolução de conflitos através de métodos alternativos ao processo judicial.',
-      features: ['Mediação', 'Arbitragem', 'Conciliação']
+      icon: MessageSquare,
+      title: 'Bate Papo com Condômino',
+      description: 'Realização de plantões de dúvidas sobre normas do condomínio, como o regimento interno.'
     }
   ];
 
@@ -55,32 +59,23 @@ const Services = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {services.map((service, index) => (
             <div 
               key={index}
-              className="bg-gray-50 rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 group border border-gray-100"
+              className="bg-gray-50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 group border border-gray-100"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-ffp-navy to-ffp-navy-light rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <service.icon className="w-8 h-8 text-white" />
+              <div className="w-14 h-14 bg-gradient-to-br from-ffp-navy to-ffp-navy-light rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                <service.icon className="w-7 h-7 text-white" />
               </div>
               
-              <h3 className="font-playfair text-xl font-semibold text-ffp-navy mb-4">
+              <h3 className="font-montserrat text-lg font-semibold text-ffp-navy mb-3">
                 {service.title}
               </h3>
               
-              <p className="text-gray-600 mb-6 leading-relaxed">
+              <p className="text-gray-600 text-sm leading-relaxed">
                 {service.description}
               </p>
-
-              <ul className="space-y-2">
-                {service.features.map((feature, featureIndex) => (
-                  <li key={featureIndex} className="flex items-center text-sm text-gray-700">
-                    <div className="w-2 h-2 bg-ffp-gold rounded-full mr-3" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
             </div>
           ))}
         </div>
