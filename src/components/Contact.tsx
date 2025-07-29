@@ -76,19 +76,6 @@ const Contact = () => {
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-ffp-navy rounded-lg flex items-center justify-center">
-                    <MapPin className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-ffp-navy mb-1">Endereço</h4>
-                    <p className="text-gray-600">
-                      Av. Paulista, 1000 - Conjunto 101<br />
-                      Bela Vista, São Paulo - SP<br />
-                      CEP: 01310-100
-                    </p>
-                  </div>
-                </div>
 
                 <div className="flex items-start space-x-4">
                   <div className="w-12 h-12 bg-ffp-navy rounded-lg flex items-center justify-center">
