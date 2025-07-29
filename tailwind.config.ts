@@ -19,9 +19,9 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				'montserrat': ['Inter', 'sans-serif'],
-				'playfair': ['Crimson Text', 'serif'],
-				'sans': ['Inter', 'sans-serif']
+				'montserrat': ['Open Sans', 'sans-serif'],
+				'playfair': ['Lora', 'serif'],
+				'sans': ['Open Sans', 'sans-serif']
 			},
 			colors: {
 				border: 'hsl(var(--border))',

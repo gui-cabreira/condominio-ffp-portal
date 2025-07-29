@@ -70,18 +70,12 @@ const Hero = () => {
             </div>
           </div>
 
-          <div className="relative animate-scale-in group" style={{ transform: `translateY(${scrollY * -0.1}px)` }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-ffp-gold/20 via-ffp-navy/10 to-transparent rounded-3xl blur-3xl animate-pulse opacity-60 group-hover:opacity-80 transition-opacity duration-700" />
-            <div className="relative overflow-hidden rounded-2xl">
-              <img 
-                src="/lovable-uploads/1b1a978c-89e0-4816-b68e-de6446f18cd1.png" 
-                alt="FFP Advogados"
-                className="relative w-full max-w-sm mx-auto drop-shadow-2xl transform transition-all duration-700 ease-out group-hover:scale-110 opacity-0 animate-[fade-in_1s_ease-out_0.5s_forwards,scale-in_1.2s_ease-out_0.3s_forwards]"
-                style={{
-                  filter: 'drop-shadow(0 25px 50px rgba(30, 44, 84, 0.3))'
-                }}
-              />
-            </div>
+          <div className="relative animate-scale-in" style={{ transform: `translateY(${scrollY * -0.1}px)` }}>
+            <img 
+              src="/lovable-uploads/1b1a978c-89e0-4816-b68e-de6446f18cd1.png" 
+              alt="FFP Advogados"
+              className="relative w-full max-w-sm mx-auto drop-shadow-2xl transform transition-all duration-700 ease-out hover:scale-105"
+            />
           </div>
         </div>
       </div>
