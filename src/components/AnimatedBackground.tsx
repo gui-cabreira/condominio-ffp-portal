@@ -20,16 +20,16 @@ const AnimatedBackground = () => {
       {images.map((image, index) => (
         <div
           key={index}
-          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-3000 ease-in-out ${
-            index === currentImageIndex ? 'opacity-60 scale-105' : 'opacity-0 scale-100'
+          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[4000ms] ease-in-out ${
+            index === currentImageIndex ? 'opacity-50 scale-[1.02]' : 'opacity-0 scale-100'
           }`}
           style={{
             backgroundImage: `url(${image})`,
-            filter: 'blur(0.5px) brightness(0.9) contrast(1.1)',
+            filter: 'blur(1px) brightness(0.85) contrast(1.05) saturate(0.9)',
           }}
         />
       ))}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/50 to-white/60" />
+      <div className="absolute inset-0 bg-gradient-to-r from-white/80 via-white/40 to-transparent" />
     </div>
   );
 };
