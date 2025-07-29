@@ -1,8 +1,11 @@
 
 import React from 'react';
 import { ArrowRight, Shield, Users, Scale } from 'lucide-react';
+import AnimatedBackground from './AnimatedBackground';
+import { useParallax } from '../hooks/useScrollAnimation';
 
 const Hero = () => {
+  const scrollY = useParallax();
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -11,12 +14,14 @@ const Hero = () => {
   };
 
   return (
-    <section id="inicio" className="relative min-h-screen flex items-center overflow-hidden bg-white">
-      {/* Geometric Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-20 right-20 w-64 h-64 border border-ffp-navy rounded-full" />
-        <div className="absolute bottom-20 left-20 w-48 h-48 border border-ffp-gold rounded-full" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-ffp-navy rounded-full opacity-50" />
+    <section id="inicio" className="relative min-h-screen flex items-center overflow-hidden">
+      <AnimatedBackground />
+      
+      {/* Geometric Pattern with Parallax */}
+      <div className="absolute inset-0 opacity-10" style={{ transform: `translateY(${scrollY * 0.5}px)` }}>
+        <div className="absolute top-20 right-20 w-64 h-64 border border-ffp-navy rounded-full animate-pulse" />
+        <div className="absolute bottom-20 left-20 w-48 h-48 border border-ffp-gold rounded-full animate-pulse delay-1000" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-ffp-navy rounded-full opacity-50 animate-pulse delay-500" />
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
@@ -65,12 +70,12 @@ const Hero = () => {
             </div>
           </div>
 
-          <div className="relative animate-scale-in">
-            <div className="absolute inset-0 bg-ffp-gold/20 rounded-3xl blur-3xl" />
+          <div className="relative animate-scale-in" style={{ transform: `translateY(${scrollY * -0.1}px)` }}>
+            <div className="absolute inset-0 bg-ffp-gold/30 rounded-3xl blur-3xl animate-pulse" />
             <img 
               src="/lovable-uploads/1b1a978c-89e0-4816-b68e-de6446f18cd1.png" 
               alt="FFP Advogados"
-              className="relative w-full max-w-md mx-auto drop-shadow-2xl"
+              className="relative w-full max-w-md mx-auto drop-shadow-2xl hover:scale-105 transition-transform duration-500"
             />
           </div>
         </div>
