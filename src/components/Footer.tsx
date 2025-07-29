@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Phone, Mail, MapPin, Facebook, Instagram, Linkedin } from 'lucide-react';
+import { Phone, Mail, MapPin, Facebook, Instagram, Linkedin, Globe } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -30,7 +30,7 @@ const Footer = () => {
               <a href="#" className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-ffp-gold hover:text-white transition-all">
                 <Facebook size={20} className="text-gray-600 hover:text-white" />
               </a>
-              <a href="#" className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-ffp-gold hover:text-white transition-all">
+              <a href="https://instagram.com/ffpadvogados.com.br" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-ffp-gold hover:text-white transition-all">
                 <Instagram size={20} className="text-gray-600 hover:text-white" />
               </a>
               <a href="#" className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-ffp-gold hover:text-white transition-all">
@@ -62,7 +62,14 @@ const Footer = () => {
               
               <div className="flex items-center space-x-3">
                 <Mail size={16} className="text-ffp-gold" />
-                <span className="text-gray-600 text-sm">contato@advogados.com.br</span>
+                <span className="text-gray-600 text-sm">contato@ffpadvogados.com.br</span>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <Globe size={16} className="text-ffp-gold" />
+                <a href="http://www.ffpadvogados.com.br" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-ffp-gold text-sm transition-colors">
+                  www.ffpadvogados.com.br
+                </a>
               </div>
               
               <div className="flex items-start space-x-3">
