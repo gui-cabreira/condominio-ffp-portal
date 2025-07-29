@@ -33,7 +33,7 @@ const Header = () => {
 
   return (
     <header className={`fixed top-0 w-full z-40 transition-all duration-300 ${
-      isScrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
+      isScrolled ? 'bg-ffp-navy/95 backdrop-blur-md shadow-lg' : 'bg-ffp-navy'
     }`}>
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between h-20">
@@ -44,7 +44,7 @@ const Header = () => {
               className="h-12 w-auto"
             />
             <div className="hidden md:block">
-              <h1 className="font-georgia text-xl font-bold text-ffp-navy">FFP Advogados</h1>
+              <h1 className="font-georgia text-xl font-bold text-white">FFP Advogados</h1>
               <p className="text-sm text-ffp-gold font-medium">Direito Condominial</p>
             </div>
           </Link>
@@ -52,37 +52,37 @@ const Header = () => {
           <nav className="hidden lg:flex items-center space-x-8">
             <button 
               onClick={() => scrollToSection('inicio')}
-              className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium"
+              className="text-white hover:text-ffp-gold transition-colors font-medium"
             >
               Início
             </button>
             <button 
               onClick={() => scrollToSection('servicos')}
-              className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium"
+              className="text-white hover:text-ffp-gold transition-colors font-medium"
             >
               Serviços
             </button>
             <button 
               onClick={() => scrollToSection('sobre')}
-              className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium"
+              className="text-white hover:text-ffp-gold transition-colors font-medium"
             >
               Sobre
             </button>
             <Link 
               to="/noticias"
-              className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium"
+              className="text-white hover:text-ffp-gold transition-colors font-medium"
             >
               Notícias
             </Link>
             <Link 
               to="/portal"
-              className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium"
+              className="text-white hover:text-ffp-gold transition-colors font-medium"
             >
               Portal Corporativo
             </Link>
             <button 
               onClick={() => scrollToSection('contato')}
-              className="text-ffp-navy hover:text-ffp-gold transition-colors font-medium"
+              className="text-white hover:text-ffp-gold transition-colors font-medium"
             >
               Contato
             </button>
@@ -93,7 +93,7 @@ const Header = () => {
               href="https://wa.me/+5519999331777" 
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center space-x-2 text-ffp-navy hover:text-ffp-gold transition-colors"
+              className="flex items-center space-x-2 text-white hover:text-ffp-gold transition-colors"
             >
               <Phone size={16} />
               <span className="text-sm font-medium">(19) 99933-1777</span>
@@ -102,7 +102,7 @@ const Header = () => {
 
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden text-ffp-navy"
+            className="lg:hidden text-white"
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
