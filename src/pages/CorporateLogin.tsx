@@ -1,17 +1,20 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, EyeOff, Building2, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Building2, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
+import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 const CorporateLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const { signIn, loading } = useAuth();
+  
   const form = useForm({
     defaultValues: {
       email: '',
@@ -19,11 +22,8 @@ const CorporateLogin = () => {
     }
   });
 
-  const onSubmit = (data: any) => {
-    console.log('Login corporativo:', data);
-    // Aqui você implementaria a lógica de autenticação
-    // Por enquanto, vamos redirecionar para o dashboard
-    window.location.href = '/portal/corporativo/dashboard';
+  const onSubmit = async (data: any) => {
+    await signIn(data.email, data.password);
   };
 
   return (
@@ -112,9 +112,17 @@ const CorporateLogin = () => {
 
                     <Button 
                       type="submit" 
-                      className="w-full bg-ffp-navy hover:bg-ffp-navy-dark text-white font-semibold"
+                      disabled={loading}
+                      className="w-full bg-ffp-navy hover:bg-ffp-navy-dark text-white font-semibold disabled:opacity-50"
                     >
-                      Entrar no Sistema
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Entrando...
+                        </>
+                      ) : (
+                        'Entrar no Sistema'
+                      )}
                     </Button>
                   </form>
                 </Form>
