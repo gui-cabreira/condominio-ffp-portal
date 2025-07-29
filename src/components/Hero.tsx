@@ -70,12 +70,18 @@ const Hero = () => {
             </div>
           </div>
 
-          <div className="relative animate-scale-in" style={{ transform: `translateY(${scrollY * -0.1}px)` }}>
-            <img 
-              src="/lovable-uploads/1b1a978c-89e0-4816-b68e-de6446f18cd1.png" 
-              alt="FFP Advogados"
-              className="relative w-full max-w-sm mx-auto drop-shadow-2xl transform transition-all duration-700 ease-out hover:scale-105"
-            />
+          <div className="relative animate-scale-in group" style={{ transform: `translateY(${scrollY * -0.1}px)` }}>
+            <div className="relative">
+              {/* Brilho requintado ao redor do logo */}
+              <div className="absolute inset-0 bg-ffp-gold/15 rounded-full blur-2xl group-hover:bg-ffp-gold/25 transition-all duration-1000 animate-pulse" style={{ animationDuration: '5s' }} />
+              <div className="absolute -inset-4 bg-gradient-to-r from-ffp-gold/10 via-ffp-gold/20 to-ffp-gold/10 rounded-full blur-3xl group-hover:from-ffp-gold/15 group-hover:via-ffp-gold/30 group-hover:to-ffp-gold/15 transition-all duration-1200" />
+              <div className="absolute -inset-8 bg-gradient-to-br from-ffp-navy/5 via-transparent to-ffp-gold/8 rounded-full blur-3xl group-hover:from-ffp-navy/8 group-hover:to-ffp-gold/12 transition-all duration-1500" />
+              <img 
+                src="/lovable-uploads/1b1a978c-89e0-4816-b68e-de6446f18cd1.png" 
+                alt="FFP Advogados"
+                className="relative z-10 w-full max-w-sm mx-auto drop-shadow-2xl transform transition-all duration-700 ease-out group-hover:scale-105"
+              />
+            </div>
           </div>
         </div>
       </div>
