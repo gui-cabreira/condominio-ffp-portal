@@ -123,10 +123,12 @@ const About = () => {
           
           <div className="grid lg:grid-cols-2 gap-20">
             {/* Dra. Carla Fermiano */}
-            <div className="text-center lg:text-left group">
+            <div 
+              ref={photoRef1.elementRef}
+              className="text-center lg:text-left group"
+            >
               {/* Photo with INCREDIBLE reveal animation */}
               <div 
-                ref={photoRef1.elementRef}
                 className={`relative mb-10 mx-auto lg:mx-0 w-80 h-96 transition-all duration-2000 ${
                   photoRef1.isVisible 
                     ? 'opacity-100 animate-photo-reveal' 
