@@ -128,16 +128,10 @@ const About = () => {
               className="text-center lg:text-left group"
             >
               {/* Photo with INCREDIBLE reveal animation */}
-              <div 
-                className={`relative mb-10 mx-auto lg:mx-0 w-64 h-80 transition-all duration-2000 ${
-                  photoRef1.isVisible 
-                    ? 'opacity-100 animate-photo-reveal' 
-                    : 'opacity-0 transform scale-125 rotate-12'
-                }`}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-ffp-navy/40 to-ffp-gold/40 rounded-3xl transform rotate-3 group-hover:rotate-6 transition-transform duration-700 shadow-2xl" />
-                <div className="absolute -inset-4 bg-gradient-to-r from-ffp-navy/30 to-ffp-gold/30 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-700 animate-pulse" />
-                <div className="relative overflow-hidden rounded-3xl shadow-3xl">
+              <div className="relative mb-8 mx-auto lg:mx-0 w-64 h-80">
+                <div className="absolute inset-0 bg-gradient-to-br from-ffp-navy/20 to-ffp-gold/20 rounded-3xl transform rotate-3 group-hover:rotate-6 transition-transform duration-700 shadow-2xl" />
+                <div className="absolute -inset-4 bg-gradient-to-r from-ffp-navy/20 to-ffp-gold/20 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-700" />
+                <div className="relative overflow-hidden rounded-3xl shadow-3xl h-full">
                   <img 
                     src="/lovable-uploads/7b7904db-b831-475f-8e20-7d9b94ecec7e.png"
                     alt="Dra. Carla Fermiano"
@@ -205,17 +199,10 @@ const About = () => {
             {/* Dr. Wilson Ferreira Pinto */}
             <div className="text-center lg:text-left group">
               {/* Photo with INCREDIBLE reveal animation */}
-              <div 
-                ref={photoRef2.elementRef}
-                className={`relative mb-10 mx-auto lg:mx-0 w-64 h-80 transition-all duration-2000 delay-700 ${
-                  photoRef2.isVisible 
-                    ? 'opacity-100 animate-photo-reveal' 
-                    : 'opacity-0 transform scale-125 rotate-12'
-                }`}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-ffp-gold/40 to-ffp-navy/40 rounded-3xl transform -rotate-3 group-hover:-rotate-6 transition-transform duration-700 shadow-2xl" />
-                <div className="absolute -inset-4 bg-gradient-to-r from-ffp-gold/30 to-ffp-navy/30 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-700 animate-pulse" />
-                <div className="relative overflow-hidden rounded-3xl shadow-3xl">
+              <div className="relative mb-8 mx-auto lg:mx-0 w-64 h-80">
+                <div className="absolute inset-0 bg-gradient-to-br from-ffp-navy/20 to-ffp-gold/20 rounded-3xl transform -rotate-3 group-hover:-rotate-6 transition-transform duration-700 shadow-2xl" />
+                <div className="absolute -inset-4 bg-gradient-to-r from-ffp-navy/20 to-ffp-gold/20 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-700" />
+                <div className="relative overflow-hidden rounded-3xl shadow-3xl h-full">
                   <img 
                     src="/lovable-uploads/f9ca14a4-23f3-42e1-8d55-aa3e85727a6e.png"
                     alt="Dr. Wilson Ferreira Pinto"
