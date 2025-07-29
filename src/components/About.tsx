@@ -143,7 +143,7 @@ const About = () => {
                     alt="Dra. Carla Fermiano"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-ffp-navy/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-ffp-gold/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                 </div>
               </div>
               
