@@ -41,7 +41,7 @@ const AnimatedBackground = () => {
       ))}
       
       {/* Degradê da esquerda para direita - mais sólido na esquerda, mais claro na direita */}
-      <div className="absolute inset-0 bg-gradient-to-r from-white/98 via-white/85 via-white/60 to-white/15" />
+      <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 via-white/70 via-white/45 to-white/20" />
       
       {/* Additional subtle gradient for depth */}
       <div className="absolute inset-0 bg-gradient-to-br from-ffp-navy/10 via-transparent to-ffp-gold/5" />
