@@ -101,21 +101,25 @@ export default {
 				'fade-in': {
 					'0%': {
 						opacity: '0',
-						transform: 'translateY(20px)'
+						transform: 'translateY(20px) scale(0.9)'
 					},
 					'100%': {
 						opacity: '1',
-						transform: 'translateY(0)'
+						transform: 'translateY(0) scale(1)'
 					}
 				},
 				'scale-in': {
 					'0%': {
-						opacity: '0',
-						transform: 'scale(0.8)'
+						transform: 'scale(0.8)',
+						opacity: '0'
+					},
+					'50%': {
+						transform: 'scale(1.05)',
+						opacity: '0.8'
 					},
 					'100%': {
-						opacity: '1',
-						transform: 'scale(1)'
+						transform: 'scale(1)',
+						opacity: '1'
 					}
 				},
 				'logo-glow': {
