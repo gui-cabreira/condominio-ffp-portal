@@ -19,9 +19,9 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				'montserrat': ['Montserrat', 'sans-serif'],
-				'playfair': ['Playfair Display', 'serif'],
-				'sans': ['Montserrat', 'sans-serif'], // Define Montserrat como fonte padrão
+				'montserrat': ['Inter', 'sans-serif'],
+				'playfair': ['Crimson Text', 'serif'],
+				'sans': ['Inter', 'sans-serif']
 			},
 			colors: {
 				border: 'hsl(var(--border))',

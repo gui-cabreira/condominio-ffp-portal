@@ -110,7 +110,7 @@ const Services = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-2">
             {condominialServices.map((service, index) => {
               return <ServiceCard key={index} service={service} index={index} />;
             })}
@@ -139,7 +139,7 @@ const Services = () => {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-2">
             {businessServices.map((service, index) => {
               return <ServiceCard key={`business-${index}`} service={service} index={index} />;
             })}
@@ -162,7 +162,7 @@ const ServiceCard = ({ service, index }: { service: any, index: number }) => {
   return (
     <div 
       ref={elementRef}
-      className={`group relative bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 transform hover:-translate-y-2 ${
+      className={`group relative bg-white rounded-xl p-4 shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 transform hover:-translate-y-2 mx-2 ${
         isVisible 
           ? 'opacity-100 translate-y-0' 
           : 'opacity-0 translate-y-8'
