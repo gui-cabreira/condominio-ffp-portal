@@ -10,6 +10,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  userRoles: string[];
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   hasRole: (role: UserRole) => Promise<boolean>;
@@ -47,7 +48,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
   const { toast } = useToast();
+
+  // Function to load user roles
+  const loadUserRoles = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error loading user roles:', error);
+        setUserRoles([]);
+        return;
+      }
+
+      setUserRoles(data.map(item => item.role));
+    } catch (error) {
+      console.error('Error loading user roles:', error);
+      setUserRoles([]);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -55,6 +78,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Load user roles when user is authenticated
+          setTimeout(() => {
+            loadUserRoles(session.user.id);
+          }, 0);
+        } else {
+          setUserRoles([]);
+        }
+        
         setLoading(false);
       }
     );
@@ -63,6 +96,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        setTimeout(() => {
+          loadUserRoles(session.user.id);
+        }, 0);
+      } else {
+        setUserRoles([]);
+      }
+      
       setLoading(false);
     });
 
@@ -170,6 +212,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     user,
     session,
     loading,
+    userRoles,
     signIn,
     signOut,
     hasRole,

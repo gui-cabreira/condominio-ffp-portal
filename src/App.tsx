@@ -19,6 +19,8 @@ import WorkflowConfig from "./pages/WorkflowConfig";
 import ImportCharges from "./pages/ImportCharges";
 import RegisterDefaulter from "./pages/RegisterDefaulter";
 import BackofficeManagement from "./pages/BackofficeManagement";
+import AcceptInvitation from "./pages/AcceptInvitation";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -75,6 +77,12 @@ const App = () => {
                 <BackofficeManagement />
               </AuthGuard>
             } />
+            <Route path="/portal/corporativo/usuarios" element={
+              <AuthGuard requiredRole="admin">
+                <UserManagement />
+              </AuthGuard>
+            } />
+            <Route path="/aceitar-convite" element={<AcceptInvitation />} />
             <Route path="/portal/cliente/dashboard" element={
               <AuthGuard>
                 <ClientDashboard />

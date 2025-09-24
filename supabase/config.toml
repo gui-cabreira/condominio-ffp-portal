@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.process-charges-ai]
 verify_jwt = true
+
+[functions.send-user-invitation]
+verify_jwt = true
