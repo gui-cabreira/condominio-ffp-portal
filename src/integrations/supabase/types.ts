@@ -438,6 +438,10 @@ export type Database = {
         Args: { invitation_token: string; user_id: string }
         Returns: boolean
       }
+      create_admin_user: {
+        Args: { user_email: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
