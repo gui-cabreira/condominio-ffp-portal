@@ -128,9 +128,9 @@ const CorporateLogin = () => {
                 </Form>
 
                 <div className="mt-6 text-center space-y-2">
-                  <a href="#" className="text-ffp-gold hover:text-ffp-gold-dark text-sm block">
+                  <Link to="/esqueci-senha" className="text-ffp-gold hover:text-ffp-gold-dark text-sm block">
                     Esqueceu sua senha?
-                  </a>
+                  </Link>
                   <p className="text-sm text-gray-600">
                     Não tem conta?{' '}
                     <Link to="/cadastro" className="text-ffp-navy hover:underline font-medium">

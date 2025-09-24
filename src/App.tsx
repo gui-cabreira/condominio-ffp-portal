@@ -22,6 +22,7 @@ import BackofficeManagement from "./pages/BackofficeManagement";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import UserManagement from "./pages/UserManagement";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -85,6 +86,7 @@ const App = () => {
             } />
             <Route path="/aceitar-convite" element={<AcceptInvitation />} />
             <Route path="/cadastro" element={<Signup />} />
+            <Route path="/esqueci-senha" element={<ForgotPassword />} />
             <Route path="/portal/cliente/dashboard" element={
               <AuthGuard>
                 <ClientDashboard />
