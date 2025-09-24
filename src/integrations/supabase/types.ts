@@ -7,20 +7,117 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
   public: {
     Tables: {
+      administrators: {
+        Row: {
+          active: boolean
+          address: string | null
+          cnpj: string | null
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          address?: string | null
+          cnpj?: string | null
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          address?: string | null
+          cnpj?: string | null
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      charge_imports: {
+        Row: {
+          administrator_id: string
+          created_at: string
+          created_by: string | null
+          error_log: string | null
+          failed_imports: number | null
+          file_name: string | null
+          id: string
+          original_content: string
+          processed_content: Json | null
+          status: string
+          successful_imports: number | null
+          total_charges: number | null
+        }
+        Insert: {
+          administrator_id: string
+          created_at?: string
+          created_by?: string | null
+          error_log?: string | null
+          failed_imports?: number | null
+          file_name?: string | null
+          id?: string
+          original_content: string
+          processed_content?: Json | null
+          status?: string
+          successful_imports?: number | null
+          total_charges?: number | null
+        }
+        Update: {
+          administrator_id?: string
+          created_at?: string
+          created_by?: string | null
+          error_log?: string | null
+          failed_imports?: number | null
+          file_name?: string | null
+          id?: string
+          original_content?: string
+          processed_content?: Json | null
+          status?: string
+          successful_imports?: number | null
+          total_charges?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_imports_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       charges: {
         Row: {
+          administrator_id: string | null
           amount: number
           created_at: string
           description: string | null
           due_date: string
           id: string
+          import_id: string | null
           payment_date: string | null
           reference_month: string | null
           status: string
@@ -28,11 +125,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          administrator_id?: string | null
           amount: number
           created_at?: string
           description?: string | null
           due_date: string
           id?: string
+          import_id?: string | null
           payment_date?: string | null
           reference_month?: string | null
           status?: string
@@ -40,11 +139,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          administrator_id?: string | null
           amount?: number
           created_at?: string
           description?: string | null
           due_date?: string
           id?: string
+          import_id?: string | null
           payment_date?: string | null
           reference_month?: string | null
           status?: string
@@ -52,6 +153,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "charges_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charges_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "charge_imports"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "charges_unit_id_fkey"
             columns: ["unit_id"]
@@ -64,6 +179,7 @@ export type Database = {
       condominiums: {
         Row: {
           address: string | null
+          administrator_id: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -73,6 +189,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          administrator_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -82,6 +199,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          administrator_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -89,7 +207,15 @@ export type Database = {
           total_units?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "condominiums_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
@@ -277,8 +403,8 @@ export type Database = {
     Functions: {
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
         }
         Returns: boolean
       }

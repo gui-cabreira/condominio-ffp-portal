@@ -18,6 +18,7 @@ import CondominiumDetails from "./pages/CondominiumDetails";
 import WorkflowConfig from "./pages/WorkflowConfig";
 import ImportCharges from "./pages/ImportCharges";
 import RegisterDefaulter from "./pages/RegisterDefaulter";
+import BackofficeManagement from "./pages/BackofficeManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -67,6 +68,11 @@ const App = () => {
             <Route path="/portal/corporativo/cadastrar-inadimplente" element={
               <AuthGuard requiredRole="admin">
                 <RegisterDefaulter />
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/backoffice" element={
+              <AuthGuard requiredRole="admin">
+                <BackofficeManagement />
               </AuthGuard>
             } />
             <Route path="/portal/cliente/dashboard" element={

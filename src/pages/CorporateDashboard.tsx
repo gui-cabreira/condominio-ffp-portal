@@ -184,6 +184,12 @@ const CorporateDashboard = () => {
               <TabsTrigger value="reports">Relatórios</TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
+              <Link to="/portal/corporativo/backoffice">
+                <Button variant="outline" className="flex items-center">
+                  <Building2 className="w-4 h-4 mr-2" />
+                  Backoffice
+                </Button>
+              </Link>
               <Link to="/portal/corporativo/importar">
                 <Button variant="outline" className="flex items-center">
                   <Upload className="w-4 h-4 mr-2" />
