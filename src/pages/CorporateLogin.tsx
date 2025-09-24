@@ -127,10 +127,16 @@ const CorporateLogin = () => {
                   </form>
                 </Form>
 
-                <div className="mt-6 text-center">
-                  <a href="#" className="text-ffp-gold hover:text-ffp-gold-dark text-sm">
+                <div className="mt-6 text-center space-y-2">
+                  <a href="#" className="text-ffp-gold hover:text-ffp-gold-dark text-sm block">
                     Esqueceu sua senha?
                   </a>
+                  <p className="text-sm text-gray-600">
+                    Não tem conta?{' '}
+                    <Link to="/cadastro" className="text-ffp-navy hover:underline font-medium">
+                      Criar conta
+                    </Link>
+                  </p>
                 </div>
               </CardContent>
             </Card>
