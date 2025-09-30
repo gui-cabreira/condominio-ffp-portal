@@ -94,6 +94,9 @@
 @layer base {
   * {
     @apply border-border;
+    transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
   }
 
   body {
@@ -102,6 +105,17 @@
   
   h1, h2, h3, h4, h5, h6 {
     @apply font-playfair;
+  }
+
+  /* Smooth scroll behavior */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Enhance focus states */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-offset-2 ring-ring;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
@@ -144,4 +158,44 @@ html {
 
 .animation-delay-700 {
   animation-delay: 700ms;
+}
+
+/* Smooth transitions utility classes */
+@layer utilities {
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .transition-smooth-slow {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+
+  .hover-glow:hover {
+    @apply shadow-lg;
+    box-shadow: 0 10px 40px rgba(179, 120, 52, 0.3);
+  }
+
+  .click-shrink {
+    @apply active:scale-95 transition-transform duration-150;
+  }
+
+  .click-grow {
+    @apply active:scale-105 transition-transform duration-150;
+  }
+
+  .interactive-scale {
+    @apply hover:scale-105 active:scale-95 transition-transform duration-200;
+  }
 }
