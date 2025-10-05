@@ -79,18 +79,6 @@ const Signup = () => {
       }
 
       if (data.user) {
-        // Atribuir role de admin automaticamente (temporário)
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: data.user.id,
-            role: 'admin'
-          });
-
-        if (roleError) {
-          console.error('Error assigning admin role:', roleError);
-        }
-
         toast({
           title: "Conta criada com sucesso!",
           description: "Verifique seu email para confirmar a conta.",
