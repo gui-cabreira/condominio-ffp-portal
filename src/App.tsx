@@ -26,6 +26,7 @@ import UserManagement from "./pages/UserManagement";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AutomationPage from "./pages/AutomationPage";
 import ReportsPage from "./pages/ReportsPage";
+import AdministratorsPage from "./pages/AdministratorsPage";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
@@ -94,6 +95,13 @@ const App = () => {
               <AuthGuard requiredRole="admin">
                 <CorporateLayout>
                   <ImportCharges />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/administradoras" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <AdministratorsPage />
                 </CorporateLayout>
               </AuthGuard>
             } />

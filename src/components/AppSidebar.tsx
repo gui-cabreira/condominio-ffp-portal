@@ -1,4 +1,4 @@
-import { Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, Upload, UserPlus } from 'lucide-react';
+import { Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, Upload, UserPlus, Building } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
@@ -26,6 +26,11 @@ const menuItems = [
     title: 'Condomínios',
     url: '/portal/corporativo/condominios',
     icon: Building2,
+  },
+  {
+    title: 'Administradoras',
+    url: '/portal/corporativo/administradoras',
+    icon: Building,
   },
   {
     title: 'Cobranças',
