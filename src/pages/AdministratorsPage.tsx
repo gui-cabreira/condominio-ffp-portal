@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { CNPJLookup } from '@/components/forms/CNPJLookup';
 
 type Administrator = {
   id: string;
@@ -193,6 +194,22 @@ const AdministratorsPage = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
+                  <CNPJLookup
+                    initialCNPJ={formData.cnpj}
+                    onDataFound={(data) => {
+                      setFormData({
+                        ...formData,
+                        name: data.legalName || formData.name,
+                        email: data.email || formData.email,
+                        phone: data.phone || formData.phone,
+                        cnpj: data.cnpj || formData.cnpj,
+                        address: data.address.fullAddress || formData.address,
+                      });
+                    }}
+                  />
+                </div>
+
+                <div className="col-span-2">
                   <Label htmlFor="name">Nome da Administradora *</Label>
                   <Input
                     id="name"
@@ -222,16 +239,6 @@ const AdministratorsPage = () => {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="(11) 99999-9999"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="cnpj">CNPJ</Label>
-                  <Input
-                    id="cnpj"
-                    value={formData.cnpj}
-                    onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                    placeholder="00.000.000/0000-00"
                   />
                 </div>
 
