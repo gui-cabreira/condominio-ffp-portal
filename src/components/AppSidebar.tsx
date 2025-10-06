@@ -1,4 +1,4 @@
-import { Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, Upload, UserPlus, Building } from 'lucide-react';
+import { Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, Upload, UserPlus, Building, Bug } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
@@ -61,6 +61,11 @@ const menuItems = [
     title: 'Workflow',
     url: '/portal/corporativo/workflow',
     icon: Settings,
+  },
+  {
+    title: 'Sistema',
+    url: '/portal/corporativo/sistema',
+    icon: Bug,
   },
 ];
 
