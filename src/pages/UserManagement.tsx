@@ -295,13 +295,8 @@ const UserManagement = () => {
 
       if (profileError) throw profileError;
 
-      // Deletar da tabela auth.users usando a API admin
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-
-      if (authError) {
-        console.error('Error deleting auth user:', authError);
-        // Não bloquear se falhar - o usuário já foi removido da UI
-      }
+      // Nota: A deleção do auth.users deve ser feita via edge function
+      // por enquanto, o usuário foi removido da UI e do perfil
 
       toast({
         title: 'Sucesso',

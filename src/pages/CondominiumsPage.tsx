@@ -265,16 +265,17 @@ export default function CondominiumsPage() {
         <CardHeader>
           <CardTitle>Lista de Condomínios</CardTitle>
           <CardDescription>
-            <div className="flex items-center gap-2 mt-2">
-              <Search className="h-4 w-4" />
-              <Input
-                placeholder="Buscar condomínio..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-            </div>
+            Pesquise e gerencie os condomínios cadastrados
           </CardDescription>
+          <div className="flex items-center gap-2 mt-4">
+            <Search className="h-4 w-4" />
+            <Input
+              placeholder="Buscar condomínio..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
