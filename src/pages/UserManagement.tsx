@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calendar, Copy } from 'lucide-react';
+import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calendar, Copy, Edit, Trash2 } from 'lucide-react';
 
 interface User {
   id: string;
@@ -35,12 +35,20 @@ const UserManagement = () => {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
 
   // Form states
   const [inviteForm, setInviteForm] = useState({
     email: '',
+    role: 'employee'
+  });
+
+  const [editForm, setEditForm] = useState({
+    first_name: '',
+    last_name: '',
     role: 'employee'
   });
 
@@ -148,6 +156,101 @@ const UserManagement = () => {
       });
     } finally {
       setIsInviting(false);
+    }
+  };
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setEditForm({
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      role: user.user_roles[0]?.role || 'employee'
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingUser) return;
+
+    try {
+      // Atualizar perfil
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          first_name: editForm.first_name,
+          last_name: editForm.last_name
+        })
+        .eq('id', editingUser.id);
+
+      if (profileError) throw profileError;
+
+      // Atualizar role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', editingUser.id);
+
+      if (roleError) throw roleError;
+
+      const { error: insertRoleError } = await supabase
+        .from('user_roles')
+        .insert([{ user_id: editingUser.id, role: editForm.role as any }]);
+
+      if (insertRoleError) throw insertRoleError;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Usuário atualizado com sucesso'
+      });
+
+      setEditDialogOpen(false);
+      setEditingUser(null);
+      loadData();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao atualizar usuário',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+
+    try {
+      // Deletar roles
+      const { error: rolesError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (rolesError) throw rolesError;
+
+      // Deletar perfil
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (profileError) throw profileError;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Usuário excluído com sucesso'
+      });
+
+      loadData();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao excluir usuário',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -274,6 +377,60 @@ const UserManagement = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Editar Usuário</DialogTitle>
+              <DialogDescription>
+                Edite as informações do usuário
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleUpdateUser} className="space-y-4">
+              <div>
+                <Label htmlFor="edit_first_name">Nome</Label>
+                <Input
+                  id="edit_first_name"
+                  value={editForm.first_name}
+                  onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit_last_name">Sobrenome</Label>
+                <Input
+                  id="edit_last_name"
+                  value={editForm.last_name}
+                  onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit_role">Perfil *</Label>
+                <select
+                  id="edit_role"
+                  className="w-full p-2 border rounded-md bg-background"
+                  value={editForm.role}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                  required
+                >
+                  <option value="employee">Funcionário</option>
+                  <option value="admin">Administrador</option>
+                  <option value="supervisor">Supervisor</option>
+                </select>
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  Salvar Alterações
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -378,9 +535,25 @@ const UserManagement = () => {
                         {new Date(user.created_at).toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline">
-                          Editar
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Editar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Excluir
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

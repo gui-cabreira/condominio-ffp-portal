@@ -1,0 +1,478 @@
+import { useState, useEffect } from 'react';
+import { Plus, Search, Edit, Trash2, Upload, FileText, Download } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+interface Charge {
+  id: string;
+  unit_id: string;
+  amount: number;
+  due_date: string;
+  payment_date?: string;
+  status: string;
+  reference_month?: string;
+  description?: string;
+  units: {
+    unit_number: string;
+    owner_name: string;
+    condominiums: { name: string };
+  };
+}
+
+export default function ChargesPage() {
+  const [charges, setCharges] = useState<Charge[]>([]);
+  const [units, setUnits] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedCharge, setSelectedCharge] = useState<string | null>(null);
+  const [boletoFile, setBoletoFile] = useState<File | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const { toast } = useToast();
+
+  const [formData, setFormData] = useState({
+    unit_id: '',
+    amount: 0,
+    due_date: '',
+    reference_month: '',
+    description: '',
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      const [chargesResult, unitsResult] = await Promise.all([
+        supabase
+          .from('charges')
+          .select(`
+            *,
+            units (
+              unit_number,
+              owner_name,
+              condominiums (name)
+            )
+          `)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('units')
+          .select('*, condominiums(name)')
+      ]);
+
+      if (chargesResult.error) throw chargesResult.error;
+      if (unitsResult.error) throw unitsResult.error;
+
+      setCharges(chargesResult.data || []);
+      setUnits(unitsResult.data || []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao carregar cobranças',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const { error } = await supabase
+        .from('charges')
+        .insert([formData]);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Cobrança cadastrada com sucesso',
+      });
+
+      setFormData({ unit_id: '', amount: 0, due_date: '', reference_month: '', description: '' });
+      setDialogOpen(false);
+      loadData();
+    } catch (error) {
+      console.error('Error saving charge:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao salvar cobrança',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleUploadBoleto = async () => {
+    if (!boletoFile || !selectedCharge) return;
+
+    try {
+      const fileExt = boletoFile.name.split('.').pop();
+      const fileName = `${selectedCharge}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('boletos')
+        .upload(fileName, boletoFile);
+
+      if (uploadError) throw uploadError;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Boleto enviado com sucesso',
+      });
+
+      setBoletoFile(null);
+      setSelectedCharge(null);
+      setUploadDialogOpen(false);
+    } catch (error) {
+      console.error('Error uploading boleto:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao enviar boleto',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta cobrança?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('charges')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Cobrança excluída com sucesso',
+      });
+
+      loadData();
+    } catch (error) {
+      console.error('Error deleting charge:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao excluir cobrança',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'overdue': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'paid': return 'Pago';
+      case 'pending': return 'Pendente';
+      case 'overdue': return 'Vencido';
+      default: return status;
+    }
+  };
+
+  const filteredCharges = charges.filter((charge) =>
+    charge.units.owner_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    charge.units.unit_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    charge.units.condominiums?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const pendingCharges = filteredCharges.filter(c => c.status === 'pending');
+  const paidCharges = filteredCharges.filter(c => c.status === 'paid');
+  const overdueCharges = filteredCharges.filter(c => c.status === 'overdue');
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <FileText className="h-8 w-8" />
+            Cobranças
+          </h1>
+          <p className="text-muted-foreground">Gerencie todas as cobranças e boletos</p>
+        </div>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setFormData({ unit_id: '', amount: 0, due_date: '', reference_month: '', description: '' })}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Cobrança
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nova Cobrança</DialogTitle>
+              <DialogDescription>Cadastre uma nova cobrança no sistema</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="unit_id">Unidade *</Label>
+                <select
+                  id="unit_id"
+                  className="w-full p-2 border rounded-md bg-background"
+                  value={formData.unit_id}
+                  onChange={(e) => setFormData({ ...formData, unit_id: e.target.value })}
+                  required
+                >
+                  <option value="">Selecione...</option>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.condominiums?.name} - Unidade {unit.unit_number} ({unit.owner_name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="amount">Valor *</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="due_date">Data de Vencimento *</Label>
+                <Input
+                  id="due_date"
+                  type="date"
+                  value={formData.due_date}
+                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="reference_month">Mês de Referência</Label>
+                <Input
+                  id="reference_month"
+                  type="month"
+                  value={formData.reference_month}
+                  onChange={(e) => setFormData({ ...formData, reference_month: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="description">Descrição</Label>
+                <Input
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">Salvar</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Anexar Boleto</DialogTitle>
+            <DialogDescription>Faça upload do boleto para esta cobrança</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="boleto">Arquivo do Boleto</Label>
+              <Input
+                id="boleto"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => setBoletoFile(e.target.files?.[0] || null)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setUploadDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleUploadBoleto} disabled={!boletoFile}>
+                <Upload className="h-4 w-4 mr-2" />
+                Enviar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{pendingCharges.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Vencidas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{overdueCharges.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Pagas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{paidCharges.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Lista de Cobranças</CardTitle>
+          <CardDescription>
+            <div className="flex items-center gap-2 mt-2">
+              <Search className="h-4 w-4" />
+              <Input
+                placeholder="Buscar cobrança..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-sm"
+              />
+            </div>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="all">
+            <TabsList>
+              <TabsTrigger value="all">Todas</TabsTrigger>
+              <TabsTrigger value="pending">Pendentes</TabsTrigger>
+              <TabsTrigger value="overdue">Vencidas</TabsTrigger>
+              <TabsTrigger value="paid">Pagas</TabsTrigger>
+            </TabsList>
+            <TabsContent value="all">
+              <ChargesTable 
+                charges={filteredCharges} 
+                getStatusColor={getStatusColor}
+                getStatusText={getStatusText}
+                handleDelete={handleDelete}
+                setSelectedCharge={setSelectedCharge}
+                setUploadDialogOpen={setUploadDialogOpen}
+              />
+            </TabsContent>
+            <TabsContent value="pending">
+              <ChargesTable 
+                charges={pendingCharges} 
+                getStatusColor={getStatusColor}
+                getStatusText={getStatusText}
+                handleDelete={handleDelete}
+                setSelectedCharge={setSelectedCharge}
+                setUploadDialogOpen={setUploadDialogOpen}
+              />
+            </TabsContent>
+            <TabsContent value="overdue">
+              <ChargesTable 
+                charges={overdueCharges} 
+                getStatusColor={getStatusColor}
+                getStatusText={getStatusText}
+                handleDelete={handleDelete}
+                setSelectedCharge={setSelectedCharge}
+                setUploadDialogOpen={setUploadDialogOpen}
+              />
+            </TabsContent>
+            <TabsContent value="paid">
+              <ChargesTable 
+                charges={paidCharges} 
+                getStatusColor={getStatusColor}
+                getStatusText={getStatusText}
+                handleDelete={handleDelete}
+                setSelectedCharge={setSelectedCharge}
+                setUploadDialogOpen={setUploadDialogOpen}
+              />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function ChargesTable({ charges, getStatusColor, getStatusText, handleDelete, setSelectedCharge, setUploadDialogOpen }: any) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Condomínio</TableHead>
+          <TableHead>Unidade</TableHead>
+          <TableHead>Proprietário</TableHead>
+          <TableHead>Valor</TableHead>
+          <TableHead>Vencimento</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Ações</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {charges.map((charge: Charge) => (
+          <TableRow key={charge.id}>
+            <TableCell>{charge.units.condominiums?.name}</TableCell>
+            <TableCell>{charge.units.unit_number}</TableCell>
+            <TableCell>{charge.units.owner_name}</TableCell>
+            <TableCell>R$ {charge.amount.toFixed(2)}</TableCell>
+            <TableCell>{new Date(charge.due_date).toLocaleDateString('pt-BR')}</TableCell>
+            <TableCell>
+              <Badge className={getStatusColor(charge.status)}>
+                {getStatusText(charge.status)}
+              </Badge>
+            </TableCell>
+            <TableCell>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedCharge(charge.id);
+                    setUploadDialogOpen(true);
+                  }}
+                >
+                  <Upload className="h-3 w-3" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleDelete(charge.id)}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}

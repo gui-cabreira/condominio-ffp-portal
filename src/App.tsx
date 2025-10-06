@@ -13,6 +13,8 @@ import Portal from "./pages/Portal";
 import CorporateLogin from "./pages/CorporateLogin";
 import ClientLogin from "./pages/ClientLogin";
 import CorporateDashboard from "./pages/CorporateDashboard";
+import CondominiumsPage from "./pages/CondominiumsPage";
+import ChargesPage from "./pages/ChargesPage";
 import ClientDashboard from "./pages/ClientDashboard";
 import CondominiumDetails from "./pages/CondominiumDetails";
 import WorkflowConfig from "./pages/WorkflowConfig";
@@ -24,6 +26,7 @@ import UserManagement from "./pages/UserManagement";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
+import { CorporateLayout } from "./components/CorporateLayout";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,37 +54,65 @@ const App = () => {
             <Route path="/portal/cliente" element={<ClientLogin />} />
             <Route path="/portal/corporativo/dashboard" element={
               <AuthGuard requiredRole="admin">
-                <CorporateDashboard />
+                <CorporateLayout>
+                  <CorporateDashboard />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/condominios" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <CondominiumsPage />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/cobrancas" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <ChargesPage />
+                </CorporateLayout>
               </AuthGuard>
             } />
             <Route path="/portal/corporativo/condominio/:id" element={
               <AuthGuard requiredRole="admin">
-                <CondominiumDetails />
+                <CorporateLayout>
+                  <CondominiumDetails />
+                </CorporateLayout>
               </AuthGuard>
             } />
             <Route path="/portal/corporativo/workflow" element={
               <AuthGuard requiredRole="admin">
-                <WorkflowConfig />
+                <CorporateLayout>
+                  <WorkflowConfig />
+                </CorporateLayout>
               </AuthGuard>
             } />
             <Route path="/portal/corporativo/importar" element={
               <AuthGuard requiredRole="admin">
-                <ImportCharges />
+                <CorporateLayout>
+                  <ImportCharges />
+                </CorporateLayout>
               </AuthGuard>
             } />
             <Route path="/portal/corporativo/cadastrar-inadimplente" element={
               <AuthGuard requiredRole="admin">
-                <RegisterDefaulter />
+                <CorporateLayout>
+                  <RegisterDefaulter />
+                </CorporateLayout>
               </AuthGuard>
             } />
             <Route path="/portal/corporativo/backoffice" element={
               <AuthGuard requiredRole="admin">
-                <BackofficeManagement />
+                <CorporateLayout>
+                  <BackofficeManagement />
+                </CorporateLayout>
               </AuthGuard>
             } />
             <Route path="/portal/corporativo/usuarios" element={
               <AuthGuard requiredRole="admin">
-                <UserManagement />
+                <CorporateLayout>
+                  <UserManagement />
+                </CorporateLayout>
               </AuthGuard>
             } />
             <Route path="/aceitar-convite" element={<AcceptInvitation />} />
