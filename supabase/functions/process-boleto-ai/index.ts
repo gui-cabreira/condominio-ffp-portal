@@ -289,11 +289,11 @@ Retorne APENAS o JSON, sem texto adicional. Se algum campo não estiver disponí
     console.error('Erro ao processar boleto:', error)
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error.message || 'Erro ao processar boleto',
         details: error.toString()
       }),
       { 
-        status: 500,
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
