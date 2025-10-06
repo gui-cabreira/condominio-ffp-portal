@@ -85,6 +85,7 @@ const AdministratorsPage = () => {
       const { data, error } = await supabase
         .from('administrators')
         .select('*')
+        .eq('active', true)
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -439,7 +440,7 @@ const AdministratorsPage = () => {
       ) : filteredAdministrators && filteredAdministrators.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAdministrators.map((admin) => (
-            <Card key={admin.id} className={admin.active ? '' : 'opacity-50'}>
+            <Card key={admin.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -447,9 +448,6 @@ const AdministratorsPage = () => {
                       <Building2 className="w-5 h-5 text-ffp-navy" />
                       {admin.name}
                     </CardTitle>
-                    {!admin.active && (
-                      <Badge variant="secondary" className="mt-2">Inativa</Badge>
-                    )}
                   </div>
                   <div className="flex gap-1">
                     <Button
@@ -469,16 +467,14 @@ const AdministratorsPage = () => {
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
-                    {admin.active && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleDelete(admin.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDelete(admin.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
