@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Save, Play, MessageCircle, Mail, FileText, Clock, Settings2, Wand2, Copy, Download, Upload, RotateCw, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Play, MessageCircle, Mail, FileText, Clock, Settings2, Wand2, Copy, Download, Upload, RotateCw, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -155,6 +155,7 @@ const WorkflowConfig = () => {
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
   const [autoSave, setAutoSave] = useState(false);
   const [notifyOnComplete, setNotifyOnComplete] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const { saveWorkflow, loadWorkflow, loading } = useWorkflow();
 
   // Estados do React Flow
@@ -388,29 +389,48 @@ Equipe de Cobrança`,
     ]
   };
 
+  
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+    toast({
+      title: isFullscreen ? 'Modo normal' : 'Modo tela cheia',
+      description: isFullscreen ? 'Voltando ao modo normal' : 'Área de trabalho expandida'
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen bg-gray-50 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className={`${isFullscreen ? 'max-w-full' : 'max-w-7xl'} mx-auto px-4 sm:px-6 lg:px-8`}>
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link to="/portal/corporativo/dashboard" className="mr-4">
-                <ArrowLeft className="w-5 h-5 text-ffp-navy hover:text-ffp-gold" />
-              </Link>
-              <img 
-                src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
-                alt="FFP Advogados" 
-                className="h-8 w-auto mr-3"
-              />
-              <h1 className="text-xl font-semibold text-ffp-navy">Configuração de Workflow</h1>
+              {!isFullscreen && (
+                <>
+                  <Link to="/portal/corporativo/dashboard" className="mr-4">
+                    <ArrowLeft className="w-5 h-5 text-ffp-navy hover:text-ffp-gold" />
+                  </Link>
+                  <img 
+                    src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
+                    alt="FFP Advogados" 
+                    className="h-8 w-auto mr-3"
+                  />
+                </>
+              )}
+              <h1 className="text-xl font-semibold text-ffp-navy">
+                {isFullscreen ? `${workflowName} - Modo Tela Cheia` : 'Configuração de Workflow'}
+              </h1>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline">
-                <Download className="w-4 h-4 mr-2" />
-                Exportar
-              </Button>
-              <Button variant="outline">Pré-visualizar</Button>
+              {!isFullscreen && (
+                <>
+                  <Button variant="outline">
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar
+                  </Button>
+                  <Button variant="outline">Pré-visualizar</Button>
+                </>
+              )}
               <Button 
                 className="bg-ffp-navy hover:bg-ffp-navy-dark text-white"
                 onClick={handleSaveWorkflow}
@@ -424,7 +444,52 @@ Equipe de Cobrança`,
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className={`${isFullscreen ? 'h-[calc(100vh-4rem)]' : 'max-w-7xl'} mx-auto px-4 sm:px-6 lg:px-8 ${isFullscreen ? 'py-0' : 'py-8'}`}>
+        {isFullscreen ? (
+          /* Modo Tela Cheia - Apenas o Canvas */
+          <Card className="h-full">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-ffp-navy">Designer de Workflow</CardTitle>
+                  <CardDescription>
+                    Arraste os nós para posicionar. <strong>Clique e arraste dos círculos</strong> azuis para conectar os nós. <strong>Delete</strong> para excluir.
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setAdvancedSettingsOpen(true)}>
+                    <Settings2 className="w-4 h-4 mr-2" />
+                    Configurações
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={toggleFullscreen}>
+                    <Minimize2 className="w-4 h-4 mr-2" />
+                    Sair da Tela Cheia
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0 h-[calc(100%-5rem)]">
+              <div className="h-full border rounded-lg overflow-hidden">
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  onConnect={onConnect}
+                  onNodesDelete={onNodesDelete}
+                  nodeTypes={nodeTypes}
+                  fitView
+                  className="bg-gray-50"
+                  deleteKeyCode="Delete"
+                >
+                  <Controls />
+                  <MiniMap />
+                  <Background gap={12} size={1} />
+                </ReactFlow>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="flow">Designer Visual</TabsTrigger>
@@ -553,10 +618,16 @@ Equipe de Cobrança`,
                           Arraste os nós para posicionar. <strong>Clique e arraste dos círculos</strong> azuis para conectar os nós. <strong>Clique com botão direito</strong> para excluir.
                         </CardDescription>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => setAdvancedSettingsOpen(true)}>
-                        <Settings2 className="w-4 h-4 mr-2" />
-                        Configurações Avançadas
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={toggleFullscreen}>
+                          <Maximize2 className="w-4 h-4 mr-2" />
+                          Tela Cheia
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setAdvancedSettingsOpen(true)}>
+                          <Settings2 className="w-4 h-4 mr-2" />
+                          Configurações Avançadas
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0 h-full">
@@ -803,6 +874,7 @@ Equipe de Cobrança`,
             </div>
           </TabsContent>
         </Tabs>
+        )}
       </div>
 
       {/* Diálogo de Configurações Avançadas */}
