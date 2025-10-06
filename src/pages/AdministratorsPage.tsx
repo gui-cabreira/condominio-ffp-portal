@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Building2, Edit, Trash2, Search, Mail, Phone, FileText, Link as LinkIcon, Key } from 'lucide-react';
+import { Plus, Building2, Edit, Trash2, Search, Mail, Phone, FileText, Link as LinkIcon, Key, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CNPJLookup } from '@/components/forms/CNPJLookup';
 import { AdministratorContacts } from '@/components/AdministratorContacts';
+import { ContactSelector } from '@/components/ContactSelector';
 
 type Administrator = {
   id: string;
@@ -353,6 +354,16 @@ const AdministratorsPage = () => {
                 </div>
 
                 <div className="col-span-2">
+                  <ContactSelector
+                    administratorId={editingAdmin?.id}
+                    value={formData.contact_person}
+                    onChange={(contactId, contactName) => {
+                      setFormData({ ...formData, contact_person: contactName });
+                    }}
+                  />
+                </div>
+
+                <div className="col-span-2">
                   <Label htmlFor="address">Endereço</Label>
                   <Textarea
                     id="address"
@@ -515,6 +526,20 @@ const AdministratorsPage = () => {
                     </a>
                   </div>
                 )}
+
+                <div className="border-t pt-3 mt-3">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setSelectedAdmin(admin);
+                      setViewDialogOpen(true);
+                    }}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Ver Detalhes Completos
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
