@@ -446,49 +446,112 @@ Equipe de Cobrança`,
 
       <div className={`${isFullscreen ? 'h-[calc(100vh-4rem)]' : 'max-w-7xl'} mx-auto px-4 sm:px-6 lg:px-8 ${isFullscreen ? 'py-0' : 'py-8'}`}>
         {isFullscreen ? (
-          /* Modo Tela Cheia - Apenas o Canvas */
-          <Card className="h-full">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="text-ffp-navy">Designer de Workflow</CardTitle>
-                  <CardDescription>
-                    Arraste os nós para posicionar. <strong>Clique e arraste dos círculos</strong> azuis para conectar os nós. <strong>Delete</strong> para excluir.
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setAdvancedSettingsOpen(true)}>
-                    <Settings2 className="w-4 h-4 mr-2" />
-                    Configurações
+          /* Modo Tela Cheia - Canvas + Barra Lateral */
+          <div className="grid grid-cols-5 gap-4 h-full">
+            {/* Barra Lateral de Componentes */}
+            <div className="col-span-1 space-y-4 overflow-y-auto">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Adicionar Elementos</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => addNode('whatsapp', 'message')}
+                    size="sm"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2 text-green-600" />
+                    WhatsApp
                   </Button>
-                  <Button variant="outline" size="sm" onClick={toggleFullscreen}>
-                    <Minimize2 className="w-4 h-4 mr-2" />
-                    Sair da Tela Cheia
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => addNode('email', 'message')}
+                    size="sm"
+                  >
+                    <Mail className="w-4 h-4 mr-2 text-blue-600" />
+                    E-mail
                   </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => addNode('sms', 'message')}
+                    size="sm"
+                  >
+                    <FileText className="w-4 h-4 mr-2 text-purple-600" />
+                    SMS
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => addNode('delay', 'delay')}
+                    size="sm"
+                  >
+                    <Clock className="w-4 h-4 mr-2 text-yellow-600" />
+                    Aguardar
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => addNode('loop', 'loop')}
+                    size="sm"
+                  >
+                    <RotateCw className="w-4 h-4 mr-2 text-purple-600" />
+                    Loop
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Canvas */}
+            <Card className="col-span-4 h-full">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="text-ffp-navy">Designer de Workflow</CardTitle>
+                    <CardDescription>
+                      Arraste os nós para posicionar. <strong>Clique e arraste dos círculos</strong> azuis para conectar os nós.
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setAdvancedSettingsOpen(true)}>
+                      <Settings2 className="w-4 h-4 mr-2" />
+                      Configurações
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={toggleFullscreen}>
+                      <Minimize2 className="w-4 h-4 mr-2" />
+                      Sair
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0 h-[calc(100%-5rem)]">
-              <div className="h-full border rounded-lg overflow-hidden">
-                <ReactFlow
-                  nodes={nodes}
-                  edges={edges}
-                  onNodesChange={onNodesChange}
-                  onEdgesChange={onEdgesChange}
-                  onConnect={onConnect}
-                  onNodesDelete={onNodesDelete}
-                  nodeTypes={nodeTypes}
-                  fitView
-                  className="bg-gray-50"
-                  deleteKeyCode="Delete"
-                >
-                  <Controls />
-                  <MiniMap />
-                  <Background gap={12} size={1} />
-                </ReactFlow>
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent className="p-0 h-[calc(100%-5rem)]">
+                <div className="h-full border rounded-lg overflow-hidden">
+                  <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    onNodesDelete={onNodesDelete}
+                    nodeTypes={nodeTypes}
+                    fitView
+                    className="bg-gray-50"
+                    deleteKeyCode="Delete"
+                  >
+                    <Controls />
+                    <MiniMap />
+                    <Background gap={12} size={1} />
+                  </ReactFlow>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">

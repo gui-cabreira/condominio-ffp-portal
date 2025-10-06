@@ -1,98 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Save, Eye, Send, Calculator, Building2, User, Phone, Mail, Calendar, DollarSign, Percent, FileText, Settings, Copy } from 'lucide-react';
+import { ArrowLeft, Upload, Sparkles, Check, Loader2, FileText, User, Building2, DollarSign, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const RegisterDefaulter = () => {
-  const [activeTab, setActiveTab] = useState('debtor');
-  const [selectedCondominium, setSelectedCondominium] = useState('');
-  const [calculatedValues, setCalculatedValues] = useState({
-    originalValue: 1200.00,
-    interest: 84.00,
-    adminFee: 50.00,
-    lawyers: 180.00,
-    currentValue: 1514.00
-  });
+  const [file, setFile] = useState<File | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  // Dados mockados
-  const condominiums = [
-    { id: 'villa-real', name: 'Condomínio Villa Real', adminFee: 50, interestRate: 2, lawyersFee: 15 },
-    { id: 'jardins', name: 'Residencial Jardins', adminFee: 40, interestRate: 1.8, lawyersFee: 12 },
-    { id: 'central-park', name: 'Edifício Central Park', adminFee: 60, interestRate: 2.2, lawyersFee: 18 },
-    { id: 'sunset', name: 'Condomínio Sunset', adminFee: 45, interestRate: 2, lawyersFee: 15 }
-  ];
-
-  const partnerships = [
-    { id: 'admin1', name: 'Administradora Central', contact: 'contato@admincentral.com' },
-    { id: 'admin2', name: 'Gestão Predial Plus', contact: 'info@gestaoplus.com' },
-    { id: 'admin3', name: 'Administradora Vila', contact: 'admin@vila.com.br' }
-  ];
-
-  const messageTemplates = {
-    whatsapp: `Olá {nome}!
-
-Estamos entrando em contato para informar sobre uma pendência financeira referente ao {condominio}.
-
-💰 Valor Original: R$ {valor_original}
-📅 Vencimento: {data_vencimento}
-💳 Valor Atual: R$ {valor_atual}
-
-Para regularizar sua situação, acesse: {link}
-
-Em caso de dúvidas, estamos à disposição!`,
-    
-    email: `Prezado(a) {nome},
-
-Informamos que existe uma pendência em aberto referente ao condomínio {condominio}, unidade {unidade}.
-
-DETALHES DA COBRANÇA:
-- Valor Original: R$ {valor_original}
-- Data de Vencimento: {data_vencimento}
-- Juros e Correção: R$ {juros}
-- Taxa Administrativa: R$ {taxa_admin}
-- Honorários Advocatícios: R$ {honorarios}
-- VALOR TOTAL ATUAL: R$ {valor_atual}
-
-Para efetuar o pagamento, acesse o link: {link}
-
-Atenciosamente,
-FFP Advogados`
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast({
+          title: 'Arquivo muito grande',
+          description: 'O arquivo deve ter no máximo 10MB',
+          variant: 'destructive'
+        });
+        return;
+      }
+      setFile(selectedFile);
+      setResult(null);
+      setError(null);
+    }
   };
 
-  const calculateValues = () => {
-    const originalValue = calculatedValues.originalValue;
-    const selectedCondo = condominiums.find(c => c.id === selectedCondominium);
-    
-    if (selectedCondo) {
-      const interest = originalValue * (selectedCondo.interestRate / 100) * 3.5; // 3.5 meses em atraso
-      const adminFee = selectedCondo.adminFee;
-      const lawyers = originalValue * (selectedCondo.lawyersFee / 100);
-      const currentValue = originalValue + interest + adminFee + lawyers;
-      
-      setCalculatedValues({
-        originalValue,
-        interest,
-        adminFee,
-        lawyers,
-        currentValue
+  const processFile = async () => {
+    if (!file) return;
+
+    setProcessing(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { data, error: functionError } = await supabase.functions.invoke('process-boleto-ai', {
+        body: formData,
       });
+
+      if (functionError) throw functionError;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setResult(data);
+      toast({
+        title: '✨ Boleto processado com sucesso!',
+        description: 'Todos os dados foram extraídos e cadastrados automaticamente.'
+      });
+    } catch (err: any) {
+      console.error('Erro ao processar:', err);
+      setError(err.message || 'Erro ao processar boleto');
+      toast({
+        title: 'Erro ao processar',
+        description: err.message || 'Ocorreu um erro ao processar o boleto',
+        variant: 'destructive'
+      });
+    } finally {
+      setProcessing(false);
     }
   };
-
-  useEffect(() => {
-    if (selectedCondominium) {
-      calculateValues();
-    }
-  }, [selectedCondominium]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -109,483 +85,254 @@ FFP Advogados`
                 alt="FFP Advogados" 
                 className="h-8 w-auto mr-3"
               />
-              <h1 className="text-xl font-semibold text-ffp-navy">Cadastro de Inadimplente</h1>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline">
-                <Eye className="w-4 h-4 mr-2" />
-                Pré-visualizar
-              </Button>
-              <Button className="bg-ffp-navy hover:bg-ffp-navy-dark text-white">
-                <Save className="w-4 h-4 mr-2" />
-                Salvar Cadastro
-              </Button>
+              <h1 className="text-xl font-semibold text-ffp-navy">Cadastro Inteligente de Inadimplente</h1>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="debtor">Dados do Devedor</TabsTrigger>
-            <TabsTrigger value="financial">Financeiro</TabsTrigger>
-            <TabsTrigger value="communication">Comunicação</TabsTrigger>
-            <TabsTrigger value="preview">Resumo</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="debtor">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Dados Pessoais */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy flex items-center">
-                    <User className="w-5 h-5 mr-2" />
-                    Dados Pessoais
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Nome Completo *</Label>
-                      <Input id="name" placeholder="Nome do devedor" />
-                    </div>
-                    <div>
-                      <Label htmlFor="document">CPF/CNPJ *</Label>
-                      <Input id="document" placeholder="000.000.000-00" />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="phone">Telefone *</Label>
-                      <Input id="phone" placeholder="(19) 99999-9999" />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">E-mail</Label>
-                      <Input id="email" type="email" placeholder="email@exemplo.com" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="address">Endereço Completo</Label>
-                    <Textarea id="address" placeholder="Rua, número, bairro, cidade - CEP" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Dados do Condomínio */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy flex items-center">
-                    <Building2 className="w-5 h-5 mr-2" />
-                    Dados do Condomínio
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="condominium">Condomínio *</Label>
-                    <Select value={selectedCondominium} onValueChange={setSelectedCondominium}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o condomínio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {condominiums.map((condo) => (
-                          <SelectItem key={condo.id} value={condo.id}>
-                            {condo.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="partnership">Administradora/Parceria</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a administradora" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {partnerships.map((partnership) => (
-                          <SelectItem key={partnership.id} value={partnership.id}>
-                            {partnership.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="unit">Unidade *</Label>
-                      <Input id="unit" placeholder="Apto 101, Casa 5, etc." />
-                    </div>
-                    <div>
-                      <Label htmlFor="block">Bloco/Torre</Label>
-                      <Input id="block" placeholder="Bloco A, Torre 1, etc." />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description">Descrição da Dívida</Label>
-                    <Textarea id="description" placeholder="Condomínio referente ao mês de..." />
-                  </div>
-                </CardContent>
-              </Card>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <Card className="mb-8 border-2 border-ffp-gold/20 bg-gradient-to-br from-white to-ffp-gold/5">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-ffp-gold/10 rounded-full flex items-center justify-center mb-4">
+              <Sparkles className="w-8 h-8 text-ffp-gold" />
             </div>
-          </TabsContent>
-
-          <TabsContent value="financial">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Valores */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy flex items-center">
-                    <DollarSign className="w-5 h-5 mr-2" />
-                    Valores da Cobrança
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="original-value">Valor Original *</Label>
-                      <Input 
-                        id="original-value" 
-                        type="number" 
-                        placeholder="0,00"
-                        value={calculatedValues.originalValue}
-                        onChange={(e) => setCalculatedValues({
-                          ...calculatedValues,
-                          originalValue: Number(e.target.value)
-                        })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="due-date">Data Vencimento *</Label>
-                      <Input id="due-date" type="date" />
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Valor Original</span>
-                      <span className="font-semibold">R$ {calculatedValues.originalValue.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Juros e Correção</span>
-                      <span className="text-red-600">+ R$ {calculatedValues.interest.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Taxa Administrativa</span>
-                      <span className="text-red-600">+ R$ {calculatedValues.adminFee.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Honorários Advocatícios</span>
-                      <span className="text-red-600">+ R$ {calculatedValues.lawyers.toFixed(2)}</span>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="flex justify-between items-center text-lg font-bold">
-                      <span>Valor Total Atual</span>
-                      <span className="text-ffp-navy">R$ {calculatedValues.currentValue.toFixed(2)}</span>
-                    </div>
-                  </div>
-
-                  <Button variant="outline" className="w-full" onClick={calculateValues}>
-                    <Calculator className="w-4 h-4 mr-2" />
-                    Recalcular Valores
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Configurações */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy flex items-center">
-                    <Settings className="w-5 h-5 mr-2" />
-                    Parâmetros de Cobrança
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {selectedCondominium && (
-                    <div className="p-4 bg-blue-50 rounded-lg space-y-2">
-                      <h4 className="font-medium text-ffp-navy">Configurações do Condomínio</h4>
-                      {(() => {
-                        const condo = condominiums.find(c => c.id === selectedCondominium);
-                        return condo ? (
-                          <div className="text-sm space-y-1">
-                            <p>Taxa Administrativa: R$ {condo.adminFee},00</p>
-                            <p>Juros Mensal: {condo.interestRate}%</p>
-                            <p>Honorários: {condo.lawyersFee}%</p>
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="custom-interest">Juros Personalizado (%)</Label>
-                      <Input id="custom-interest" type="number" placeholder="2.0" step="0.1" />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="custom-admin">Taxa Admin. Personalizada</Label>
-                      <Input id="custom-admin" type="number" placeholder="50.00" />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="custom-lawyers">Honorários Personalizados (%)</Label>
-                      <Input id="custom-lawyers" type="number" placeholder="15.0" step="0.1" />
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="payment-slip">Gerar Boleto</Label>
-                      <Switch id="payment-slip" defaultChecked />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="pix-option">Incluir PIX</Label>
-                      <Switch id="pix-option" defaultChecked />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="installments">Permitir Parcelamento</Label>
-                      <Switch id="installments" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="communication">
-            <div className="space-y-6">
-              {/* Configurações de Envio */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy">Configurações de Comunicação</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="send-whatsapp" defaultChecked />
-                        <Label htmlFor="send-whatsapp">Enviar por WhatsApp</Label>
-                      </div>
-                      <div>
-                        <Label htmlFor="whatsapp-delay">Enviar em (dias)</Label>
-                        <Select defaultValue="0">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="0">Imediatamente</SelectItem>
-                            <SelectItem value="1">1 dia</SelectItem>
-                            <SelectItem value="3">3 dias</SelectItem>
-                            <SelectItem value="7">7 dias</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="send-email" defaultChecked />
-                        <Label htmlFor="send-email">Enviar por E-mail</Label>
-                      </div>
-                      <div>
-                        <Label htmlFor="email-delay">Enviar em (dias)</Label>
-                        <Select defaultValue="1">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="0">Imediatamente</SelectItem>
-                            <SelectItem value="1">1 dia</SelectItem>
-                            <SelectItem value="3">3 dias</SelectItem>
-                            <SelectItem value="7">7 dias</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="send-sms" />
-                        <Label htmlFor="send-sms">Enviar por SMS</Label>
-                      </div>
-                      <div>
-                        <Label htmlFor="sms-delay">Enviar em (dias)</Label>
-                        <Select defaultValue="7">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="3">3 dias</SelectItem>
-                            <SelectItem value="7">7 dias</SelectItem>
-                            <SelectItem value="15">15 dias</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Templates */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-ffp-navy">Template WhatsApp</CardTitle>
-                      <Button variant="outline" size="sm">
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copiar
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Textarea 
-                      value={messageTemplates.whatsapp}
-                      rows={8}
-                      className="text-sm"
-                    />
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {['nome', 'condominio', 'valor_original', 'data_vencimento', 'valor_atual', 'link'].map((variable) => (
-                        <span key={variable} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {`{${variable}}`}
-                        </span>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-ffp-navy">Template E-mail</CardTitle>
-                      <Button variant="outline" size="sm">
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copiar
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Textarea 
-                      value={messageTemplates.email}
-                      rows={8}
-                      className="text-sm"
-                    />
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {['nome', 'condominio', 'unidade', 'valor_original', 'data_vencimento', 'juros', 'taxa_admin', 'honorarios', 'valor_atual', 'link'].map((variable) => (
-                        <span key={variable} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {`{${variable}}`}
-                        </span>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+            <CardTitle className="text-2xl text-ffp-navy">Processamento Automático com IA</CardTitle>
+            <CardDescription className="text-base mt-2">
+              Faça upload do boleto e deixe nossa IA extrair <strong>todos os dados automaticamente</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="p-4 bg-white rounded-lg">
+                <User className="w-6 h-6 mx-auto mb-2 text-blue-600" />
+                <p className="text-sm font-medium">Dados do Inadimplente</p>
+              </div>
+              <div className="p-4 bg-white rounded-lg">
+                <Building2 className="w-6 h-6 mx-auto mb-2 text-green-600" />
+                <p className="text-sm font-medium">Condomínio e Unidade</p>
+              </div>
+              <div className="p-4 bg-white rounded-lg">
+                <DollarSign className="w-6 h-6 mx-auto mb-2 text-purple-600" />
+                <p className="text-sm font-medium">Valores e Vencimento</p>
               </div>
             </div>
-          </TabsContent>
+          </CardContent>
+        </Card>
 
-          <TabsContent value="preview">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-ffp-navy">Resumo do Cadastro</CardTitle>
-                <CardDescription>
-                  Revise todas as informações antes de salvar
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="font-semibold text-ffp-navy mb-3">Dados do Devedor</h3>
-                      <div className="space-y-2 text-sm">
-                        <p><strong>Nome:</strong> João Silva Santos</p>
-                        <p><strong>CPF:</strong> 123.456.789-00</p>
-                        <p><strong>Telefone:</strong> (19) 99999-9999</p>
-                        <p><strong>E-mail:</strong> joao@email.com</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold text-ffp-navy mb-3">Condomínio</h3>
-                      <div className="space-y-2 text-sm">
-                        <p><strong>Nome:</strong> Condomínio Villa Real</p>
-                        <p><strong>Unidade:</strong> Apto 101</p>
-                        <p><strong>Administradora:</strong> Administradora Central</p>
-                      </div>
-                    </div>
+        {/* Upload Area */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5" />
+              Upload do Boleto
+            </CardTitle>
+            <CardDescription>
+              Formatos aceitos: PDF, PNG, JPG, JPEG (máx. 10MB)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Área de Upload */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-ffp-gold transition-colors">
+              <input
+                type="file"
+                id="file-upload"
+                className="hidden"
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={handleFileChange}
+              />
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                {file ? (
+                  <div>
+                    <p className="text-lg font-medium text-ffp-navy mb-2">{file.name}</p>
+                    <p className="text-sm text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>
                   </div>
-
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="font-semibold text-ffp-navy mb-3">Valores</h3>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Valor Original:</span>
-                          <span>R$ {calculatedValues.originalValue.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Juros e Correção:</span>
-                          <span className="text-red-600">R$ {calculatedValues.interest.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Taxa Administrativa:</span>
-                          <span className="text-red-600">R$ {calculatedValues.adminFee.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Honorários:</span>
-                          <span className="text-red-600">R$ {calculatedValues.lawyers.toFixed(2)}</span>
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between font-bold text-lg">
-                          <span>Total:</span>
-                          <span className="text-ffp-navy">R$ {calculatedValues.currentValue.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold text-ffp-navy mb-3">Comunicação</h3>
-                      <div className="space-y-2 text-sm">
-                        <p>✅ WhatsApp - Imediatamente</p>
-                        <p>✅ E-mail - Em 1 dia</p>
-                        <p>❌ SMS</p>
-                      </div>
-                    </div>
+                ) : (
+                  <div>
+                    <p className="text-lg font-medium text-ffp-navy mb-2">
+                      Clique para selecionar o boleto
+                    </p>
+                    <p className="text-sm text-gray-500">ou arraste e solte aqui</p>
                   </div>
+                )}
+              </label>
+            </div>
+
+            {/* Botão de Processar */}
+            {file && !result && (
+              <Button 
+                className="w-full bg-ffp-gold hover:bg-ffp-gold-dark text-ffp-navy font-semibold py-6 text-lg"
+                onClick={processFile}
+                disabled={processing}
+              >
+                {processing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Processando com IA...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Processar Boleto com IA
+                  </>
+                )}
+              </Button>
+            )}
+
+            {/* Erro */}
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Resultado */}
+            {result && result.success && (
+              <div className="space-y-4 animate-in fade-in duration-500">
+                <Alert className="bg-green-50 border-green-200">
+                  <Check className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800 font-medium">
+                    ✨ Boleto processado com sucesso! Todos os dados foram cadastrados automaticamente.
+                  </AlertDescription>
+                </Alert>
+
+                {/* Dados Extraídos */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Administradora */}
+                  {result.data?.extracted?.administradora && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Building2 className="w-4 h-4" />
+                          Administradora
+                          <Badge variant="outline" className="ml-auto">
+                            {result.data.created.administratorId ? 'Encontrada' : 'Criada'}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-1">
+                        <p className="font-medium">{result.data.extracted.administradora.nome}</p>
+                        {result.data.extracted.administradora.cnpj && (
+                          <p className="text-sm text-gray-600">CNPJ: {result.data.extracted.administradora.cnpj}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Condomínio */}
+                  {result.data?.extracted?.condominio && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Building2 className="w-4 h-4" />
+                          Condomínio
+                          <Badge variant="outline" className="ml-auto">
+                            {result.data.created.condominiumId ? 'Encontrado' : 'Criado'}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-1">
+                        <p className="font-medium">{result.data.extracted.condominio.nome}</p>
+                        {result.data.extracted.condominio.endereco && (
+                          <p className="text-sm text-gray-600">{result.data.extracted.condominio.endereco}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Inadimplente */}
+                  {result.data?.extracted?.inadimplente && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <User className="w-4 h-4" />
+                          Inadimplente
+                          <Badge variant="outline" className="ml-auto">
+                            Unidade {result.data.extracted.inadimplente.unidade}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-1">
+                        <p className="font-medium">{result.data.extracted.inadimplente.nome}</p>
+                        {result.data.extracted.inadimplente.cpf && (
+                          <p className="text-sm text-gray-600">CPF: {result.data.extracted.inadimplente.cpf}</p>
+                        )}
+                        {result.data.extracted.inadimplente.telefone && (
+                          <p className="text-sm text-gray-600">Tel: {result.data.extracted.inadimplente.telefone}</p>
+                        )}
+                        {result.data.extracted.inadimplente.email && (
+                          <p className="text-sm text-gray-600">Email: {result.data.extracted.inadimplente.email}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Cobrança */}
+                  {result.data?.extracted?.cobranca && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <DollarSign className="w-4 h-4" />
+                          Cobrança
+                          <Badge className="ml-auto bg-green-500">Criada</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-1">
+                        <p className="font-medium text-lg">R$ {result.data.extracted.cobranca.valor?.toFixed(2)}</p>
+                        {result.data.extracted.cobranca.vencimento && (
+                          <p className="text-sm text-gray-600">
+                            Vencimento: {new Date(result.data.extracted.cobranca.vencimento).toLocaleDateString('pt-BR')}
+                          </p>
+                        )}
+                        {result.data.extracted.cobranca.descricao && (
+                          <p className="text-sm text-gray-600">{result.data.extracted.cobranca.descricao}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
 
-                <div className="flex justify-between mt-8">
-                  <Button variant="outline" onClick={() => setActiveTab('communication')}>
-                    Voltar
+                {/* Ações */}
+                <div className="flex gap-2">
+                  <Button 
+                    className="flex-1 bg-ffp-navy hover:bg-ffp-navy-dark"
+                    onClick={() => {
+                      setFile(null);
+                      setResult(null);
+                    }}
+                  >
+                    Processar Novo Boleto
                   </Button>
-                  <div className="flex gap-2">
-                    <Button variant="outline">
-                      <Eye className="w-4 h-4 mr-2" />
-                      Pré-visualizar Mensagens
-                    </Button>
-                    <Button className="bg-ffp-gold hover:bg-ffp-gold-dark text-ffp-navy">
-                      <Send className="w-4 h-4 mr-2" />
-                      Cadastrar e Enviar
-                    </Button>
-                  </div>
+                  <Button variant="outline" className="flex-1" asChild>
+                    <Link to="/portal/corporativo/cobrancas">
+                      Ver Cobranças
+                    </Link>
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Instruções */}
+        <Card className="mt-6 bg-blue-50 border-blue-200">
+          <CardHeader>
+            <CardTitle className="text-sm">💡 Como funciona?</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+              <li>Faça upload da imagem ou PDF do boleto</li>
+              <li>Nossa IA extrai automaticamente todos os dados do boleto</li>
+              <li>Verifica se a administradora e condomínio já existem no sistema</li>
+              <li>Cria novos registros se necessário</li>
+              <li>Vincula o inadimplente à unidade e cria a cobrança</li>
+              <li>Tudo pronto para iniciar o workflow de cobrança!</li>
+            </ol>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
