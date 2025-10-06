@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Save, Play, MessageCircle, Mail, FileText, Clock, Settings2, Wand2, Copy, Download, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Play, MessageCircle, Mail, FileText, Clock, Settings2, Wand2, Copy, Download, Upload, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,8 @@ import {
   Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { LoopNode } from '@/components/workflow/LoopNode';
+import { useWorkflow } from '@/hooks/useWorkflow';
 
 // Tipos de nós personalizados
 const MessageNode = ({ data }: { data: any }) => {
@@ -136,12 +138,15 @@ const nodeTypes = {
   message: MessageNode,
   delay: DelayNode,
   start: StartNode,
+  loop: LoopNode,
 };
 
 const WorkflowConfig = () => {
   const [workflowName, setWorkflowName] = useState('Workflow Padrão');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [activeTab, setActiveTab] = useState('flow');
+  const [currentWorkflowId, setCurrentWorkflowId] = useState<string>();
+  const { saveWorkflow, loadWorkflow, loading } = useWorkflow();
 
   // Estados do React Flow
   const initialNodes: Node[] = [
@@ -175,6 +180,21 @@ const WorkflowConfig = () => {
       },
     };
     setNodes((nds) => [...nds, newNode]);
+  };
+
+  const handleSaveWorkflow = async () => {
+    try {
+      const workflowId = await saveWorkflow(
+        workflowName,
+        selectedTemplate || 'Workflow personalizado',
+        nodes,
+        edges,
+        currentWorkflowId
+      );
+      setCurrentWorkflowId(workflowId);
+    } catch (error) {
+      console.error('Error saving:', error);
+    }
   };
 
   const templates = [
@@ -299,9 +319,13 @@ Equipe de Cobrança`,
                 Exportar
               </Button>
               <Button variant="outline">Pré-visualizar</Button>
-              <Button className="bg-ffp-navy hover:bg-ffp-navy-dark text-white">
+              <Button 
+                className="bg-ffp-navy hover:bg-ffp-navy-dark text-white"
+                onClick={handleSaveWorkflow}
+                disabled={loading}
+              >
                 <Save className="w-4 h-4 mr-2" />
-                Salvar Workflow
+                {loading ? 'Salvando...' : 'Salvar Workflow'}
               </Button>
             </div>
           </div>
@@ -394,6 +418,15 @@ Equipe de Cobrança`,
                     >
                       <Clock className="w-4 h-4 mr-2 text-yellow-600" />
                       Aguardar
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => addNode('loop', 'loop')}
+                    >
+                      <RotateCw className="w-4 h-4 mr-2 text-purple-600" />
+                      Loop / Repetição
                     </Button>
                   </CardContent>
                 </Card>
