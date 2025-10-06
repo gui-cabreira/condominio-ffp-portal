@@ -81,8 +81,48 @@ const CorporateDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header com Ações */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-ffp-navy">Dashboard Corporativo</h1>
+            <p className="text-muted-foreground">Visão completa da operação</p>
+          </div>
+          <div className="flex gap-2">
+            <Link to="/portal/corporativo/condominios">
+              <Button variant="outline" className="flex items-center">
+                <Building2 className="w-4 h-4 mr-2" />
+                Condomínios
+              </Button>
+            </Link>
+            <Link to="/portal/corporativo/cobrancas">
+              <Button variant="outline" className="flex items-center">
+                <DollarSign className="w-4 h-4 mr-2" />
+                Cobranças
+              </Button>
+            </Link>
+            <Link to="/portal/corporativo/backoffice">
+              <Button variant="outline" className="flex items-center">
+                <Upload className="w-4 h-4 mr-2" />
+                Backoffice
+              </Button>
+            </Link>
+            <Link to="/portal/corporativo/usuarios">
+              <Button variant="outline" className="flex items-center">
+                <Users className="w-4 h-4 mr-2" />
+                Usuários
+              </Button>
+            </Link>
+            <Link to="/portal/corporativo/workflow">
+              <Button className="bg-ffp-gold hover:bg-ffp-gold-dark text-ffp-navy">
+                <Settings className="w-4 h-4 mr-2" />
+                Configurações
+              </Button>
+            </Link>
+          </div>
+        </div>
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total em Cobrança</CardTitle>
@@ -92,18 +132,18 @@ const CorporateDashboard = () => {
               <div className="text-2xl font-bold text-ffp-navy">
                 R$ {stats?.totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
-              <p className="text-xs text-muted-foreground">Valores pendentes de pagamento</p>
+              <p className="text-xs text-muted-foreground">Valores pendentes</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Condomínios Ativos</CardTitle>
+              <CardTitle className="text-sm font-medium">Condomínios</CardTitle>
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-ffp-navy">{stats?.condominiumsCount}</div>
-              <p className="text-xs text-muted-foreground">{stats?.unitsCount} unidades totais</p>
+              <p className="text-xs text-muted-foreground">{stats?.unitsCount} unidades</p>
             </CardContent>
           </Card>
 
@@ -114,7 +154,7 @@ const CorporateDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-ffp-navy">{stats?.successRate}%</div>
-              <p className="text-xs text-muted-foreground">Taxa de cobranças pagas</p>
+              <p className="text-xs text-muted-foreground">Cobranças pagas</p>
             </CardContent>
           </Card>
 
@@ -125,7 +165,7 @@ const CorporateDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-ffp-navy">{stats?.automationRate}%</div>
-              <p className="text-xs text-muted-foreground">Taxa de sucesso nas importações</p>
+              <p className="text-xs text-muted-foreground">Taxa de sucesso</p>
             </CardContent>
           </Card>
 
@@ -141,424 +181,241 @@ const CorporateDashboard = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="condominiums" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <TabsList>
-              <TabsTrigger value="condominiums">Condomínios</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-              <TabsTrigger value="automation">Automação</TabsTrigger>
-              <TabsTrigger value="workflow">Workflow</TabsTrigger>
-              <TabsTrigger value="reports">Relatórios</TabsTrigger>
-            </TabsList>
-            <div className="flex gap-2">
-              <Link to="/portal/corporativo/usuarios">
-                <Button variant="outline" className="flex items-center">
-                  <Users className="w-4 h-4 mr-2" />
-                  Usuários
-                </Button>
-              </Link>
-              <Link to="/portal/corporativo/backoffice">
-                <Button variant="outline" className="flex items-center">
-                  <Building2 className="w-4 h-4 mr-2" />
-                  Backoffice
-                </Button>
-              </Link>
-              <Link to="/portal/corporativo/importar">
-                <Button variant="outline" className="flex items-center">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Importar Cobranças
-                </Button>
-              </Link>
-              <Link to="/portal/corporativo/cadastrar-inadimplente">
-                <Button variant="outline" className="flex items-center">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Cadastrar Inadimplente
-                </Button>
-              </Link>
-              <Button variant="outline" className="flex items-center">
-                <Zap className="w-4 h-4 mr-2" />
-                Sync Boletos
-              </Button>
-              <Link to="/portal/corporativo/workflow">
-                <Button variant="outline" className="flex items-center">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Config. Workflow
-                </Button>
-              </Link>
-              <Button className="bg-ffp-gold hover:bg-ffp-gold-dark text-ffp-navy">
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Condomínio
-              </Button>
-            </div>
-          </div>
+        {/* Gráficos Principais */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+          {/* Arrecadação Mensal */}
+          <Card className="xl:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-ffp-navy">Arrecadação Mensal</CardTitle>
+              <CardDescription>Valores arrecadados vs esperados</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyData || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [`R$ ${value.toLocaleString()}`, '']} />
+                  <Bar dataKey="expected" fill="#ddd" name="Esperado" />
+                  <Bar dataKey="collected" fill="#1f2937" name="Arrecadado" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="condominiums">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-ffp-navy">Gestão de Condomínios</CardTitle>
-                <CardDescription>Controle e organização de todos os condomínios</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input
-                        placeholder="Buscar condomínio..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                  <Button variant="outline" className="flex items-center">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filtrar
-                  </Button>
-                </div>
-
-                <div className="grid gap-4">
-                  {(condominiums || []).map((condo) => (
-                    <Card key={condo.id} className="hover:shadow-md transition-shadow cursor-pointer">
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 className="font-semibold text-lg text-ffp-navy">{condo.name}</h3>
-                            <p className="text-gray-600">{condo.totalUnits} unidades</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-ffp-navy">{condo.pendingAmount}</p>
-                            <p className="text-sm text-gray-500">em cobrança</p>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600">Taxa de Pagamento</span>
-                            <span className="text-sm font-medium">{condo.efficiency}%</span>
-                          </div>
-                          <Progress value={condo.efficiency} className="h-2" />
-                          
-                          <div className="flex justify-between text-sm text-gray-600">
-                            <span>{condo.paidUnits} pagas</span>
-                            <span>{condo.totalUnits - condo.paidUnits} pendentes</span>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2 mt-4">
-                          <Link to={`/portal/corporativo/condominio/${condo.id}`} className="flex-1">
-                            <Button variant="outline" className="w-full">Ver Detalhes</Button>
-                          </Link>
-                          <Button variant="outline" size="sm">
-                            <BarChart3 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {/* Gráfico de Arrecadação */}
-              <Card className="xl:col-span-2">
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy">Arrecadação Mensal</CardTitle>
-                  <CardDescription>Valores arrecadados vs esperados</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={monthlyData || []}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => [`R$ ${value.toLocaleString()}`, '']} />
-                      <Bar dataKey="expected" fill="#ddd" name="Esperado" />
-                      <Bar dataKey="collected" fill="#1f2937" name="Arrecadado" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Gráfico de Status */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy">Status dos Pagamentos</CardTitle>
-                  <CardDescription>Distribuição atual</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={statusData || []}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        dataKey="value"
-                        label={({ name, value }) => `${name}: ${value}%`}
-                      >
-                        {(statusData || []).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Tempo de Resolução */}
-              <Card className="xl:col-span-2">
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy">Tempo de Resolução</CardTitle>
-                  <CardDescription>Distribuição dos dias para pagamento</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ComposedChart data={resolutionTimeData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="range" />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip />
-                      <Bar yAxisId="left" dataKey="count" fill="#1f2937" name="Quantidade" />
-                      <Line yAxisId="right" type="monotone" dataKey="percentage" stroke="#f59e0b" strokeWidth={2} name="%" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Métodos de Pagamento */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy">Métodos de Pagamento</CardTitle>
-                  <CardDescription>Preferência dos clientes</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={paymentMethodsData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        dataKey="value"
-                        label={({ name, value }) => `${name}: ${value}%`}
-                      >
-                        {paymentMethodsData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Performance Semanal */}
-              <Card className="xl:col-span-2">
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy">Performance Semanal</CardTitle>
-                  <CardDescription>Evolução dos resultados por semana</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={weeklyPerformanceData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="week" />
-                      <YAxis />
-                      <Tooltip />
-                      <Area type="monotone" dataKey="enviados" stackId="1" stroke="#ddd" fill="#ddd" name="Enviados" />
-                      <Area type="monotone" dataKey="respondidos" stackId="1" stroke="#f59e0b" fill="#f59e0b" name="Respondidos" />
-                      <Area type="monotone" dataKey="pagos" stackId="1" stroke="#22c55e" fill="#22c55e" name="Pagos" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Funil de Conversão */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy">Funil de Conversão</CardTitle>
-                  <CardDescription>Jornada do cliente</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {conversionFunnelData.map((stage, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">{stage.stage}</span>
-                          <span className="text-sm text-gray-600">{stage.count} ({stage.percentage}%)</span>
-                        </div>
-                        <Progress value={stage.percentage} className="h-2" />
-                      </div>
+          {/* Status dos Pagamentos */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-ffp-navy">Status dos Pagamentos</CardTitle>
+              <CardDescription>Distribuição atual</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={statusData || []}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}%`}
+                  >
+                    {(statusData || []).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Performance Semanal */}
+          <Card className="xl:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-ffp-navy">Performance Semanal</CardTitle>
+              <CardDescription>Evolução dos resultados</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={weeklyPerformanceData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="week" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="enviados" stackId="1" stroke="#ddd" fill="#ddd" name="Enviados" />
+                  <Area type="monotone" dataKey="respondidos" stackId="1" stroke="#f59e0b" fill="#f59e0b" name="Respondidos" />
+                  <Area type="monotone" dataKey="pagos" stackId="1" stroke="#22c55e" fill="#22c55e" name="Pagos" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Funil de Conversão */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-ffp-navy">Funil de Conversão</CardTitle>
+              <CardDescription>Jornada do cliente</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {conversionFunnelData.map((stage, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">{stage.stage}</span>
+                      <span className="text-sm text-gray-600">{stage.count} ({stage.percentage}%)</span>
+                    </div>
+                    <Progress value={stage.percentage} className="h-2" />
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Eficácia da Comunicação */}
-              <Card className="xl:col-span-3">
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy">Eficácia da Comunicação</CardTitle>
-                  <CardDescription>Performance dos canais de cobrança</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={communicationData} layout="horizontal">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="method" type="category" />
-                      <Tooltip />
-                      <Bar dataKey="sent" fill="#ddd" name="Enviado" />
-                      <Bar dataKey="opened" fill="#f59e0b" name="Aberto" />
-                      <Bar dataKey="responded" fill="#22c55e" name="Respondido" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="automation">
-            <div className="space-y-6">
-              {/* Status da Automação */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {automationStatusData.map((item, index) => (
-                  <Card key={index}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">{item.name}</CardTitle>
-                      <div className={`w-3 h-3 rounded-full ${
-                        item.status === 'success' ? 'bg-green-500' : 
-                        item.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-                      }`} />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-ffp-navy">{item.count}</div>
-                    </CardContent>
-                  </Card>
                 ))}
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Configurações de Automação */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-ffp-navy">Sincronização de Boletos</CardTitle>
-                    <CardDescription>Configure a atualização automática dos boletos</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Sincronização Automática</span>
-                      <Button variant="outline" size="sm">Ativado</Button>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Frequência</span>
-                      <span className="text-sm text-gray-600">A cada 4 horas</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Última sincronização</span>
-                      <span className="text-sm text-gray-600">Há 2 horas</span>
-                    </div>
-                    <Button className="w-full bg-ffp-navy hover:bg-ffp-navy-dark text-white">
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Sincronizar Agora
-                    </Button>
-                  </CardContent>
-                </Card>
+          {/* Eficácia da Comunicação */}
+          <Card className="xl:col-span-3">
+            <CardHeader>
+              <CardTitle className="text-ffp-navy">Eficácia da Comunicação</CardTitle>
+              <CardDescription>Performance dos canais de cobrança</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={communicationData} layout="horizontal">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="method" type="category" />
+                  <Tooltip />
+                  <Bar dataKey="sent" fill="#ddd" name="Enviado" />
+                  <Bar dataKey="opened" fill="#f59e0b" name="Aberto" />
+                  <Bar dataKey="responded" fill="#22c55e" name="Respondido" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-ffp-navy">Templates de Mensagem</CardTitle>
-                    <CardDescription>Geração automática de templates personalizados</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">WhatsApp - 1º Contato</Label>
-                      <div className="p-3 bg-gray-50 rounded text-sm">
-                        "Olá {'nome'}, seu boleto de {'valor'} vence em {'dias_vencimento'} dias. Clique aqui para visualizar: {'link_boleto'}"
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">E-mail - Lembrete</Label>
-                      <div className="p-3 bg-gray-50 rounded text-sm">
-                        "Prezado(a) {'nome'}, este é um lembrete amigável sobre seu boleto de {'valor'}..."
-                      </div>
-                    </div>
-                    <Button variant="outline" className="w-full">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Editar Templates
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
+          {/* Tempo de Resolução */}
+          <Card className="xl:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-ffp-navy">Tempo de Resolução</CardTitle>
+              <CardDescription>Dias até o pagamento</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <ComposedChart data={resolutionTimeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="range" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Bar yAxisId="left" dataKey="count" fill="#1f2937" name="Quantidade" />
+                  <Line yAxisId="right" type="monotone" dataKey="percentage" stroke="#f59e0b" strokeWidth={2} name="%" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-              {/* Logs de Automação */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy">Logs de Automação</CardTitle>
-                  <CardDescription>Histórico das operações automáticas</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {[
-                      { time: '14:30', action: 'Sincronização de boletos', status: 'success', details: '450 boletos atualizados' },
-                      { time: '12:15', action: 'Envio automático WhatsApp', status: 'success', details: '120 mensagens enviadas' },
-                      { time: '10:00', action: 'Geração de templates', status: 'success', details: '3 templates atualizados' },
-                      { time: '09:45', action: 'Sincronização de boletos', status: 'warning', details: '12 boletos com erro' },
-                    ].map((log, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-2 h-2 rounded-full ${
-                            log.status === 'success' ? 'bg-green-500' : 'bg-yellow-500'
-                          }`} />
-                          <div>
-                            <p className="text-sm font-medium">{log.action}</p>
-                            <p className="text-xs text-gray-600">{log.details}</p>
-                          </div>
-                        </div>
-                        <span className="text-xs text-gray-500">{log.time}</span>
-                      </div>
+          {/* Métodos de Pagamento */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-ffp-navy">Métodos de Pagamento</CardTitle>
+              <CardDescription>Preferências</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={paymentMethodsData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}%`}
+                  >
+                    {paymentMethodsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
 
-          <TabsContent value="workflow">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-ffp-navy">Configuração do Workflow</CardTitle>
-                <CardDescription>Configure os fluxos de cobrança automatizada</CardDescription>
+        {/* Status da Automação */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {automationStatusData.map((item, index) => (
+            <Card key={index}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{item.name}</CardTitle>
+                <div className={`w-3 h-3 rounded-full ${
+                  item.status === 'success' ? 'bg-green-500' : 
+                  item.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                }`} />
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12">
-                  <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                    Configure seu Workflow de Cobrança
-                  </h3>
-                  <p className="text-gray-500 mb-6">
-                    Crie e personalize os fluxos automáticos de cobrança com textos e timing personalizados
-                  </p>
-                  <Link to="/portal/corporativo/workflow">
-                    <Button className="bg-ffp-navy hover:bg-ffp-navy-dark text-white">
-                      Acessar Configuração
-                    </Button>
-                  </Link>
-                </div>
+                <div className="text-2xl font-bold text-ffp-navy">{item.count}</div>
+                <Button variant="outline" size="sm" className="mt-4 w-full">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Sincronizar
+                </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          ))}
+        </div>
 
-          <TabsContent value="reports">
-            <WeeklyReports />
-          </TabsContent>
-        </Tabs>
+        {/* Condomínios em Destaque */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="text-ffp-navy">Condomínios em Destaque</CardTitle>
+                <CardDescription>Últimos condomínios cadastrados ou com atividade</CardDescription>
+              </div>
+              <Link to="/portal/corporativo/condominios">
+                <Button variant="outline">
+                  Ver Todos
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {(condominiums || []).slice(0, 6).map((condo) => (
+                <Card key={condo.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-semibold text-ffp-navy">{condo.name}</h3>
+                        <p className="text-sm text-gray-600">{condo.totalUnits} unidades</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-ffp-navy">{condo.pendingAmount}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-600">Pagamento</span>
+                        <span className="text-xs font-medium">{condo.efficiency}%</span>
+                      </div>
+                      <Progress value={condo.efficiency} className="h-1.5" />
+                    </div>
+
+                    <Link to={`/portal/corporativo/condominio/${condo.id}`} className="block mt-3">
+                      <Button variant="outline" size="sm" className="w-full">
+                        Ver Detalhes
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Relatórios Semanais */}
+        <WeeklyReports />
 
       </div>
 
