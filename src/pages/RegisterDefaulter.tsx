@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Sparkles, Check, Loader2, FileText, User, Building2, DollarSign, AlertCircle } from 'lucide-react';
+import { Upload, Sparkles, Check, Loader2, FileText, User, Building2, DollarSign, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -74,27 +74,7 @@ const RegisterDefaulter = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link to="/portal/corporativo/dashboard" className="mr-4">
-                <ArrowLeft className="w-5 h-5 text-ffp-navy hover:text-ffp-gold" />
-              </Link>
-              <img 
-                src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
-                alt="FFP Advogados" 
-                className="h-8 w-auto mr-3"
-              />
-              <h1 className="text-xl font-semibold text-ffp-navy">Cadastro Inteligente de Inadimplente</h1>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <Card className="mb-8 border-2 border-ffp-gold/20 bg-gradient-to-br from-white to-ffp-gold/5">
           <CardHeader className="text-center">
@@ -337,7 +317,6 @@ const RegisterDefaulter = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
   );
 };
 
