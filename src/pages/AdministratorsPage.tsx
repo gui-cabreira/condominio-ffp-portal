@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Building2, Edit, Trash2, Search, Mail, Phone, FileText } from 'lucide-react';
+import { Plus, Building2, Edit, Trash2, Search, Mail, Phone, FileText, Link as LinkIcon, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,9 +8,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CNPJLookup } from '@/components/forms/CNPJLookup';
+import { AdministratorContacts } from '@/components/AdministratorContacts';
 
 type Administrator = {
   id: string;
@@ -37,6 +39,9 @@ type Administrator = {
   city: string | null;
   state: string | null;
   zip_code: string | null;
+  portal_url: string | null;
+  portal_username: string | null;
+  portal_password: string | null;
 };
 
 const AdministratorsPage = () => {
@@ -44,6 +49,8 @@ const AdministratorsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<Administrator | null>(null);
+  const [selectedAdmin, setSelectedAdmin] = useState<Administrator | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -66,6 +73,9 @@ const AdministratorsPage = () => {
     city: '',
     state: '',
     zip_code: '',
+    portal_url: '',
+    portal_username: '',
+    portal_password: ''
   });
 
   // Buscar administradoras
@@ -143,6 +153,9 @@ const AdministratorsPage = () => {
         city: '',
         state: '',
         zip_code: '',
+        portal_url: '',
+        portal_username: '',
+        portal_password: ''
       });
       refetch();
     } catch (error: any) {
@@ -178,6 +191,9 @@ const AdministratorsPage = () => {
       city: admin.city || '',
       state: admin.state || '',
       zip_code: admin.zip_code || '',
+      portal_url: admin.portal_url || '',
+      portal_username: admin.portal_username || '',
+      portal_password: admin.portal_password || ''
     });
     setIsDialogOpen(true);
   };
@@ -231,6 +247,9 @@ const AdministratorsPage = () => {
       city: '',
       state: '',
       zip_code: '',
+      portal_url: '',
+      portal_username: '',
+      portal_password: ''
     });
     setIsDialogOpen(true);
   };
@@ -332,16 +351,6 @@ const AdministratorsPage = () => {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="contact_person">Pessoa de Contato</Label>
-                  <Input
-                    id="contact_person"
-                    value={formData.contact_person}
-                    onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                    placeholder="Nome do responsável"
-                  />
-                </div>
-
                 <div className="col-span-2">
                   <Label htmlFor="address">Endereço</Label>
                   <Textarea
@@ -349,8 +358,50 @@ const AdministratorsPage = () => {
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     placeholder="Endereço completo"
-                    rows={3}
+                    rows={2}
                   />
+                </div>
+
+                <div className="col-span-2 border-t pt-4 mt-2">
+                  <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <LinkIcon className="w-4 h-4" />
+                    Acesso ao Portal de Boletos
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <Label htmlFor="portal_url">Link do Portal</Label>
+                      <Input
+                        id="portal_url"
+                        value={formData.portal_url}
+                        onChange={(e) => setFormData({ ...formData, portal_url: e.target.value })}
+                        placeholder="https://portal.administradora.com.br"
+                        type="url"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="portal_username">Usuário</Label>
+                        <Input
+                          id="portal_username"
+                          value={formData.portal_username}
+                          onChange={(e) => setFormData({ ...formData, portal_username: e.target.value })}
+                          placeholder="usuário"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="portal_password">Senha</Label>
+                        <Input
+                          id="portal_password"
+                          type="password"
+                          value={formData.portal_password}
+                          onChange={(e) => setFormData({ ...formData, portal_password: e.target.value })}
+                          placeholder="••••••••"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -404,6 +455,16 @@ const AdministratorsPage = () => {
                     <Button
                       size="icon"
                       variant="ghost"
+                      onClick={() => {
+                        setSelectedAdmin(admin);
+                        setViewDialogOpen(true);
+                      }}
+                    >
+                      <FileText className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       onClick={() => handleEdit(admin)}
                     >
                       <Edit className="w-4 h-4" />
@@ -436,19 +497,6 @@ const AdministratorsPage = () => {
                   </div>
                 )}
 
-                {admin.status && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant={admin.status === 'ATIVA' ? 'default' : 'secondary'}>
-                      {admin.status}
-                    </Badge>
-                    {admin.opening_date && (
-                      <span className="text-xs text-muted-foreground">
-                        Desde {admin.opening_date}
-                      </span>
-                    )}
-                  </div>
-                )}
-
                 {admin.email && (
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Mail className="w-4 h-4" />
@@ -463,28 +511,12 @@ const AdministratorsPage = () => {
                   </div>
                 )}
 
-                {(admin.city && admin.state) && (
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Localização:</span> {admin.city}/{admin.state}
-                  </div>
-                )}
-
-                {admin.size && (
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Porte:</span> {admin.size}
-                  </div>
-                )}
-
-                {admin.main_activity && (
-                  <div className="text-xs text-muted-foreground border-t pt-2 mt-2">
-                    <span className="font-medium">Atividade:</span>
-                    <p className="mt-1">{admin.main_activity}</p>
-                  </div>
-                )}
-
-                {admin.contact_person && (
-                  <div className="text-sm text-gray-600 border-t pt-2 mt-2">
-                    <span className="font-medium">Pessoa de Contato:</span> {admin.contact_person}
+                {admin.portal_url && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600 border-t pt-2">
+                    <LinkIcon className="w-4 h-4" />
+                    <a href={admin.portal_url} target="_blank" rel="noopener noreferrer" className="truncate hover:underline text-blue-600">
+                      Portal de Boletos
+                    </a>
                   </div>
                 )}
               </CardContent>
@@ -501,6 +533,173 @@ const AdministratorsPage = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Dialog de Visualização Completa */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-6 h-6" />
+              {selectedAdmin?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Dados completos da administradora
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedAdmin && (
+            <Tabs defaultValue="info" className="mt-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="info">Informações</TabsTrigger>
+                <TabsTrigger value="contacts">Contatos</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="info" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Dados Cadastrais</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                    {selectedAdmin.legal_name && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Razão Social:</span>
+                        <p className="font-medium">{selectedAdmin.legal_name}</p>
+                      </div>
+                    )}
+                    {selectedAdmin.fantasy_name && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Nome Fantasia:</span>
+                        <p className="font-medium">{selectedAdmin.fantasy_name}</p>
+                      </div>
+                    )}
+                    {selectedAdmin.cnpj && (
+                      <div>
+                        <span className="text-muted-foreground">CNPJ:</span>
+                        <p className="font-medium">{selectedAdmin.cnpj}</p>
+                      </div>
+                    )}
+                    {selectedAdmin.status && (
+                      <div>
+                        <span className="text-muted-foreground">Situação:</span>
+                        <Badge variant={selectedAdmin.status === 'ATIVA' ? 'default' : 'secondary'}>
+                          {selectedAdmin.status}
+                        </Badge>
+                      </div>
+                    )}
+                    {selectedAdmin.opening_date && (
+                      <div>
+                        <span className="text-muted-foreground">Data de Abertura:</span>
+                        <p className="font-medium">{selectedAdmin.opening_date}</p>
+                      </div>
+                    )}
+                    {selectedAdmin.size && (
+                      <div>
+                        <span className="text-muted-foreground">Porte:</span>
+                        <p className="font-medium">{selectedAdmin.size}</p>
+                      </div>
+                    )}
+                    {selectedAdmin.legal_nature && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Natureza Jurídica:</span>
+                        <p className="font-medium text-xs">{selectedAdmin.legal_nature}</p>
+                      </div>
+                    )}
+                    {selectedAdmin.capital && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Capital Social:</span>
+                        <p className="font-medium">R$ {parseFloat(selectedAdmin.capital).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                    )}
+                    {selectedAdmin.main_activity && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Atividade Principal:</span>
+                        <p className="font-medium text-xs">{selectedAdmin.main_activity}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Contato</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                    {selectedAdmin.email && (
+                      <div>
+                        <span className="text-muted-foreground">E-mail:</span>
+                        <p className="font-medium">{selectedAdmin.email}</p>
+                      </div>
+                    )}
+                    {selectedAdmin.phone && (
+                      <div>
+                        <span className="text-muted-foreground">Telefone:</span>
+                        <p className="font-medium">{selectedAdmin.phone}</p>
+                      </div>
+                    )}
+                    {selectedAdmin.address && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Endereço:</span>
+                        <p className="font-medium">{selectedAdmin.address}</p>
+                      </div>
+                    )}
+                    {(selectedAdmin.city && selectedAdmin.state) && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Cidade/Estado:</span>
+                        <p className="font-medium">{selectedAdmin.city}/{selectedAdmin.state}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {(selectedAdmin.portal_url || selectedAdmin.portal_username) && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Key className="w-4 h-4" />
+                        Acesso ao Portal
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                      {selectedAdmin.portal_url && (
+                        <div>
+                          <span className="text-muted-foreground">Link:</span>
+                          <p>
+                            <a 
+                              href={selectedAdmin.portal_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="font-medium text-blue-600 hover:underline flex items-center gap-2"
+                            >
+                              {selectedAdmin.portal_url}
+                              <LinkIcon className="w-3 h-3" />
+                            </a>
+                          </p>
+                        </div>
+                      )}
+                      {selectedAdmin.portal_username && (
+                        <div>
+                          <span className="text-muted-foreground">Usuário:</span>
+                          <p className="font-medium font-mono">{selectedAdmin.portal_username}</p>
+                        </div>
+                      )}
+                      {selectedAdmin.portal_password && (
+                        <div>
+                          <span className="text-muted-foreground">Senha:</span>
+                          <p className="font-medium font-mono">••••••••</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="contacts">
+                <AdministratorContacts administratorId={selectedAdmin.id} />
+              </TabsContent>
+            </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

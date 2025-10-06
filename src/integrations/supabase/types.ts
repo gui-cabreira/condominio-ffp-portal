@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      administrator_contacts: {
+        Row: {
+          active: boolean | null
+          administrator_id: string
+          cpf: string | null
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          id: string
+          is_primary: boolean | null
+          name: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          administrator_id: string
+          cpf?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_primary?: boolean | null
+          name: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          administrator_id?: string
+          cpf?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_primary?: boolean | null
+          name?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administrator_contacts_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       administrators: {
         Row: {
           active: boolean
@@ -36,6 +86,9 @@ export type Database = {
           number: string | null
           opening_date: string | null
           phone: string | null
+          portal_password: string | null
+          portal_url: string | null
+          portal_username: string | null
           size: string | null
           state: string | null
           status: string | null
@@ -64,6 +117,9 @@ export type Database = {
           number?: string | null
           opening_date?: string | null
           phone?: string | null
+          portal_password?: string | null
+          portal_url?: string | null
+          portal_username?: string | null
           size?: string | null
           state?: string | null
           status?: string | null
@@ -92,6 +148,9 @@ export type Database = {
           number?: string | null
           opening_date?: string | null
           phone?: string | null
+          portal_password?: string | null
+          portal_url?: string | null
+          portal_username?: string | null
           size?: string | null
           state?: string | null
           status?: string | null
