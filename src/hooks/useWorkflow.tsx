@@ -17,34 +17,57 @@ export const useWorkflow = () => {
     try {
       setLoading(true);
 
+      // Obter usuário atual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       let finalWorkflowId = workflowId;
 
       // Criar ou atualizar workflow
       if (workflowId) {
+        console.log('Atualizando workflow:', workflowId);
         const { error: updateError } = await supabase
           .from('workflows')
           .update({ name, description, updated_at: new Date().toISOString() })
           .eq('id', workflowId);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Erro ao atualizar workflow:', updateError);
+          throw updateError;
+        }
       } else {
+        console.log('Criando novo workflow');
         const { data: workflow, error: createError } = await supabase
           .from('workflows')
-          .insert([{ name, description }])
+          .insert([{ 
+            name, 
+            description,
+            created_by: user.id,
+            is_active: true
+          }])
           .select()
           .single();
 
-        if (createError) throw createError;
+        if (createError) {
+          console.error('Erro ao criar workflow:', createError);
+          throw createError;
+        }
         finalWorkflowId = workflow.id;
+        console.log('Workflow criado:', finalWorkflowId);
       }
 
       // Deletar nós e edges antigos
       if (workflowId) {
+        console.log('Deletando nós e edges antigos');
         await supabase.from('workflow_nodes').delete().eq('workflow_id', workflowId);
         await supabase.from('workflow_edges').delete().eq('workflow_id', workflowId);
+        await supabase.from('workflow_loops').delete().eq('workflow_id', workflowId);
       }
 
       // Salvar nós
+      console.log('Salvando', nodes.length, 'nós');
       const nodesToInsert = nodes.map(node => ({
         workflow_id: finalWorkflowId!,
         node_id: node.id,
@@ -54,13 +77,19 @@ export const useWorkflow = () => {
         config: (node.data || {}) as any
       }));
 
-      const { error: nodesError } = await supabase
-        .from('workflow_nodes')
-        .insert(nodesToInsert);
+      if (nodesToInsert.length > 0) {
+        const { error: nodesError } = await supabase
+          .from('workflow_nodes')
+          .insert(nodesToInsert);
 
-      if (nodesError) throw nodesError;
+        if (nodesError) {
+          console.error('Erro ao salvar nós:', nodesError);
+          throw nodesError;
+        }
+      }
 
       // Salvar edges
+      console.log('Salvando', edges.length, 'edges');
       const edgesToInsert = edges.map(edge => ({
         workflow_id: finalWorkflowId,
         source_node_id: edge.source,
@@ -73,11 +102,15 @@ export const useWorkflow = () => {
           .from('workflow_edges')
           .insert(edgesToInsert);
 
-        if (edgesError) throw edgesError;
+        if (edgesError) {
+          console.error('Erro ao salvar edges:', edgesError);
+          throw edgesError;
+        }
       }
 
       // Salvar loops
       const loopNodes = nodes.filter(node => node.type === 'loop');
+      console.log('Salvando', loopNodes.length, 'loops');
       if (loopNodes.length > 0) {
         const loopsToInsert = loopNodes.map(node => ({
           workflow_id: finalWorkflowId!,
@@ -90,20 +123,24 @@ export const useWorkflow = () => {
           .from('workflow_loops')
           .insert(loopsToInsert);
 
-        if (loopsError) throw loopsError;
+        if (loopsError) {
+          console.error('Erro ao salvar loops:', loopsError);
+          throw loopsError;
+        }
       }
 
+      console.log('Workflow salvo com sucesso!');
       toast({
         title: 'Sucesso',
         description: 'Workflow salvo com sucesso!'
       });
 
       return finalWorkflowId;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving workflow:', error);
       toast({
-        title: 'Erro',
-        description: 'Erro ao salvar workflow',
+        title: 'Erro ao salvar',
+        description: error.message || 'Erro ao salvar workflow. Verifique o console para mais detalhes.',
         variant: 'destructive'
       });
       throw error;
