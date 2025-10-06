@@ -23,19 +23,32 @@ interface Charge {
   units: {
     unit_number: string;
     owner_name: string;
-    condominiums: { name: string };
+    condominium_id: string;
+    condominiums: {
+      id: string;
+      name: string;
+      administrator_id: string;
+      administrators: {
+        id: string;
+        name: string;
+      };
+    };
   };
 }
 
 export default function ChargesPage() {
   const [charges, setCharges] = useState<Charge[]>([]);
   const [units, setUnits] = useState<any[]>([]);
+  const [administrators, setAdministrators] = useState<any[]>([]);
+  const [condominiums, setCondominiums] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedCharge, setSelectedCharge] = useState<string | null>(null);
   const [boletoFile, setBoletoFile] = useState<File | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedAdministrator, setSelectedAdministrator] = useState<string>('');
+  const [selectedCondominium, setSelectedCondominium] = useState<string>('');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -54,7 +67,7 @@ export default function ChargesPage() {
     try {
       setLoading(true);
       
-      const [chargesResult, unitsResult] = await Promise.all([
+      const [chargesResult, unitsResult, administratorsResult, condominiumsResult] = await Promise.all([
         supabase
           .from('charges')
           .select(`
@@ -62,20 +75,41 @@ export default function ChargesPage() {
             units (
               unit_number,
               owner_name,
-              condominiums (name)
+              condominium_id,
+              condominiums (
+                id,
+                name,
+                administrator_id,
+                administrators (
+                  id,
+                  name
+                )
+              )
             )
           `)
           .order('created_at', { ascending: false }),
         supabase
           .from('units')
-          .select('*, condominiums(name)')
+          .select('*, condominiums(id, name, administrator_id)'),
+        supabase
+          .from('administrators')
+          .select('*')
+          .order('name'),
+        supabase
+          .from('condominiums')
+          .select('*')
+          .order('name')
       ]);
 
       if (chargesResult.error) throw chargesResult.error;
       if (unitsResult.error) throw unitsResult.error;
+      if (administratorsResult.error) throw administratorsResult.error;
+      if (condominiumsResult.error) throw condominiumsResult.error;
 
       setCharges(chargesResult.data || []);
       setUnits(unitsResult.data || []);
+      setAdministrators(administratorsResult.data || []);
+      setCondominiums(condominiumsResult.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -192,11 +226,35 @@ export default function ChargesPage() {
     }
   };
 
-  const filteredCharges = charges.filter((charge) =>
-    charge.units.owner_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    charge.units.unit_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    charge.units.condominiums?.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar condomínios por administradora selecionada
+  const filteredCondominiums = selectedAdministrator
+    ? condominiums.filter(c => c.administrator_id === selectedAdministrator)
+    : condominiums;
+
+  // Filtrar unidades por condomínio selecionado
+  const filteredUnits = selectedCondominium
+    ? units.filter(u => u.condominium_id === selectedCondominium)
+    : selectedAdministrator
+    ? units.filter(u => {
+        const condo = condominiums.find(c => c.id === u.condominium_id);
+        return condo?.administrator_id === selectedAdministrator;
+      })
+    : units;
+
+  // Filtrar cobranças
+  const filteredCharges = charges.filter((charge) => {
+    const matchesSearch = charge.units.owner_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      charge.units.unit_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      charge.units.condominiums?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesAdministrator = !selectedAdministrator || 
+      charge.units.condominiums?.administrators?.id === selectedAdministrator;
+    
+    const matchesCondominium = !selectedCondominium || 
+      charge.units.condominium_id === selectedCondominium;
+    
+    return matchesSearch && matchesAdministrator && matchesCondominium;
+  });
 
   const pendingCharges = filteredCharges.filter(c => c.status === 'pending');
   const paidCharges = filteredCharges.filter(c => c.status === 'paid');
@@ -244,11 +302,18 @@ export default function ChargesPage() {
                   required
                 >
                   <option value="">Selecione...</option>
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.condominiums?.name} - Unidade {unit.unit_number} ({unit.owner_name})
-                    </option>
-                  ))}
+                  {units
+                    .sort((a, b) => {
+                      // Ordenar por Administradora > Condomínio > Unidade
+                      const adminCompare = (a.condominiums?.name || '').localeCompare(b.condominiums?.name || '');
+                      if (adminCompare !== 0) return adminCompare;
+                      return a.unit_number.localeCompare(b.unit_number);
+                    })
+                    .map((unit) => (
+                      <option key={unit.id} value={unit.id}>
+                        {unit.condominiums?.name} - Unidade {unit.unit_number} ({unit.owner_name})
+                      </option>
+                    ))}
                 </select>
               </div>
               <div>
@@ -360,14 +425,47 @@ export default function ChargesPage() {
         <CardHeader>
           <CardTitle>Lista de Cobranças</CardTitle>
           <CardDescription>
-            <div className="flex items-center gap-2 mt-2">
-              <Search className="h-4 w-4" />
-              <Input
-                placeholder="Buscar cobrança..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                <Input
+                  placeholder="Buscar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div>
+                <select
+                  className="w-full p-2 border rounded-md bg-background"
+                  value={selectedAdministrator}
+                  onChange={(e) => {
+                    setSelectedAdministrator(e.target.value);
+                    setSelectedCondominium(''); // Reset condomínio ao trocar administradora
+                  }}
+                >
+                  <option value="">Todas Administradoras</option>
+                  {administrators.map((admin) => (
+                    <option key={admin.id} value={admin.id}>
+                      {admin.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <select
+                  className="w-full p-2 border rounded-md bg-background"
+                  value={selectedCondominium}
+                  onChange={(e) => setSelectedCondominium(e.target.value)}
+                  disabled={!selectedAdministrator && condominiums.length > 20}
+                >
+                  <option value="">Todos Condomínios</option>
+                  {filteredCondominiums.map((condo) => (
+                    <option key={condo.id} value={condo.id}>
+                      {condo.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </CardDescription>
         </CardHeader>
@@ -431,6 +529,7 @@ function ChargesTable({ charges, getStatusColor, getStatusText, handleDelete, se
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead>Administradora</TableHead>
           <TableHead>Condomínio</TableHead>
           <TableHead>Unidade</TableHead>
           <TableHead>Proprietário</TableHead>
@@ -441,37 +540,48 @@ function ChargesTable({ charges, getStatusColor, getStatusText, handleDelete, se
         </TableRow>
       </TableHeader>
       <TableBody>
-        {charges.map((charge: Charge) => (
-          <TableRow key={charge.id}>
-            <TableCell>{charge.units.condominiums?.name}</TableCell>
-            <TableCell>{charge.units.unit_number}</TableCell>
-            <TableCell>{charge.units.owner_name}</TableCell>
-            <TableCell>R$ {charge.amount.toFixed(2)}</TableCell>
-            <TableCell>{new Date(charge.due_date).toLocaleDateString('pt-BR')}</TableCell>
-            <TableCell>
-              <Badge className={getStatusColor(charge.status)}>
-                {getStatusText(charge.status)}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedCharge(charge.id);
-                    setUploadDialogOpen(true);
-                  }}
-                >
-                  <Upload className="h-3 w-3" />
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => handleDelete(charge.id)}>
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
+        {charges.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+              Nenhuma cobrança encontrada
             </TableCell>
           </TableRow>
-        ))}
+        ) : (
+          charges.map((charge: Charge) => (
+            <TableRow key={charge.id}>
+              <TableCell className="font-medium">
+                {charge.units.condominiums?.administrators?.name || '-'}
+              </TableCell>
+              <TableCell>{charge.units.condominiums?.name}</TableCell>
+              <TableCell>{charge.units.unit_number}</TableCell>
+              <TableCell>{charge.units.owner_name}</TableCell>
+              <TableCell>R$ {charge.amount.toFixed(2)}</TableCell>
+              <TableCell>{new Date(charge.due_date).toLocaleDateString('pt-BR')}</TableCell>
+              <TableCell>
+                <Badge className={getStatusColor(charge.status)}>
+                  {getStatusText(charge.status)}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedCharge(charge.id);
+                      setUploadDialogOpen(true);
+                    }}
+                  >
+                    <Upload className="h-3 w-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleDelete(charge.id)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
       </TableBody>
     </Table>
   );
