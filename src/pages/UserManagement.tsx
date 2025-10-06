@@ -186,19 +186,13 @@ const UserManagement = () => {
 
       if (profileError) throw profileError;
 
-      // Atualizar role
+      // Atualizar role (UPDATE ao invés de DELETE + INSERT)
       const { error: roleError } = await supabase
         .from('user_roles')
-        .delete()
+        .update({ role: editForm.role as any })
         .eq('user_id', editingUser.id);
 
       if (roleError) throw roleError;
-
-      const { error: insertRoleError } = await supabase
-        .from('user_roles')
-        .insert([{ user_id: editingUser.id, role: editForm.role as any }]);
-
-      if (insertRoleError) throw insertRoleError;
 
       toast({
         title: 'Sucesso',
@@ -219,10 +213,10 @@ const UserManagement = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+    if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) return;
 
     try {
-      // Deletar roles
+      // Primeiro deletar roles
       const { error: rolesError } = await supabase
         .from('user_roles')
         .delete()
@@ -237,6 +231,14 @@ const UserManagement = () => {
         .eq('id', userId);
 
       if (profileError) throw profileError;
+
+      // Deletar da tabela auth.users usando a API admin
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+
+      if (authError) {
+        console.error('Error deleting auth user:', authError);
+        // Não bloquear se falhar - o usuário já foi removido da UI
+      }
 
       toast({
         title: 'Sucesso',
