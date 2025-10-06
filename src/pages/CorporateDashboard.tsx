@@ -80,28 +80,6 @@ const CorporateDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <img 
-                src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
-                alt="FFP Advogados" 
-                className="h-8 w-auto mr-3"
-              />
-              <h1 className="text-xl font-semibold text-ffp-navy">Sistema Corporativo</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Bem-vindo, Admin</span>
-              <Link to="/portal" className="text-ffp-navy hover:text-ffp-gold">
-                <LogOut className="w-5 h-5" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
