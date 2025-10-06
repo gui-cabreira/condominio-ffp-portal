@@ -105,6 +105,12 @@ Retorne APENAS o JSON, sem texto adicional. Se algum campo não estiver disponí
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text()
       console.error('Erro da AI:', aiResponse.status, errorText)
+      
+      // Erro mais amigável para o usuário
+      if (aiResponse.status === 400 && errorText.includes('Failed to extract')) {
+        throw new Error('Não foi possível processar este arquivo. Por favor, envie uma foto ou screenshot do boleto em formato PNG ou JPG.')
+      }
+      
       throw new Error(`Erro ao processar com IA: ${aiResponse.status}`)
     }
 
