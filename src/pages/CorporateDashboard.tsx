@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LogOut, FileText, DollarSign, Users, Calendar, Search, Plus, Filter, Building2, Settings, BarChart3, TrendingUp, AlertTriangle, Clock, RefreshCw, Zap, Upload, UserPlus } from 'lucide-react';
@@ -11,49 +10,19 @@ import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, ComposedChart } from 'recharts';
 import StatisticsAgent from '@/components/StatisticsAgent';
 import WeeklyReports from '@/components/WeeklyReports';
+import { useDashboardStats, useCondominiums, useMonthlyData, useStatusData, useCommunicationData } from '@/hooks/useDashboardData';
 
 const CorporateDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Buscar dados reais
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: condominiums, isLoading: condosLoading } = useCondominiums();
+  const { data: monthlyData, isLoading: monthlyLoading } = useMonthlyData();
+  const { data: statusData, isLoading: statusLoading } = useStatusData();
+  const { data: communicationData, isLoading: commLoading } = useCommunicationData();
 
-  // Dados mockados para demonstração
-  const condominiums = [
-    { id: 1, name: 'Condomínio Villa Real', totalUnits: 120, paidUnits: 95, pendingAmount: 'R$ 15.000,00', efficiency: 79 },
-    { id: 2, name: 'Residencial Jardins', totalUnits: 80, paidUnits: 75, pendingAmount: 'R$ 8.500,00', efficiency: 94 },
-    { id: 3, name: 'Edifício Central Park', totalUnits: 200, paidUnits: 150, pendingAmount: 'R$ 22.000,00', efficiency: 75 },
-    { id: 4, name: 'Condomínio Sunset', totalUnits: 60, paidUnits: 50, pendingAmount: 'R$ 12.300,00', efficiency: 83 },
-  ];
-
-  // Dados para gráficos
-  const monthlyData = [
-    { month: 'Jan', collected: 45000, expected: 50000 },
-    { month: 'Fev', collected: 52000, expected: 55000 },
-    { month: 'Mar', collected: 48000, expected: 52000 },
-    { month: 'Abr', collected: 61000, expected: 60000 },
-    { month: 'Mai', collected: 55000, expected: 58000 },
-    { month: 'Jun', collected: 67000, expected: 65000 },
-  ];
-
-  const statusData = [
-    { name: 'Pago', value: 65, color: '#22c55e' },
-    { name: 'Pendente', value: 25, color: '#f59e0b' },
-    { name: 'Vencido', value: 10, color: '#ef4444' },
-  ];
-
-  const communicationData = [
-    { method: 'WhatsApp', sent: 1200, opened: 980, responded: 750 },
-    { method: 'E-mail', sent: 800, opened: 420, responded: 180 },
-    { method: 'SMS', sent: 400, opened: 350, responded: 120 },
-  ];
-
-  // Novos dados para gráficos adicionais
-  const resolutionTimeData = [
-    { range: '0-3 dias', count: 45, percentage: 35 },
-    { range: '4-7 dias', count: 38, percentage: 30 },
-    { range: '8-15 dias', count: 25, percentage: 20 },
-    { range: '16-30 dias', count: 12, percentage: 10 },
-    { range: '30+ dias', count: 6, percentage: 5 },
-  ];
-
+  // Dados estáticos temporários para gráficos adicionais
   const paymentMethodsData = [
     { method: 'PIX', value: 45, color: '#22c55e' },
     { method: 'Boleto', value: 35, color: '#3b82f6' },
@@ -82,6 +51,14 @@ const CorporateDashboard = () => {
     { name: 'Falhas', count: 3, status: 'error' },
   ];
 
+  const resolutionTimeData = [
+    { range: '0-3 dias', count: 45, percentage: 35 },
+    { range: '4-7 dias', count: 38, percentage: 30 },
+    { range: '8-15 dias', count: 25, percentage: 20 },
+    { range: '16-30 dias', count: 12, percentage: 10 },
+    { range: '30+ dias', count: 6, percentage: 5 },
+  ];
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pago': return 'text-green-600 bg-green-100';
@@ -90,6 +67,16 @@ const CorporateDashboard = () => {
       default: return 'text-gray-600 bg-gray-100';
     }
   };
+
+  const isLoading = statsLoading || condosLoading || monthlyLoading || statusLoading || commLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -124,8 +111,10 @@ const CorporateDashboard = () => {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-ffp-navy">R$ 57.800,00</div>
-              <p className="text-xs text-muted-foreground">+12% em relação ao mês anterior</p>
+              <div className="text-2xl font-bold text-ffp-navy">
+                R$ {stats?.totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-xs text-muted-foreground">Valores pendentes de pagamento</p>
             </CardContent>
           </Card>
 
@@ -135,8 +124,8 @@ const CorporateDashboard = () => {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-ffp-navy">{condominiums.length}</div>
-              <p className="text-xs text-muted-foreground">460 unidades totais</p>
+              <div className="text-2xl font-bold text-ffp-navy">{stats?.condominiumsCount}</div>
+              <p className="text-xs text-muted-foreground">{stats?.unitsCount} unidades totais</p>
             </CardContent>
           </Card>
 
@@ -146,8 +135,8 @@ const CorporateDashboard = () => {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-ffp-navy">82%</div>
-              <p className="text-xs text-muted-foreground">+5% este mês</p>
+              <div className="text-2xl font-bold text-ffp-navy">{stats?.successRate}%</div>
+              <p className="text-xs text-muted-foreground">Taxa de cobranças pagas</p>
             </CardContent>
           </Card>
 
@@ -157,8 +146,8 @@ const CorporateDashboard = () => {
               <RefreshCw className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-ffp-navy">98%</div>
-              <p className="text-xs text-muted-foreground">Boletos sincronizados</p>
+              <div className="text-2xl font-bold text-ffp-navy">{stats?.automationRate}%</div>
+              <p className="text-xs text-muted-foreground">Taxa de sucesso nas importações</p>
             </CardContent>
           </Card>
 
@@ -168,7 +157,7 @@ const CorporateDashboard = () => {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-ffp-navy">7,2 dias</div>
+              <div className="text-2xl font-bold text-ffp-navy">{stats?.avgResolutionDays} dias</div>
               <p className="text-xs text-muted-foreground">Para resolução</p>
             </CardContent>
           </Card>
@@ -251,7 +240,7 @@ const CorporateDashboard = () => {
                 </div>
 
                 <div className="grid gap-4">
-                  {condominiums.map((condo) => (
+                  {(condominiums || []).map((condo) => (
                     <Card key={condo.id} className="hover:shadow-md transition-shadow cursor-pointer">
                       <CardContent className="p-6">
                         <div className="flex justify-between items-start mb-4">
@@ -304,7 +293,8 @@ const CorporateDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={monthlyData}>
+                    <BarChart data={monthlyData || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
@@ -326,14 +316,14 @@ const CorporateDashboard = () => {
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={statusData}
+                        data={statusData || []}
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
                         dataKey="value"
                         label={({ name, value }) => `${name}: ${value}%`}
                       >
-                        {statusData.map((entry, index) => (
+                        {(statusData || []).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
