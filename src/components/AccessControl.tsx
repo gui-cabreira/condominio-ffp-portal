@@ -37,7 +37,21 @@ export const AdminOrEmployee = ({ children, fallback = null }: { children: React
 );
 
 export const AllRoles = ({ children, fallback = null }: { children: ReactNode; fallback?: ReactNode }) => (
-  <AccessControl allowedRoles={['admin', 'employee', 'supervisor']} fallback={fallback}>
+  <AccessControl allowedRoles={['admin', 'employee', 'supervisor', 'assistant']} fallback={fallback}>
+    {children}
+  </AccessControl>
+);
+
+// Componente para Assistentes
+export const AssistantOnly = ({ children, fallback = null }: { children: ReactNode; fallback?: ReactNode }) => (
+  <AccessControl allowedRoles={['assistant']} fallback={fallback}>
+    {children}
+  </AccessControl>
+);
+
+// Componente para Admins e Assistentes
+export const AdminOrAssistant = ({ children, fallback = null }: { children: ReactNode; fallback?: ReactNode }) => (
+  <AccessControl allowedRoles={['admin', 'assistant']} fallback={fallback}>
     {children}
   </AccessControl>
 );

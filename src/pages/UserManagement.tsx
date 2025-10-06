@@ -266,6 +266,7 @@ const UserManagement = () => {
   const getRoleName = (role: string) => {
     const roleNames = {
       'admin': 'Administrador',
+      'assistant': 'Assistente',
       'employee': 'Funcionário',
       'supervisor': 'Supervisor'
     };
@@ -275,6 +276,7 @@ const UserManagement = () => {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
+      case 'assistant': return 'bg-purple-100 text-purple-800';
       case 'employee': return 'bg-blue-100 text-blue-800';
       case 'supervisor': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -345,12 +347,14 @@ const UserManagement = () => {
                   onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
                   required
                 >
-                  <option value="employee">Funcionário</option>
                   <option value="admin">Administrador</option>
+                  <option value="assistant">Assistente</option>
+                  <option value="employee">Funcionário</option>
                   <option value="supervisor">Supervisor</option>
                 </select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {inviteForm.role === 'admin' && 'Acesso total ao sistema'}
+                  {inviteForm.role === 'admin' && 'Acesso total ao sistema - contabilização, validação e aprovação de acordos'}
+                  {inviteForm.role === 'assistant' && 'Baixar arquivos, processar com IA, criar cobranças e disparar e-mails/WhatsApp'}
                   {inviteForm.role === 'employee' && 'Pode enviar cobranças e acompanhar pagamentos'}
                   {inviteForm.role === 'supervisor' && 'Pode visualizar relatórios e dados'}
                 </p>
@@ -414,8 +418,9 @@ const UserManagement = () => {
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                   required
                 >
-                  <option value="employee">Funcionário</option>
                   <option value="admin">Administrador</option>
+                  <option value="assistant">Assistente</option>
+                  <option value="employee">Funcionário</option>
                   <option value="supervisor">Supervisor</option>
                 </select>
               </div>
