@@ -279,36 +279,30 @@ const UserManagement = () => {
     if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) return;
 
     try {
-      // Primeiro deletar roles
-      const { error: rolesError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
+      // Chamar edge function para deletar usuário completamente
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId }
+      });
 
-      if (rolesError) throw rolesError;
+      if (error) {
+        throw error;
+      }
 
-      // Deletar perfil
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
-
-      if (profileError) throw profileError;
-
-      // Nota: A deleção do auth.users deve ser feita via edge function
-      // por enquanto, o usuário foi removido da UI e do perfil
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao deletar usuário');
+      }
 
       toast({
         title: 'Sucesso',
-        description: 'Usuário excluído com sucesso'
+        description: 'Usuário excluído com sucesso do sistema'
       });
 
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting user:', error);
       toast({
         title: 'Erro',
-        description: 'Erro ao excluir usuário',
+        description: error.message || 'Erro ao excluir usuário',
         variant: 'destructive'
       });
     }
