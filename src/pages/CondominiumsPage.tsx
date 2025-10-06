@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { CNPJLookup } from '@/components/forms/CNPJLookup';
+import { CNPJData } from '@/hooks/useCNPJ';
 
 interface Condominium {
   id: string;
@@ -35,6 +37,14 @@ export default function CondominiumsPage() {
     total_units: 0,
     administrator_id: '',
   });
+
+  const handleCNPJData = (data: CNPJData) => {
+    setFormData({
+      ...formData,
+      name: data.fantasyName || data.legalName || data.name,
+      address: data.address.fullAddress || formData.address,
+    });
+  };
 
   useEffect(() => {
     loadData();
@@ -192,21 +202,25 @@ export default function CondominiumsPage() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <CNPJLookup onDataFound={handleCNPJData} />
+              
               <div>
-                <Label htmlFor="name">Nome *</Label>
+                <Label htmlFor="name">Nome do Condomínio *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
+                  placeholder="Ex: Edifício Vila Real"
                 />
               </div>
               <div>
-                <Label htmlFor="address">Endereço</Label>
+                <Label htmlFor="address">Endereço Completo</Label>
                 <Input
                   id="address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Rua, Número - Bairro, Cidade/UF"
                 />
               </div>
               <div>
@@ -217,6 +231,7 @@ export default function CondominiumsPage() {
                   value={formData.total_units}
                   onChange={(e) => setFormData({ ...formData, total_units: parseInt(e.target.value) || 0 })}
                   required
+                  min="1"
                 />
               </div>
               <div>

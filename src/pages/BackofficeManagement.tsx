@@ -12,6 +12,8 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Building2, Users, FileUp, Brain, CheckCircle, XCircle, Clock, Plus, Edit, Trash2 } from 'lucide-react';
+import { CNPJLookup } from '@/components/forms/CNPJLookup';
+import { CNPJData } from '@/hooks/useCNPJ';
 
 interface Administrator {
   id: string;
@@ -98,6 +100,17 @@ const BackofficeManagement = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCNPJData = (data: CNPJData) => {
+    setFormData({
+      ...formData,
+      cnpj: data.cnpj,
+      name: data.legalName || data.name,
+      email: data.email || formData.email,
+      phone: data.phone || formData.phone,
+      address: data.address.fullAddress || formData.address,
+    });
   };
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
@@ -246,9 +259,14 @@ const BackofficeManagement = () => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateAdmin} className="space-y-4">
+              <CNPJLookup 
+                onDataFound={handleCNPJData}
+                initialCNPJ={formData.cnpj}
+              />
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Nome *</Label>
+                  <Label htmlFor="name">Razão Social *</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -256,6 +274,17 @@ const BackofficeManagement = () => {
                     required
                   />
                 </div>
+                <div>
+                  <Label htmlFor="contact_person">Pessoa de Contato</Label>
+                  <Input
+                    id="contact_person"
+                    value={formData.contact_person}
+                    onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="email">Email *</Label>
                   <Input
@@ -266,9 +295,6 @@ const BackofficeManagement = () => {
                     required
                   />
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="phone">Telefone</Label>
                   <Input
@@ -277,31 +303,15 @@ const BackofficeManagement = () => {
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="cnpj">CNPJ</Label>
-                  <Input
-                    id="cnpj"
-                    value={formData.cnpj}
-                    onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                  />
-                </div>
               </div>
               
               <div>
-                <Label htmlFor="contact_person">Pessoa de Contato</Label>
-                <Input
-                  id="contact_person"
-                  value={formData.contact_person}
-                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="address">Endereço</Label>
+                <Label htmlFor="address">Endereço Completo</Label>
                 <Textarea
                   id="address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  rows={3}
                 />
               </div>
               
