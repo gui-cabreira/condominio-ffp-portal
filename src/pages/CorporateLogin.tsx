@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Building2, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,12 +8,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { WelcomeLogin } from '@/components/WelcomeLogin';
 
 const CorporateLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const { signIn, loading } = useAuth();
+  const navigate = useNavigate();
   
   const form = useForm({
     defaultValues: {
@@ -23,8 +28,36 @@ const CorporateLogin = () => {
   });
 
   const onSubmit = async (data: any) => {
-    await signIn(data.email, data.password);
+    const result = await signIn(data.email, data.password);
+    
+    if (!result.error) {
+      // Buscar perfil do usuário
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        setUserProfile(profile);
+        setShowWelcome(true);
+      }
+    }
   };
+
+  if (showWelcome && userProfile) {
+    const fullName = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.email;
+    
+    return (
+      <WelcomeLogin
+        userName={fullName}
+        userEmail={userProfile.email}
+        avatarUrl={userProfile.avatar_url}
+        onComplete={() => navigate('/portal/corporativo/dashboard')}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
