@@ -31,9 +31,26 @@ serve(async (req) => {
       throw new Error('Por favor, envie apenas imagens (PNG, JPG, JPEG). Para PDFs, tire uma foto ou screenshot do boleto.')
     }
 
-    // Converter arquivo para base64
-    const arrayBuffer = await file.arrayBuffer()
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+    // Upload para storage do Supabase para obter URL
+    const fileName = `${Date.now()}-${file.name}`
+    const { data: uploadData, error: uploadError } = await supabaseClient
+      .storage
+      .from('boletos')
+      .upload(fileName, file, {
+        contentType: file.type,
+        cacheControl: '3600',
+      })
+
+    if (uploadError) {
+      console.error('Erro ao fazer upload:', uploadError)
+      throw new Error('Erro ao processar arquivo')
+    }
+
+    // Obter URL pública
+    const { data: { publicUrl } } = supabaseClient
+      .storage
+      .from('boletos')
+      .getPublicUrl(fileName)
 
     // Chamar Lovable AI com visão para processar o boleto
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
@@ -88,7 +105,7 @@ Retorne APENAS o JSON, sem texto adicional. Se algum campo não estiver disponí
               {
                 type: 'image_url',
                 image_url: {
-                  url: `data:${file.type};base64,${base64}`
+                  url: publicUrl
                 }
               },
               {
@@ -245,6 +262,9 @@ Retorne APENAS o JSON, sem texto adicional. Se algum campo não estiver disponí
       chargeId = newCharge.id
       console.log('Cobrança criada:', chargeId)
     }
+
+    // Limpar arquivo temporário do storage
+    await supabaseClient.storage.from('boletos').remove([fileName])
 
     return new Response(
       JSON.stringify({
