@@ -56,6 +56,60 @@ export type Database = {
         }
         Relationships: []
       }
+      boleto_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          charge_id: string
+          created_at: string | null
+          id: string
+          new_charge_id: string | null
+          reason: string | null
+          requested_by: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          charge_id: string
+          created_at?: string | null
+          id?: string
+          new_charge_id?: string | null
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          charge_id?: string
+          created_at?: string | null
+          id?: string
+          new_charge_id?: string | null
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boleto_requests_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boleto_requests_new_charge_id_fkey"
+            columns: ["new_charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       charge_imports: {
         Row: {
           administrator_id: string
@@ -109,6 +163,44 @@ export type Database = {
           },
         ]
       }
+      charge_timeline: {
+        Row: {
+          charge_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string
+          event_type: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          charge_id: string
+          created_at?: string | null
+          created_by?: string | null
+          description: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          charge_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_timeline_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       charges: {
         Row: {
           administrator_id: string | null
@@ -123,6 +215,7 @@ export type Database = {
           status: string
           unit_id: string
           updated_at: string
+          workflow_id: string | null
         }
         Insert: {
           administrator_id?: string | null
@@ -137,6 +230,7 @@ export type Database = {
           status?: string
           unit_id: string
           updated_at?: string
+          workflow_id?: string | null
         }
         Update: {
           administrator_id?: string | null
@@ -151,6 +245,7 @@ export type Database = {
           status?: string
           unit_id?: string
           updated_at?: string
+          workflow_id?: string | null
         }
         Relationships: [
           {
@@ -172,6 +267,13 @@ export type Database = {
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charges_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
             referencedColumns: ["id"]
           },
         ]
@@ -434,6 +536,36 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      workflow_config: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          encrypted: boolean | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          encrypted?: boolean | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          encrypted?: boolean | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: string | null
         }
         Relationships: []
       }
