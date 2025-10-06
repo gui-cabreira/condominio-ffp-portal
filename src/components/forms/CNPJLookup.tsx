@@ -69,20 +69,20 @@ export const CNPJLookup = ({ onDataFound, initialCNPJ = '' }: CNPJLookupProps) =
       </div>
 
       {data && (
-        <div className="space-y-3 p-3 bg-background rounded-md border border-green-200">
+        <div className="space-y-4 p-4 bg-background rounded-md border border-green-200">
           <div className="flex items-center gap-2 text-green-600">
             <CheckCircle className="h-4 w-4" />
-            <span className="font-medium text-sm">Dados encontrados</span>
+            <span className="font-medium text-sm">Dados da Receita Federal encontrados</span>
           </div>
           
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="col-span-2">
               <span className="text-muted-foreground">Razão Social:</span>
               <p className="font-medium">{data.legalName}</p>
             </div>
             
             {data.fantasyName && (
-              <div>
+              <div className="col-span-2">
                 <span className="text-muted-foreground">Nome Fantasia:</span>
                 <p className="font-medium">{data.fantasyName}</p>
               </div>
@@ -91,45 +91,74 @@ export const CNPJLookup = ({ onDataFound, initialCNPJ = '' }: CNPJLookupProps) =
             {data.status && (
               <div>
                 <span className="text-muted-foreground">Situação:</span>
-                <Badge variant={data.status === 'ATIVA' ? 'default' : 'secondary'}>
-                  {data.status}
-                </Badge>
+                <div className="mt-1">
+                  <Badge variant={data.status === 'ATIVA' ? 'default' : 'secondary'}>
+                    {data.status}
+                  </Badge>
+                </div>
               </div>
             )}
             
             {data.openingDate && (
               <div>
-                <span className="text-muted-foreground">Abertura:</span>
+                <span className="text-muted-foreground">Data de Abertura:</span>
                 <p className="font-medium">{data.openingDate}</p>
+              </div>
+            )}
+
+            {data.legalNature && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Natureza Jurídica:</span>
+                <p className="font-medium text-xs">{data.legalNature}</p>
+              </div>
+            )}
+
+            {data.size && (
+              <div>
+                <span className="text-muted-foreground">Porte:</span>
+                <p className="font-medium">{data.size}</p>
+              </div>
+            )}
+
+            {data.capital && (
+              <div>
+                <span className="text-muted-foreground">Capital Social:</span>
+                <p className="font-medium">R$ {parseFloat(data.capital).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
               </div>
             )}
           </div>
 
           {data.address.fullAddress && (
-            <div className="text-sm">
-              <span className="text-muted-foreground">Endereço:</span>
-              <p className="font-medium">{data.address.fullAddress}</p>
+            <div className="text-sm pt-2 border-t">
+              <span className="text-muted-foreground">Endereço Completo:</span>
+              <p className="font-medium mt-1">{data.address.fullAddress}</p>
+              <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-muted-foreground">
+                {data.address.zipCode && <p>CEP: {data.address.zipCode}</p>}
+                {data.address.city && data.address.state && <p>{data.address.city}/{data.address.state}</p>}
+              </div>
             </div>
           )}
 
-          {data.phone && (
-            <div className="text-sm">
-              <span className="text-muted-foreground">Telefone:</span>
-              <p className="font-medium">{data.phone}</p>
-            </div>
-          )}
+          <div className="grid grid-cols-2 gap-3 text-sm pt-2 border-t">
+            {data.phone && (
+              <div>
+                <span className="text-muted-foreground">Telefone:</span>
+                <p className="font-medium">{data.phone}</p>
+              </div>
+            )}
 
-          {data.email && (
-            <div className="text-sm">
-              <span className="text-muted-foreground">Email:</span>
-              <p className="font-medium">{data.email}</p>
-            </div>
-          )}
+            {data.email && (
+              <div>
+                <span className="text-muted-foreground">Email:</span>
+                <p className="font-medium truncate">{data.email}</p>
+              </div>
+            )}
+          </div>
 
           {data.activity && (
-            <div className="text-sm">
-              <span className="text-muted-foreground">Atividade:</span>
-              <p className="font-medium text-xs">{data.activity}</p>
+            <div className="text-sm pt-2 border-t">
+              <span className="text-muted-foreground">Atividade Principal:</span>
+              <p className="font-medium text-xs mt-1">{data.activity}</p>
             </div>
           )}
         </div>

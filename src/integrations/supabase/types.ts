@@ -18,41 +18,86 @@ export type Database = {
         Row: {
           active: boolean
           address: string | null
+          capital: string | null
+          city: string | null
           cnpj: string | null
+          complement: string | null
           contact_person: string | null
           created_at: string
           created_by: string | null
           email: string
+          fantasy_name: string | null
           id: string
+          legal_name: string | null
+          legal_nature: string | null
+          main_activity: string | null
           name: string
+          neighborhood: string | null
+          number: string | null
+          opening_date: string | null
           phone: string | null
+          size: string | null
+          state: string | null
+          status: string | null
+          street: string | null
           updated_at: string
+          zip_code: string | null
         }
         Insert: {
           active?: boolean
           address?: string | null
+          capital?: string | null
+          city?: string | null
           cnpj?: string | null
+          complement?: string | null
           contact_person?: string | null
           created_at?: string
           created_by?: string | null
           email: string
+          fantasy_name?: string | null
           id?: string
+          legal_name?: string | null
+          legal_nature?: string | null
+          main_activity?: string | null
           name: string
+          neighborhood?: string | null
+          number?: string | null
+          opening_date?: string | null
           phone?: string | null
+          size?: string | null
+          state?: string | null
+          status?: string | null
+          street?: string | null
           updated_at?: string
+          zip_code?: string | null
         }
         Update: {
           active?: boolean
           address?: string | null
+          capital?: string | null
+          city?: string | null
           cnpj?: string | null
+          complement?: string | null
           contact_person?: string | null
           created_at?: string
           created_by?: string | null
           email?: string
+          fantasy_name?: string | null
           id?: string
+          legal_name?: string | null
+          legal_nature?: string | null
+          main_activity?: string | null
           name?: string
+          neighborhood?: string | null
+          number?: string | null
+          opening_date?: string | null
           phone?: string | null
+          size?: string | null
+          state?: string | null
+          status?: string | null
+          street?: string | null
           updated_at?: string
+          zip_code?: string | null
         }
         Relationships: []
       }

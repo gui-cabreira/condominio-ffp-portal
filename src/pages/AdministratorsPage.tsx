@@ -22,6 +22,21 @@ type Administrator = {
   contact_person: string | null;
   active: boolean;
   created_at: string;
+  fantasy_name: string | null;
+  legal_name: string | null;
+  legal_nature: string | null;
+  opening_date: string | null;
+  status: string | null;
+  size: string | null;
+  capital: string | null;
+  main_activity: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
 };
 
 const AdministratorsPage = () => {
@@ -36,6 +51,21 @@ const AdministratorsPage = () => {
     cnpj: '',
     address: '',
     contact_person: '',
+    fantasy_name: '',
+    legal_name: '',
+    legal_nature: '',
+    opening_date: '',
+    status: '',
+    size: '',
+    capital: '',
+    main_activity: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    zip_code: '',
   });
 
   // Buscar administradoras
@@ -98,6 +128,21 @@ const AdministratorsPage = () => {
         cnpj: '',
         address: '',
         contact_person: '',
+        fantasy_name: '',
+        legal_name: '',
+        legal_nature: '',
+        opening_date: '',
+        status: '',
+        size: '',
+        capital: '',
+        main_activity: '',
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: '',
+        state: '',
+        zip_code: '',
       });
       refetch();
     } catch (error: any) {
@@ -118,6 +163,21 @@ const AdministratorsPage = () => {
       cnpj: admin.cnpj || '',
       address: admin.address || '',
       contact_person: admin.contact_person || '',
+      fantasy_name: admin.fantasy_name || '',
+      legal_name: admin.legal_name || '',
+      legal_nature: admin.legal_nature || '',
+      opening_date: admin.opening_date || '',
+      status: admin.status || '',
+      size: admin.size || '',
+      capital: admin.capital || '',
+      main_activity: admin.main_activity || '',
+      street: admin.street || '',
+      number: admin.number || '',
+      complement: admin.complement || '',
+      neighborhood: admin.neighborhood || '',
+      city: admin.city || '',
+      state: admin.state || '',
+      zip_code: admin.zip_code || '',
     });
     setIsDialogOpen(true);
   };
@@ -156,6 +216,21 @@ const AdministratorsPage = () => {
       cnpj: '',
       address: '',
       contact_person: '',
+      fantasy_name: '',
+      legal_name: '',
+      legal_nature: '',
+      opening_date: '',
+      status: '',
+      size: '',
+      capital: '',
+      main_activity: '',
+      street: '',
+      number: '',
+      complement: '',
+      neighborhood: '',
+      city: '',
+      state: '',
+      zip_code: '',
     });
     setIsDialogOpen(true);
   };
@@ -199,11 +274,26 @@ const AdministratorsPage = () => {
                     onDataFound={(data) => {
                       setFormData({
                         ...formData,
-                        name: data.legalName || formData.name,
+                        name: data.legalName || data.name || formData.name,
                         email: data.email || formData.email,
                         phone: data.phone || formData.phone,
                         cnpj: data.cnpj || formData.cnpj,
                         address: data.address.fullAddress || formData.address,
+                        fantasy_name: data.fantasyName || '',
+                        legal_name: data.legalName || '',
+                        legal_nature: data.legalNature || '',
+                        opening_date: data.openingDate || '',
+                        status: data.status || '',
+                        size: data.size || '',
+                        capital: data.capital || '',
+                        main_activity: data.activity || '',
+                        street: data.address.street || '',
+                        number: data.address.number || '',
+                        complement: data.address.complement || '',
+                        neighborhood: data.address.neighborhood || '',
+                        city: data.address.city || '',
+                        state: data.address.state || '',
+                        zip_code: data.address.zipCode || '',
                       });
                     }}
                   />
@@ -331,28 +421,70 @@ const AdministratorsPage = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {admin.email && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="w-4 h-4" />
-                    <span className="truncate">{admin.email}</span>
+              <CardContent className="space-y-3">
+                {admin.fantasy_name && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Nome Fantasia:</span>
+                    <p className="font-medium">{admin.fantasy_name}</p>
                   </div>
                 )}
-                {admin.phone && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Phone className="w-4 h-4" />
-                    <span>{admin.phone}</span>
-                  </div>
-                )}
+                
                 {admin.cnpj && (
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <FileText className="w-4 h-4" />
                     <span>{admin.cnpj}</span>
                   </div>
                 )}
-                {admin.contact_person && (
+
+                {admin.status && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant={admin.status === 'ATIVA' ? 'default' : 'secondary'}>
+                      {admin.status}
+                    </Badge>
+                    {admin.opening_date && (
+                      <span className="text-xs text-muted-foreground">
+                        Desde {admin.opening_date}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {admin.email && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Mail className="w-4 h-4" />
+                    <span className="truncate">{admin.email}</span>
+                  </div>
+                )}
+                
+                {admin.phone && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Phone className="w-4 h-4" />
+                    <span>{admin.phone}</span>
+                  </div>
+                )}
+
+                {(admin.city && admin.state) && (
                   <div className="text-sm text-gray-600">
-                    <span className="font-medium">Contato:</span> {admin.contact_person}
+                    <span className="font-medium">Localização:</span> {admin.city}/{admin.state}
+                  </div>
+                )}
+
+                {admin.size && (
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">Porte:</span> {admin.size}
+                  </div>
+                )}
+
+                {admin.main_activity && (
+                  <div className="text-xs text-muted-foreground border-t pt-2 mt-2">
+                    <span className="font-medium">Atividade:</span>
+                    <p className="mt-1">{admin.main_activity}</p>
+                  </div>
+                )}
+
+                {admin.contact_person && (
+                  <div className="text-sm text-gray-600 border-t pt-2 mt-2">
+                    <span className="font-medium">Pessoa de Contato:</span> {admin.contact_person}
                   </div>
                 )}
               </CardContent>
