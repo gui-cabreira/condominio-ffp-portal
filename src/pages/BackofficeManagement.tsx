@@ -25,6 +25,21 @@ interface Administrator {
   contact_person?: string;
   active: boolean;
   created_at: string;
+  fantasy_name?: string;
+  legal_name?: string;
+  legal_nature?: string;
+  opening_date?: string;
+  status?: string;
+  size?: string;
+  capital?: string;
+  main_activity?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
 }
 
 interface ChargeImport {
@@ -45,6 +60,7 @@ const BackofficeManagement = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAdmin, setSelectedAdmin] = useState<Administrator | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState<Administrator | null>(null);
   const [importContent, setImportContent] = useState('');
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -57,7 +73,22 @@ const BackofficeManagement = () => {
     phone: '',
     cnpj: '',
     address: '',
-    contact_person: ''
+    contact_person: '',
+    fantasy_name: '',
+    legal_name: '',
+    legal_nature: '',
+    opening_date: '',
+    status: '',
+    size: '',
+    capital: '',
+    main_activity: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    zip_code: ''
   });
 
   useEffect(() => {
@@ -110,23 +141,54 @@ const BackofficeManagement = () => {
       email: data.email || formData.email,
       phone: data.phone || formData.phone,
       address: data.address.fullAddress || formData.address,
+      fantasy_name: data.fantasyName || '',
+      legal_name: data.legalName || '',
+      legal_nature: data.legalNature || '',
+      opening_date: data.openingDate || '',
+      status: data.status || '',
+      size: data.size || '',
+      capital: data.capital || '',
+      main_activity: data.activity || '',
+      street: data.address.street || '',
+      number: data.address.number || '',
+      complement: data.address.complement || '',
+      neighborhood: data.address.neighborhood || '',
+      city: data.address.city || '',
+      state: data.address.state || '',
+      zip_code: data.address.zipCode || '',
     });
   };
 
-  const handleCreateAdmin = async (e: React.FormEvent) => {
+  const handleSaveAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      const { error } = await supabase
-        .from('administrators')
-        .insert([formData]);
+      if (editingAdmin) {
+        // Atualizar administradora existente
+        const { error } = await supabase
+          .from('administrators')
+          .update(formData)
+          .eq('id', editingAdmin.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Administradora cadastrada com sucesso!"
-      });
+        toast({
+          title: "Sucesso",
+          description: "Administradora atualizada com sucesso!"
+        });
+      } else {
+        // Criar nova administradora
+        const { error } = await supabase
+          .from('administrators')
+          .insert([formData]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Sucesso",
+          description: "Administradora cadastrada com sucesso!"
+        });
+      }
 
       setFormData({
         name: '',
@@ -134,16 +196,87 @@ const BackofficeManagement = () => {
         phone: '',
         cnpj: '',
         address: '',
-        contact_person: ''
+        contact_person: '',
+        fantasy_name: '',
+        legal_name: '',
+        legal_nature: '',
+        opening_date: '',
+        status: '',
+        size: '',
+        capital: '',
+        main_activity: '',
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: '',
+        state: '',
+        zip_code: ''
       });
       
+      setEditingAdmin(null);
       setIsDialogOpen(false);
       loadData();
     } catch (error) {
-      console.error('Error creating administrator:', error);
+      console.error('Error saving administrator:', error);
       toast({
         title: "Erro",
-        description: "Erro ao cadastrar administradora",
+        description: "Erro ao salvar administradora",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditAdmin = (admin: Administrator) => {
+    setEditingAdmin(admin);
+    setFormData({
+      name: admin.name,
+      email: admin.email,
+      phone: admin.phone || '',
+      cnpj: admin.cnpj || '',
+      address: admin.address || '',
+      contact_person: admin.contact_person || '',
+      fantasy_name: admin.fantasy_name || '',
+      legal_name: admin.legal_name || '',
+      legal_nature: admin.legal_nature || '',
+      opening_date: admin.opening_date || '',
+      status: admin.status || '',
+      size: admin.size || '',
+      capital: admin.capital || '',
+      main_activity: admin.main_activity || '',
+      street: admin.street || '',
+      number: admin.number || '',
+      complement: admin.complement || '',
+      neighborhood: admin.neighborhood || '',
+      city: admin.city || '',
+      state: admin.state || '',
+      zip_code: admin.zip_code || ''
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteAdmin = async (adminId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta administradora?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('administrators')
+        .delete()
+        .eq('id', adminId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Administradora excluída com sucesso!"
+      });
+
+      loadData();
+    } catch (error) {
+      console.error('Error deleting administrator:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir administradora",
         variant: "destructive"
       });
     }
@@ -244,7 +377,35 @@ const BackofficeManagement = () => {
           <p className="text-muted-foreground">Gestão completa de administradoras e cobranças</p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            setEditingAdmin(null);
+            setFormData({
+              name: '',
+              email: '',
+              phone: '',
+              cnpj: '',
+              address: '',
+              contact_person: '',
+              fantasy_name: '',
+              legal_name: '',
+              legal_nature: '',
+              opening_date: '',
+              status: '',
+              size: '',
+              capital: '',
+              main_activity: '',
+              street: '',
+              number: '',
+              complement: '',
+              neighborhood: '',
+              city: '',
+              state: '',
+              zip_code: ''
+            });
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
@@ -253,12 +414,14 @@ const BackofficeManagement = () => {
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Cadastrar Administradora</DialogTitle>
+              <DialogTitle>
+                {editingAdmin ? 'Editar Administradora' : 'Cadastrar Administradora'}
+              </DialogTitle>
               <DialogDescription>
-                Cadastre uma nova administradora parceira
+                {editingAdmin ? 'Atualize os dados da administradora' : 'Cadastre uma nova administradora parceira'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateAdmin} className="space-y-4">
+            <form onSubmit={handleSaveAdmin} className="space-y-4">
               <CNPJLookup 
                 onDataFound={handleCNPJData}
                 initialCNPJ={formData.cnpj}
@@ -319,7 +482,9 @@ const BackofficeManagement = () => {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">Cadastrar</Button>
+                <Button type="submit">
+                  {editingAdmin ? 'Atualizar' : 'Cadastrar'}
+                </Button>
               </div>
             </form>
           </DialogContent>
@@ -372,9 +537,21 @@ const BackofficeManagement = () => {
                     </p>
                   )}
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => handleEditAdmin(admin)}
+                    >
                       <Edit className="h-3 w-3 mr-1" />
                       Editar
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive" 
+                      onClick={() => handleDeleteAdmin(admin.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </CardContent>
