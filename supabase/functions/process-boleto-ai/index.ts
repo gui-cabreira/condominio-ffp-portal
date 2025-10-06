@@ -24,7 +24,12 @@ serve(async (req) => {
       throw new Error('Nenhum arquivo enviado')
     }
 
-    console.log('Processando boleto:', file.name)
+    console.log('Processando boleto:', file.name, 'Tipo:', file.type)
+
+    // Validar tipo de arquivo - apenas imagens
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Por favor, envie apenas imagens (PNG, JPG, JPEG). Para PDFs, tire uma foto ou screenshot do boleto.')
+    }
 
     // Converter arquivo para base64
     const arrayBuffer = await file.arrayBuffer()

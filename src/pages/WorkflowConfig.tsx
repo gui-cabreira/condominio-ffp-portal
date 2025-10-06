@@ -139,15 +139,16 @@ const StartNode = ({ data }: { data: any }) => {
   );
 };
 
-const nodeTypes = {
-  message: MessageNode,
-  delay: DelayNode,
-  start: StartNode,
-  loop: LoopNode,
-};
-
 const WorkflowConfig = () => {
   const { toast } = useToast();
+  
+  // Memoize nodeTypes to prevent React Flow warning
+  const nodeTypes = React.useMemo(() => ({
+    message: MessageNode,
+    delay: DelayNode,
+    start: StartNode,
+    loop: LoopNode,
+  }), []);
   const [workflowName, setWorkflowName] = useState('Workflow Padrão');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [activeTab, setActiveTab] = useState('flow');

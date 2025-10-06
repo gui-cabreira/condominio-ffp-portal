@@ -129,7 +129,7 @@ const RegisterDefaulter = () => {
               Upload do Boleto
             </CardTitle>
             <CardDescription>
-              Formatos aceitos: PDF, PNG, JPG, JPEG (máx. 10MB)
+              Formatos aceitos: PNG, JPG, JPEG (máx. 10MB) - tire uma foto ou screenshot do boleto
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -139,7 +139,7 @@ const RegisterDefaulter = () => {
                 type="file"
                 id="file-upload"
                 className="hidden"
-                accept=".pdf,.png,.jpg,.jpeg"
+                accept="image/png,image/jpeg,image/jpg"
                 onChange={handleFileChange}
               />
               <label htmlFor="file-upload" className="cursor-pointer">
