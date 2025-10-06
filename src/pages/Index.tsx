@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SplashScreen from '@/components/SplashScreen';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
@@ -7,12 +7,20 @@ import Services from '@/components/Services';
 import About from '@/components/About';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const [showSplash, setShowSplash] = useState(true);
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
   const handleSplashComplete = () => {
     setShowSplash(false);
+    
+    // Se o usuário está logado, redirecionar para o dashboard
+    if (user) {
+      navigate('/portal/corporativo/dashboard');
+    }
   };
 
   if (showSplash) {
