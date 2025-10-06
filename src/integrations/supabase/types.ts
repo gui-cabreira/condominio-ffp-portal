@@ -62,6 +62,13 @@ export type Database = {
             referencedRelation: "administrators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "administrator_contacts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       administrators: {
@@ -158,7 +165,15 @@ export type Database = {
           updated_at?: string
           zip_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "administrators_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       boleto_requests: {
         Row: {
@@ -199,6 +214,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "boleto_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "boleto_requests_charge_id_fkey"
             columns: ["charge_id"]
             isOneToOne: false
@@ -211,6 +233,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "charges"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boleto_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -265,6 +294,13 @@ export type Database = {
             referencedRelation: "administrators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "charge_imports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       charge_timeline: {
@@ -302,6 +338,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "charges"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_timeline_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -421,6 +464,51 @@ export type Database = {
             referencedRelation: "administrators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "condominiums_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      login_logs: {
+        Row: {
+          id: string
+          ip_address: string | null
+          login_at: string
+          metadata: Json | null
+          success: boolean
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          ip_address?: string | null
+          login_at?: string
+          metadata?: Json | null
+          success?: boolean
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          ip_address?: string | null
+          login_at?: string
+          metadata?: Json | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "login_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       messages: {
@@ -532,7 +620,110 @@ export type Database = {
           updated_at?: string
           zip_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      system_bugs: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          reported_by: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          reported_by?: string | null
+          resolved_at?: string | null
+          severity: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          reported_by?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_bugs_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "system_bugs_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      system_logs: {
+        Row: {
+          created_at: string
+          description: string
+          event_category: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          event_category: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          event_category?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       units: {
         Row: {
@@ -620,7 +811,15 @@ export type Database = {
           invited_by?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -641,7 +840,15 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       workflow_config: {
         Row: {
@@ -931,7 +1138,15 @@ export type Database = {
           name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workflows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
     }
     Views: {
@@ -944,6 +1159,16 @@ export type Database = {
           total_paid_amount: number | null
           total_pending_amount: number | null
           total_units: number | null
+        }
+        Relationships: []
+      }
+      login_statistics: {
+        Row: {
+          email: string | null
+          failed_attempts: number | null
+          last_login: string | null
+          total_logins: number | null
+          user_id: string | null
         }
         Relationships: []
       }
