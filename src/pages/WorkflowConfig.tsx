@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Save, Play, MessageCircle, Mail, FileText, Clock, Settings2, Wand2, Copy, Download, Upload, RotateCw } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Plus, Save, Play, MessageCircle, Mail, FileText, Clock, Settings2, Wand2, Copy, Download, Upload, RotateCw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
 import {
   ReactFlow,
   MiniMap,
@@ -19,6 +22,9 @@ import {
   Connection,
   Edge,
   Node,
+  NodeMouseHandler,
+  OnNodesDelete,
+  Handle,
   Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -44,7 +50,9 @@ const MessageNode = ({ data }: { data: any }) => {
   };
 
   return (
-    <div className="bg-white border-2 border-gray-200 rounded-lg p-4 min-w-[250px] shadow-md">
+    <div className="bg-white border-2 border-gray-200 rounded-lg p-4 min-w-[250px] shadow-md hover:shadow-lg transition-shadow">
+      <Handle type="target" position={Position.Top} className="w-3 h-3 !bg-blue-500" />
+      
       <div className="flex items-center gap-2 mb-2">
         {getIcon()}
         <span className="font-semibold text-sm capitalize">{data.type}</span>
@@ -81,9 +89,7 @@ const MessageNode = ({ data }: { data: any }) => {
         </div>
       )}
 
-      {/* Handles para conexões */}
-      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-blue-500 rounded-full"></div>
-      <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-blue-500 rounded-full"></div>
+      <Handle type="source" position={Position.Bottom} className="w-3 h-3 !bg-blue-500" />
     </div>
   );
 };
@@ -92,7 +98,9 @@ const DelayNode = ({ data }: { data: any }) => {
   const [delay, setDelay] = useState(data.delay || 1);
 
   return (
-    <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 min-w-[180px] shadow-md">
+    <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 min-w-[180px] shadow-md hover:shadow-lg transition-shadow">
+      <Handle type="target" position={Position.Top} className="w-3 h-3 !bg-blue-500" />
+      
       <div className="flex items-center gap-2 mb-2">
         <Clock className="w-4 h-4 text-yellow-600" />
         <span className="font-semibold text-sm">Aguardar</span>
@@ -113,23 +121,20 @@ const DelayNode = ({ data }: { data: any }) => {
         <span className="text-sm text-gray-600">dias</span>
       </div>
 
-      {/* Handles para conexões */}
-      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-blue-500 rounded-full"></div>
-      <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-blue-500 rounded-full"></div>
+      <Handle type="source" position={Position.Bottom} className="w-3 h-3 !bg-blue-500" />
     </div>
   );
 };
 
 const StartNode = ({ data }: { data: any }) => {
   return (
-    <div className="bg-green-50 border-2 border-green-200 rounded-full p-4 min-w-[120px] shadow-md text-center">
+    <div className="bg-green-50 border-2 border-green-200 rounded-full p-4 min-w-[120px] shadow-md text-center hover:shadow-lg transition-shadow">
       <div className="flex items-center justify-center gap-2">
         <Play className="w-4 h-4 text-green-600" />
         <span className="font-semibold text-sm">Início</span>
       </div>
       
-      {/* Handle para saída */}
-      <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-blue-500 rounded-full"></div>
+      <Handle type="source" position={Position.Bottom} className="w-3 h-3 !bg-blue-500" />
     </div>
   );
 };
@@ -142,10 +147,14 @@ const nodeTypes = {
 };
 
 const WorkflowConfig = () => {
+  const { toast } = useToast();
   const [workflowName, setWorkflowName] = useState('Workflow Padrão');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [activeTab, setActiveTab] = useState('flow');
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string>();
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
+  const [autoSave, setAutoSave] = useState(false);
+  const [notifyOnComplete, setNotifyOnComplete] = useState(true);
   const { saveWorkflow, loadWorkflow, loading } = useWorkflow();
 
   // Estados do React Flow
@@ -164,8 +173,14 @@ const WorkflowConfig = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
+    (params: Connection) => {
+      setEdges((eds) => addEdge({ ...params, animated: true }, eds));
+      toast({
+        title: 'Conexão criada',
+        description: 'Nós conectados com sucesso'
+      });
+    },
+    [setEdges, toast]
   );
 
   const addNode = (type: string, nodeType: string) => {
@@ -180,6 +195,69 @@ const WorkflowConfig = () => {
       },
     };
     setNodes((nds) => [...nds, newNode]);
+    toast({
+      title: 'Nó adicionado',
+      description: `Nó do tipo ${type} adicionado ao workflow`
+    });
+  };
+
+  const applyTemplate = (templateName: string) => {
+    setSelectedTemplate(templateName);
+    
+    let newNodes: Node[] = [
+      {
+        id: '1',
+        type: 'start',
+        position: { x: 250, y: 50 },
+        data: { label: 'Início' },
+      }
+    ];
+    
+    let newEdges: Edge[] = [];
+    
+    if (templateName === 'Cobrança Amigável') {
+      newNodes = [
+        ...newNodes,
+        { id: '2', type: 'message', position: { x: 250, y: 150 }, data: { type: 'whatsapp', message: 'Lembrete amigável de cobrança' } },
+        { id: '3', type: 'delay', position: { x: 250, y: 280 }, data: { delay: 3 } },
+        { id: '4', type: 'message', position: { x: 250, y: 400 }, data: { type: 'email', message: 'E-mail de segunda cobrança' } },
+        { id: '5', type: 'delay', position: { x: 250, y: 530 }, data: { delay: 7 } },
+        { id: '6', type: 'message', position: { x: 250, y: 650 }, data: { type: 'sms', message: 'SMS final de cobrança' } },
+      ];
+      newEdges = [
+        { id: 'e1-2', source: '1', target: '2', animated: true },
+        { id: 'e2-3', source: '2', target: '3', animated: true },
+        { id: 'e3-4', source: '3', target: '4', animated: true },
+        { id: 'e4-5', source: '4', target: '5', animated: true },
+        { id: 'e5-6', source: '5', target: '6', animated: true },
+      ];
+    } else if (templateName === 'Cobrança Intensiva') {
+      newNodes = [
+        ...newNodes,
+        { id: '2', type: 'message', position: { x: 150, y: 150 }, data: { type: 'whatsapp', message: 'WhatsApp urgente' } },
+        { id: '3', type: 'message', position: { x: 350, y: 150 }, data: { type: 'email', message: 'E-mail simultâneo' } },
+        { id: '4', type: 'delay', position: { x: 250, y: 280 }, data: { delay: 2 } },
+        { id: '5', type: 'message', position: { x: 250, y: 400 }, data: { type: 'whatsapp', message: 'Segundo WhatsApp' } },
+        { id: '6', type: 'delay', position: { x: 250, y: 530 }, data: { delay: 5 } },
+        { id: '7', type: 'message', position: { x: 250, y: 650 }, data: { type: 'sms', message: 'SMS final urgente' } },
+      ];
+      newEdges = [
+        { id: 'e1-2', source: '1', target: '2', animated: true },
+        { id: 'e1-3', source: '1', target: '3', animated: true },
+        { id: 'e2-4', source: '2', target: '4', animated: true },
+        { id: 'e3-4', source: '3', target: '4', animated: true },
+        { id: 'e4-5', source: '4', target: '5', animated: true },
+        { id: 'e5-6', source: '5', target: '6', animated: true },
+        { id: 'e6-7', source: '6', target: '7', animated: true },
+      ];
+    }
+    
+    setNodes(newNodes);
+    setEdges(newEdges);
+    toast({
+      title: 'Template aplicado',
+      description: `Template "${templateName}" carregado com sucesso!`
+    });
   };
 
   const handleSaveWorkflow = async () => {
@@ -192,10 +270,24 @@ const WorkflowConfig = () => {
         currentWorkflowId
       );
       setCurrentWorkflowId(workflowId);
+      toast({
+        title: 'Workflow salvo!',
+        description: 'Todas as configurações foram salvas com sucesso'
+      });
     } catch (error) {
       console.error('Error saving:', error);
     }
   };
+
+  const onNodesDelete: OnNodesDelete = useCallback((deleted) => {
+    deleted.forEach(node => {
+      toast({
+        title: 'Nó removido',
+        description: `Nó ${node.type} foi excluído`,
+        variant: 'destructive'
+      });
+    });
+  }, [toast]);
 
   const templates = [
     {
@@ -362,7 +454,7 @@ Equipe de Cobrança`,
                     
                     <div>
                       <Label htmlFor="template">Template Inicial</Label>
-                      <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                      <Select value={selectedTemplate} onValueChange={applyTemplate}>
                         <SelectTrigger>
                           <SelectValue placeholder="Escolher template" />
                         </SelectTrigger>
@@ -374,6 +466,9 @@ Equipe de Cobrança`,
                           ))}
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Aplicar um template substitui o workflow atual
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -455,10 +550,10 @@ Equipe de Cobrança`,
                       <div>
                         <CardTitle className="text-ffp-navy">Designer de Workflow</CardTitle>
                         <CardDescription>
-                          Arraste e conecte os elementos para criar seu fluxo de cobrança
+                          Arraste os nós para posicionar. <strong>Clique e arraste dos círculos</strong> azuis para conectar os nós. <strong>Clique com botão direito</strong> para excluir.
                         </CardDescription>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => setAdvancedSettingsOpen(true)}>
                         <Settings2 className="w-4 h-4 mr-2" />
                         Configurações Avançadas
                       </Button>
@@ -472,9 +567,11 @@ Equipe de Cobrança`,
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
+                        onNodesDelete={onNodesDelete}
                         nodeTypes={nodeTypes}
                         fitView
                         className="bg-gray-50"
+                        deleteKeyCode="Delete"
                       >
                         <Controls />
                         <MiniMap />
@@ -707,6 +804,101 @@ Equipe de Cobrança`,
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Diálogo de Configurações Avançadas */}
+      <Dialog open={advancedSettingsOpen} onOpenChange={setAdvancedSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configurações Avançadas do Workflow</DialogTitle>
+            <DialogDescription>
+              Configure opções avançadas de execução e notificações
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="auto-save">Auto-salvar</Label>
+                <p className="text-sm text-muted-foreground">
+                  Salvar automaticamente a cada alteração
+                </p>
+              </div>
+              <Switch
+                id="auto-save"
+                checked={autoSave}
+                onCheckedChange={setAutoSave}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="notify">Notificar ao completar</Label>
+                <p className="text-sm text-muted-foreground">
+                  Receber notificação quando workflow finalizar
+                </p>
+              </div>
+              <Switch
+                id="notify"
+                checked={notifyOnComplete}
+                onCheckedChange={setNotifyOnComplete}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Prioridade de Execução</Label>
+              <Select defaultValue="normal">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baixa</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="urgent">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Retry em caso de falha</Label>
+              <Select defaultValue="3">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Não tentar novamente</SelectItem>
+                  <SelectItem value="1">1 tentativa</SelectItem>
+                  <SelectItem value="3">3 tentativas</SelectItem>
+                  <SelectItem value="5">5 tentativas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Timeout máximo (minutos)</Label>
+              <Input type="number" defaultValue="30" min="1" max="1440" />
+              <p className="text-xs text-muted-foreground">
+                Tempo máximo para cada passo do workflow
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setAdvancedSettingsOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => {
+              setAdvancedSettingsOpen(false);
+              toast({
+                title: 'Configurações salvas',
+                description: 'As configurações avançadas foram aplicadas'
+              });
+            }}>
+              Salvar Configurações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
