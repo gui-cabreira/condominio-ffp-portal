@@ -16,6 +16,15 @@ interface User {
   email: string;
   first_name?: string;
   last_name?: string;
+  phone?: string;
+  birth_date?: string;
+  rg?: string;
+  cpf?: string;
+  zip_code?: string;
+  street?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
   created_at: string;
   user_roles: { role: string }[];
 }
@@ -49,6 +58,15 @@ const UserManagement = () => {
   const [editForm, setEditForm] = useState({
     first_name: '',
     last_name: '',
+    phone: '',
+    birth_date: '',
+    rg: '',
+    cpf: '',
+    zip_code: '',
+    street: '',
+    neighborhood: '',
+    city: '',
+    state: '',
     role: 'employee'
   });
 
@@ -68,6 +86,15 @@ const UserManagement = () => {
           email,
           first_name,
           last_name,
+          phone,
+          birth_date,
+          rg,
+          cpf,
+          zip_code,
+          street,
+          neighborhood,
+          city,
+          state,
           created_at,
           updated_at
         `)
@@ -164,9 +191,36 @@ const UserManagement = () => {
     setEditForm({
       first_name: user.first_name || '',
       last_name: user.last_name || '',
+      phone: user.phone || '',
+      birth_date: user.birth_date || '',
+      rg: user.rg || '',
+      cpf: user.cpf || '',
+      zip_code: user.zip_code || '',
+      street: user.street || '',
+      neighborhood: user.neighborhood || '',
+      city: user.city || '',
+      state: user.state || '',
       role: user.user_roles[0]?.role || 'employee'
     });
     setEditDialogOpen(true);
+  };
+
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 10) {
+      return numbers.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    }
+    return numbers.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+  };
+
+  const formatCPF = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+  };
+
+  const formatCEP = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    return numbers.replace(/(\d{5})(\d{0,3})/, '$1-$2');
   };
 
   const handleUpdateUser = async (e: React.FormEvent) => {
@@ -180,7 +234,16 @@ const UserManagement = () => {
         .from('profiles')
         .update({
           first_name: editForm.first_name,
-          last_name: editForm.last_name
+          last_name: editForm.last_name,
+          phone: editForm.phone,
+          birth_date: editForm.birth_date || null,
+          rg: editForm.rg,
+          cpf: editForm.cpf,
+          zip_code: editForm.zip_code,
+          street: editForm.street,
+          neighborhood: editForm.neighborhood,
+          city: editForm.city,
+          state: editForm.state
         })
         .eq('id', editingUser.id);
 
@@ -392,23 +455,151 @@ const UserManagement = () => {
                 Edite as informações do usuário
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleUpdateUser} className="space-y-4">
+            <form onSubmit={handleUpdateUser} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_first_name">Nome</Label>
+                  <Input
+                    id="edit_first_name"
+                    value={editForm.first_name}
+                    onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="edit_last_name">Sobrenome</Label>
+                  <Input
+                    id="edit_last_name"
+                    value={editForm.last_name}
+                    onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_phone">Telefone</Label>
+                  <Input
+                    id="edit_phone"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: formatPhone(e.target.value) })}
+                    placeholder="(00) 00000-0000"
+                    maxLength={15}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit_birth_date">Data de Nascimento</Label>
+                  <Input
+                    id="edit_birth_date"
+                    type="date"
+                    value={editForm.birth_date}
+                    onChange={(e) => setEditForm({ ...editForm, birth_date: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_cpf">CPF</Label>
+                  <Input
+                    id="edit_cpf"
+                    value={editForm.cpf}
+                    onChange={(e) => setEditForm({ ...editForm, cpf: formatCPF(e.target.value) })}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit_rg">RG</Label>
+                  <Input
+                    id="edit_rg"
+                    value={editForm.rg}
+                    onChange={(e) => setEditForm({ ...editForm, rg: e.target.value })}
+                    placeholder="00.000.000-0"
+                  />
+                </div>
+              </div>
+
               <div>
-                <Label htmlFor="edit_first_name">Nome</Label>
+                <Label htmlFor="edit_zip_code">CEP</Label>
                 <Input
-                  id="edit_first_name"
-                  value={editForm.first_name}
-                  onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                  id="edit_zip_code"
+                  value={editForm.zip_code}
+                  onChange={(e) => setEditForm({ ...editForm, zip_code: formatCEP(e.target.value) })}
+                  placeholder="00000-000"
+                  maxLength={9}
                 />
               </div>
-              
+
               <div>
-                <Label htmlFor="edit_last_name">Sobrenome</Label>
+                <Label htmlFor="edit_street">Rua</Label>
                 <Input
-                  id="edit_last_name"
-                  value={editForm.last_name}
-                  onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                  id="edit_street"
+                  value={editForm.street}
+                  onChange={(e) => setEditForm({ ...editForm, street: e.target.value })}
+                  placeholder="Nome da rua, número"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_neighborhood">Bairro</Label>
+                  <Input
+                    id="edit_neighborhood"
+                    value={editForm.neighborhood}
+                    onChange={(e) => setEditForm({ ...editForm, neighborhood: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit_city">Cidade</Label>
+                  <Input
+                    id="edit_city"
+                    value={editForm.city}
+                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit_state">Estado</Label>
+                <select
+                  id="edit_state"
+                  className="w-full p-2 border rounded-md bg-background"
+                  value={editForm.state}
+                  onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                >
+                  <option value="">Selecione...</option>
+                  <option value="AC">Acre</option>
+                  <option value="AL">Alagoas</option>
+                  <option value="AP">Amapá</option>
+                  <option value="AM">Amazonas</option>
+                  <option value="BA">Bahia</option>
+                  <option value="CE">Ceará</option>
+                  <option value="DF">Distrito Federal</option>
+                  <option value="ES">Espírito Santo</option>
+                  <option value="GO">Goiás</option>
+                  <option value="MA">Maranhão</option>
+                  <option value="MT">Mato Grosso</option>
+                  <option value="MS">Mato Grosso do Sul</option>
+                  <option value="MG">Minas Gerais</option>
+                  <option value="PA">Pará</option>
+                  <option value="PB">Paraíba</option>
+                  <option value="PR">Paraná</option>
+                  <option value="PE">Pernambuco</option>
+                  <option value="PI">Piauí</option>
+                  <option value="RJ">Rio de Janeiro</option>
+                  <option value="RN">Rio Grande do Norte</option>
+                  <option value="RS">Rio Grande do Sul</option>
+                  <option value="RO">Rondônia</option>
+                  <option value="RR">Roraima</option>
+                  <option value="SC">Santa Catarina</option>
+                  <option value="SP">São Paulo</option>
+                  <option value="SE">Sergipe</option>
+                  <option value="TO">Tocantins</option>
+                </select>
               </div>
               
               <div>
@@ -427,7 +618,7 @@ const UserManagement = () => {
                 </select>
               </div>
               
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-4 sticky bottom-0 bg-background">
                 <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
                   Cancelar
                 </Button>

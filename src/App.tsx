@@ -23,6 +23,9 @@ import RegisterDefaulter from "./pages/RegisterDefaulter";
 import BackofficeManagement from "./pages/BackofficeManagement";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import UserManagement from "./pages/UserManagement";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import AutomationPage from "./pages/AutomationPage";
+import ReportsPage from "./pages/ReportsPage";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
@@ -112,6 +115,27 @@ const App = () => {
               <AuthGuard requiredRole="admin">
                 <CorporateLayout>
                   <UserManagement />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/analytics" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <AnalyticsPage />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/automacao" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <AutomationPage />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/relatorios" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <ReportsPage />
                 </CorporateLayout>
               </AuthGuard>
             } />
