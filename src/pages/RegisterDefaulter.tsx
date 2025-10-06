@@ -46,9 +46,12 @@ const RegisterDefaulter = () => {
         body: formData,
       });
 
-      if (functionError) throw functionError;
+      if (functionError) {
+        console.error('Function error:', functionError);
+        throw new Error(functionError.message || 'Erro ao chamar a função');
+      }
 
-      if (data.error) {
+      if (data?.error) {
         throw new Error(data.error);
       }
 
