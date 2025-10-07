@@ -10,9 +10,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Bug, Activity, Users, AlertTriangle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Bug, Activity, Users, AlertTriangle, CheckCircle, Clock, XCircle, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -23,8 +24,12 @@ interface SystemBug {
   severity: 'low' | 'medium' | 'high' | 'critical';
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   reported_by: string;
+  assigned_to?: string;
+  resolved_at?: string;
   created_at: string;
   updated_at: string;
+  reporter_name?: string;
+  assigned_name?: string;
 }
 
 interface LoginLog {
@@ -65,6 +70,8 @@ export default function SystemAdminPage() {
   const [newBugTitle, setNewBugTitle] = useState('');
   const [newBugDescription, setNewBugDescription] = useState('');
   const [newBugSeverity, setNewBugSeverity] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+  const [selectedBug, setSelectedBug] = useState<SystemBug | null>(null);
+  const [bugDialogOpen, setBugDialogOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -84,7 +91,11 @@ export default function SystemAdminPage() {
   const loadBugs = async () => {
     const { data, error } = await supabase
       .from('system_bugs')
-      .select('*')
+      .select(`
+        *,
+        reporter:profiles!system_bugs_reported_by_fkey(first_name, last_name, email),
+        assignee:profiles!system_bugs_assigned_to_fkey(first_name, last_name, email)
+      `)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -94,7 +105,16 @@ export default function SystemAdminPage() {
         variant: 'destructive'
       });
     } else {
-      setBugs((data || []) as SystemBug[]);
+      const bugsWithNames = (data || []).map(bug => ({
+        ...bug,
+        reporter_name: bug.reporter 
+          ? `${bug.reporter.first_name || ''} ${bug.reporter.last_name || ''}`.trim() || bug.reporter.email
+          : 'Desconhecido',
+        assigned_name: bug.assignee
+          ? `${bug.assignee.first_name || ''} ${bug.assignee.last_name || ''}`.trim() || bug.assignee.email
+          : null
+      }));
+      setBugs(bugsWithNames as SystemBug[]);
     }
   };
 
@@ -364,9 +384,10 @@ export default function SystemAdminPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Título</TableHead>
+                        <TableHead>Reportado por</TableHead>
                         <TableHead>Severidade</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Data</TableHead>
+                        <TableHead>Abertura</TableHead>
                         <TableHead>Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -374,26 +395,39 @@ export default function SystemAdminPage() {
                       {bugs.map((bug) => (
                         <TableRow key={bug.id}>
                           <TableCell className="font-medium">{bug.title}</TableCell>
+                          <TableCell>{bug.reporter_name}</TableCell>
                           <TableCell>{getSeverityBadge(bug.severity)}</TableCell>
                           <TableCell>{getStatusBadge(bug.status)}</TableCell>
                           <TableCell>
                             {format(new Date(bug.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                           </TableCell>
                           <TableCell>
-                            <Select
-                              value={bug.status}
-                              onValueChange={(status) => updateBugStatus(bug.id, status)}
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="open">Aberto</SelectItem>
-                                <SelectItem value="in_progress">Em Progresso</SelectItem>
-                                <SelectItem value="resolved">Resolvido</SelectItem>
-                                <SelectItem value="closed">Fechado</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedBug(bug);
+                                  setBugDialogOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Select
+                                value={bug.status}
+                                onValueChange={(status) => updateBugStatus(bug.id, status)}
+                              >
+                                <SelectTrigger className="w-32">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="open">Aberto</SelectItem>
+                                  <SelectItem value="in_progress">Em Progresso</SelectItem>
+                                  <SelectItem value="resolved">Resolvido</SelectItem>
+                                  <SelectItem value="closed">Fechado</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -517,6 +551,86 @@ export default function SystemAdminPage() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          {/* Bug Details Dialog */}
+          <Dialog open={bugDialogOpen} onOpenChange={setBugDialogOpen}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Bug className="h-5 w-5" />
+                  Detalhes do Chamado
+                </DialogTitle>
+                <DialogDescription>
+                  Informações completas do bug reportado
+                </DialogDescription>
+              </DialogHeader>
+              
+              {selectedBug && (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-semibold">Título</Label>
+                    <p className="text-lg">{selectedBug.title}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-semibold">Severidade</Label>
+                      <div className="mt-1">{getSeverityBadge(selectedBug.severity)}</div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Status</Label>
+                      <div className="mt-1">{getStatusBadge(selectedBug.status)}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-semibold">Descrição</Label>
+                    <p className="mt-1 p-3 bg-muted rounded-md whitespace-pre-wrap">{selectedBug.description}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-semibold">Reportado por</Label>
+                      <p className="mt-1">{selectedBug.reporter_name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Data de Abertura</Label>
+                      <p className="mt-1">
+                        {format(new Date(selectedBug.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {selectedBug.assigned_name && (
+                    <div>
+                      <Label className="text-sm font-semibold">Atribuído para</Label>
+                      <p className="mt-1">{selectedBug.assigned_name}</p>
+                    </div>
+                  )}
+
+                  {selectedBug.resolved_at && (
+                    <div>
+                      <Label className="text-sm font-semibold">Data de Resolução</Label>
+                      <p className="mt-1">
+                        {format(new Date(selectedBug.resolved_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                    <div>
+                      <Label className="text-xs">Criado em</Label>
+                      <p>{format(new Date(selectedBug.created_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Última atualização</Label>
+                      <p>{format(new Date(selectedBug.updated_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
   );
 }
