@@ -30,6 +30,7 @@ interface SystemBug {
   updated_at: string;
   reporter_name?: string;
   assigned_name?: string;
+  resolution_notes?: string;
 }
 
 interface LoginLog {
@@ -72,6 +73,7 @@ export default function SystemAdminPage() {
   const [newBugSeverity, setNewBugSeverity] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
   const [selectedBug, setSelectedBug] = useState<SystemBug | null>(null);
   const [bugDialogOpen, setBugDialogOpen] = useState(false);
+  const [resolutionNotes, setResolutionNotes] = useState('');
 
   useEffect(() => {
     loadData();
@@ -427,6 +429,7 @@ export default function SystemAdminPage() {
                                 size="sm"
                                 onClick={() => {
                                   setSelectedBug(bug);
+                                  setResolutionNotes(bug.resolution_notes || '');
                                   setBugDialogOpen(true);
                                 }}
                               >
@@ -633,6 +636,50 @@ export default function SystemAdminPage() {
                       <p className="mt-1">
                         {format(new Date(selectedBug.resolved_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label className="text-sm font-semibold">Resposta / Notas de Resolução</Label>
+                    <Textarea
+                      value={resolutionNotes}
+                      onChange={(e) => setResolutionNotes(e.target.value)}
+                      placeholder="Adicione comentários sobre a resolução do bug..."
+                      rows={4}
+                      className="mt-1"
+                    />
+                    <Button 
+                      onClick={async () => {
+                        const { error } = await supabase
+                          .from('system_bugs')
+                          .update({ resolution_notes: resolutionNotes })
+                          .eq('id', selectedBug.id);
+                        
+                        if (error) {
+                          toast({
+                            title: 'Erro ao salvar',
+                            description: error.message,
+                            variant: 'destructive'
+                          });
+                        } else {
+                          toast({
+                            title: 'Resposta salva',
+                            description: 'Notas de resolução atualizadas com sucesso'
+                          });
+                          loadBugs();
+                          setBugDialogOpen(false);
+                        }
+                      }}
+                      className="mt-2"
+                    >
+                      Salvar Resposta
+                    </Button>
+                  </div>
+
+                  {selectedBug.resolution_notes && (
+                    <div>
+                      <Label className="text-sm font-semibold">Resposta Anterior</Label>
+                      <p className="mt-1 p-3 bg-muted rounded-md whitespace-pre-wrap">{selectedBug.resolution_notes}</p>
                     </div>
                   )}
 

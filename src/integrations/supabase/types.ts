@@ -638,6 +638,7 @@ export type Database = {
           id: string
           metadata: Json | null
           reported_by: string | null
+          resolution_notes: string | null
           resolved_at: string | null
           severity: string
           status: string
@@ -651,6 +652,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           reported_by?: string | null
+          resolution_notes?: string | null
           resolved_at?: string | null
           severity: string
           status?: string
@@ -664,6 +666,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           reported_by?: string | null
+          resolution_notes?: string | null
           resolved_at?: string | null
           severity?: string
           status?: string
