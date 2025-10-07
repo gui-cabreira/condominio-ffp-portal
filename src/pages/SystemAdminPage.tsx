@@ -91,11 +91,7 @@ export default function SystemAdminPage() {
   const loadBugs = async () => {
     const { data, error } = await supabase
       .from('system_bugs')
-      .select(`
-        *,
-        reporter:profiles!system_bugs_reported_by_fkey(first_name, last_name, email),
-        assignee:profiles!system_bugs_assigned_to_fkey(first_name, last_name, email)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -104,18 +100,41 @@ export default function SystemAdminPage() {
         description: error.message,
         variant: 'destructive'
       });
-    } else {
-      const bugsWithNames = (data || []).map(bug => ({
-        ...bug,
-        reporter_name: bug.reporter 
-          ? `${bug.reporter.first_name || ''} ${bug.reporter.last_name || ''}`.trim() || bug.reporter.email
-          : 'Desconhecido',
-        assigned_name: bug.assignee
-          ? `${bug.assignee.first_name || ''} ${bug.assignee.last_name || ''}`.trim() || bug.assignee.email
-          : null
-      }));
-      setBugs(bugsWithNames as SystemBug[]);
+      return;
     }
+
+    // Buscar perfis dos usuários mencionados nos bugs
+    const userIds = new Set<string>();
+    (data || []).forEach(bug => {
+      if (bug.reported_by) userIds.add(bug.reported_by);
+      if (bug.assigned_to) userIds.add(bug.assigned_to);
+    });
+
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, email')
+      .in('id', Array.from(userIds));
+
+    const profilesMap = new Map(
+      (profiles || []).map(p => [p.id, p])
+    );
+
+    const bugsWithNames = (data || []).map(bug => {
+      const reporter = bug.reported_by ? profilesMap.get(bug.reported_by) : null;
+      const assignee = bug.assigned_to ? profilesMap.get(bug.assigned_to) : null;
+      
+      return {
+        ...bug,
+        reporter_name: reporter 
+          ? `${reporter.first_name || ''} ${reporter.last_name || ''}`.trim() || reporter.email 
+          : 'Desconhecido',
+        assigned_name: assignee 
+          ? `${assignee.first_name || ''} ${assignee.last_name || ''}`.trim() || assignee.email 
+          : undefined
+      };
+    });
+
+    setBugs(bugsWithNames as SystemBug[]);
   };
 
   const loadLoginLogs = async () => {
