@@ -250,9 +250,7 @@ export default function SystemAdminPage() {
   };
 
   return (
-    <AuthGuard requiredRole="admin">
-      <CorporateLayout>
-        <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
           {/* Statistics Cards */}
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
@@ -520,7 +518,5 @@ export default function SystemAdminPage() {
             </TabsContent>
           </Tabs>
         </div>
-      </CorporateLayout>
-    </AuthGuard>
   );
 }
