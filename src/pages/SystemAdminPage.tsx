@@ -253,11 +253,6 @@ export default function SystemAdminPage() {
     <AuthGuard requiredRole="admin">
       <CorporateLayout>
         <div className="p-6 space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Administração do Sistema</h1>
-            <p className="text-muted-foreground">Gestão de bugs, logs e informações operacionais</p>
-          </div>
-
           {/* Statistics Cards */}
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
