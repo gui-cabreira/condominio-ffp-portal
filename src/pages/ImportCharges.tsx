@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-
 const ImportCharges = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -15,36 +14,31 @@ const ImportCharges = () => {
   const [activeTab, setActiveTab] = useState('upload');
 
   // Dados mockados de importações
-  const importHistory = [
-    {
-      id: 1,
-      fileName: 'cobrancas_janeiro_2024.xlsx',
-      date: '2024-01-15',
-      status: 'success',
-      processed: 120,
-      errors: 0,
-      total: 120
-    },
-    {
-      id: 2,
-      fileName: 'cobrancas_dezembro_2023.csv',
-      date: '2024-01-02',
-      status: 'warning',
-      processed: 85,
-      errors: 3,
-      total: 88
-    },
-    {
-      id: 3,
-      fileName: 'cobrancas_novembro_2023.xlsx',
-      date: '2023-12-01',
-      status: 'error',
-      processed: 12,
-      errors: 45,
-      total: 57
-    },
-  ];
-
+  const importHistory = [{
+    id: 1,
+    fileName: 'cobrancas_janeiro_2024.xlsx',
+    date: '2024-01-15',
+    status: 'success',
+    processed: 120,
+    errors: 0,
+    total: 120
+  }, {
+    id: 2,
+    fileName: 'cobrancas_dezembro_2023.csv',
+    date: '2024-01-02',
+    status: 'warning',
+    processed: 85,
+    errors: 3,
+    total: 88
+  }, {
+    id: 3,
+    fileName: 'cobrancas_novembro_2023.xlsx',
+    date: '2023-12-01',
+    status: 'error',
+    processed: 12,
+    errors: 45,
+    total: 57
+  }];
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -65,7 +59,6 @@ const ImportCharges = () => {
       }, 200);
     }
   };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'success':
@@ -78,9 +71,7 @@ const ImportCharges = () => {
         return <Badge className="bg-gray-100 text-gray-800">Processando</Badge>;
     }
   };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
+  return <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -89,11 +80,7 @@ const ImportCharges = () => {
               <Link to="/portal/corporativo/dashboard" className="mr-4">
                 <ArrowLeft className="w-5 h-5 text-ffp-navy hover:text-ffp-gold" />
               </Link>
-              <img 
-                src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
-                alt="FFP Advogados" 
-                className="h-8 w-auto mr-3"
-              />
+              
               <h1 className="text-xl font-semibold text-ffp-navy">Importação de Cobranças</h1>
             </div>
             <div className="flex gap-2">
@@ -130,8 +117,7 @@ const ImportCharges = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {!uploadComplete ? (
-                    <>
+                  {!uploadComplete ? <>
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                         <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                         <div className="space-y-2">
@@ -139,26 +125,17 @@ const ImportCharges = () => {
                           <p className="text-sm text-gray-600">ou clique para selecionar</p>
                           <p className="text-xs text-gray-500">Suporta .xlsx, .xls, .csv (máx 10MB)</p>
                         </div>
-                        <Input
-                          type="file"
-                          accept=".xlsx,.xls,.csv"
-                          onChange={handleFileUpload}
-                          className="mt-4 cursor-pointer"
-                        />
+                        <Input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} className="mt-4 cursor-pointer" />
                       </div>
 
-                      {isUploading && (
-                        <div className="space-y-2">
+                      {isUploading && <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span>Processando arquivo...</span>
                             <span>{uploadProgress}%</span>
                           </div>
                           <Progress value={uploadProgress} className="h-2" />
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-center py-8">
+                        </div>}
+                    </> : <div className="text-center py-8">
                       <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-green-700 mb-2">
                         Arquivo processado com sucesso!
@@ -171,14 +148,13 @@ const ImportCharges = () => {
                           Revisar Mapeamento
                         </Button>
                         <Button variant="outline" onClick={() => {
-                          setUploadComplete(false);
-                          setUploadProgress(0);
-                        }}>
+                      setUploadComplete(false);
+                      setUploadProgress(0);
+                    }}>
                           Novo Upload
                         </Button>
                       </div>
-                    </div>
-                  )}
+                    </div>}
                 </CardContent>
               </Card>
 
@@ -248,17 +224,39 @@ const ImportCharges = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { field: 'Nome', mapped: 'NOME_COMPLETO', status: 'success' },
-                    { field: 'CPF', mapped: 'DOCUMENTO', status: 'success' },
-                    { field: 'Condomínio', mapped: 'CONDOMINIO_NOME', status: 'success' },
-                    { field: 'Unidade', mapped: 'APARTAMENTO', status: 'success' },
-                    { field: 'Valor', mapped: 'VALOR_ORIGINAL', status: 'success' },
-                    { field: 'Vencimento', mapped: 'DATA_VENC', status: 'warning' },
-                    { field: 'Telefone', mapped: 'CONTATO', status: 'success' },
-                    { field: 'Email', mapped: null, status: 'error' }
-                  ].map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                  {[{
+                  field: 'Nome',
+                  mapped: 'NOME_COMPLETO',
+                  status: 'success'
+                }, {
+                  field: 'CPF',
+                  mapped: 'DOCUMENTO',
+                  status: 'success'
+                }, {
+                  field: 'Condomínio',
+                  mapped: 'CONDOMINIO_NOME',
+                  status: 'success'
+                }, {
+                  field: 'Unidade',
+                  mapped: 'APARTAMENTO',
+                  status: 'success'
+                }, {
+                  field: 'Valor',
+                  mapped: 'VALOR_ORIGINAL',
+                  status: 'success'
+                }, {
+                  field: 'Vencimento',
+                  mapped: 'DATA_VENC',
+                  status: 'warning'
+                }, {
+                  field: 'Telefone',
+                  mapped: 'CONTATO',
+                  status: 'success'
+                }, {
+                  field: 'Email',
+                  mapped: null,
+                  status: 'error'
+                }].map((item, index) => <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center gap-3">
                         <span className="font-medium">{item.field}</span>
                         {item.status === 'success' && <CheckCircle className="w-4 h-4 text-green-500" />}
@@ -271,8 +269,7 @@ const ImportCharges = () => {
                         </span>
                         <Button variant="outline" size="sm">Alterar</Button>
                       </div>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
 
                 <div className="flex justify-between mt-6">
@@ -297,8 +294,7 @@ const ImportCharges = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {importHistory.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  {importHistory.map(item => <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
                         <FileSpreadsheet className="w-8 h-8 text-green-600" />
                         <div>
@@ -314,11 +310,9 @@ const ImportCharges = () => {
                           <p className="text-sm">
                             {item.processed}/{item.total} processados
                           </p>
-                          {item.errors > 0 && (
-                            <p className="text-sm text-red-600">
+                          {item.errors > 0 && <p className="text-sm text-red-600">
                               {item.errors} erros
-                            </p>
-                          )}
+                            </p>}
                         </div>
                         
                         {getStatusBadge(item.status)}
@@ -332,16 +326,13 @@ const ImportCharges = () => {
                           </Button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ImportCharges;
