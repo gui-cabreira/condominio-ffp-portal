@@ -810,33 +810,57 @@ export type Database = {
       user_invitations: {
         Row: {
           accepted_at: string | null
+          bounced_at: string | null
+          clicked_at: string | null
+          complained_at: string | null
           created_at: string
+          delivered_at: string | null
           email: string
+          email_id: string | null
           expires_at: string
           id: string
           invitation_token: string
           invited_by: string | null
+          opened_at: string | null
           role: Database["public"]["Enums"]["user_role"]
+          sent_at: string | null
+          tracking_events: Json | null
         }
         Insert: {
           accepted_at?: string | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          complained_at?: string | null
           created_at?: string
+          delivered_at?: string | null
           email: string
+          email_id?: string | null
           expires_at?: string
           id?: string
           invitation_token?: string
           invited_by?: string | null
+          opened_at?: string | null
           role: Database["public"]["Enums"]["user_role"]
+          sent_at?: string | null
+          tracking_events?: Json | null
         }
         Update: {
           accepted_at?: string | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          complained_at?: string | null
           created_at?: string
+          delivered_at?: string | null
           email?: string
+          email_id?: string | null
           expires_at?: string
           id?: string
           invitation_token?: string
           invited_by?: string | null
+          opened_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          sent_at?: string | null
+          tracking_events?: Json | null
         }
         Relationships: [
           {

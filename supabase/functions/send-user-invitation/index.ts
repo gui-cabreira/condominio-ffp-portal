@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { Resend } from 'npm:resend@4.0.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -145,12 +146,47 @@ serve(async (req) => {
 </html>
     `;
 
-    // Simular envio de email (aqui você integraria com um serviço de email real)
-    console.log('Email template prepared for:', email);
-    console.log('Invitation URL:', invitationUrl);
+    // Enviar email via Resend
+    console.log('Enviando email via Resend para:', email);
     
-    // TODO: Integrar com serviço de email (SendGrid, Resend, etc.)
-    // Por enquanto, apenas retornamos sucesso com os dados do convite
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+    
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: 'Cadastro <cadastro@ffpadvogados.com.br>',
+      to: [email],
+      subject: 'Convite para o Sistema FFP Advogados',
+      html: emailTemplate,
+      tags: [
+        { name: 'category', value: 'user_invitation' },
+        { name: 'invitation_id', value: invitation.id }
+      ]
+    });
+
+    if (emailError) {
+      console.error('Erro ao enviar email:', emailError);
+      // Deletar convite se email falhou
+      await supabase
+        .from('user_invitations')
+        .delete()
+        .eq('id', invitation.id);
+      
+      throw new Error(`Erro ao enviar email: ${emailError.message}`);
+    }
+
+    console.log('Email enviado com sucesso! ID:', emailData?.id);
+
+    // Atualizar convite com email_id e sent_at
+    const { error: updateError } = await supabase
+      .from('user_invitations')
+      .update({
+        email_id: emailData?.id,
+        sent_at: new Date().toISOString()
+      })
+      .eq('id', invitation.id);
+
+    if (updateError) {
+      console.error('Erro ao atualizar convite:', updateError);
+    }
 
     return new Response(JSON.stringify({
       success: true,
@@ -159,7 +195,8 @@ serve(async (req) => {
       email,
       role: roleNames[role] || role,
       expiresAt: invitation.expires_at,
-      message: 'Convite criado com sucesso! (Email será enviado quando o serviço de email for configurado)'
+      emailId: emailData?.id,
+      message: 'Convite enviado com sucesso!'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

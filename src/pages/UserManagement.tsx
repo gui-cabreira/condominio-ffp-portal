@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calendar, Copy, Edit, Trash2 } from 'lucide-react';
+import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calendar, Copy, Edit, Trash2, Eye, MousePointer, TrendingUp, AlertCircle } from 'lucide-react';
 
 interface User {
   id: string;
@@ -37,6 +37,14 @@ interface Invitation {
   expires_at: string;
   accepted_at?: string;
   created_at: string;
+  email_id?: string;
+  sent_at?: string;
+  delivered_at?: string;
+  opened_at?: string;
+  clicked_at?: string;
+  bounced_at?: string;
+  complained_at?: string;
+  tracking_events?: any[];
 }
 
 const UserManagement = () => {
@@ -45,6 +53,8 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
   const [isInviting, setIsInviting] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
@@ -124,7 +134,7 @@ const UserManagement = () => {
       if (invitationsError) throw invitationsError;
 
       setUsers(usersWithRoles || []);
-      setInvitations(invitationsData || []);
+      setInvitations((invitationsData || []) as Invitation[]);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -308,6 +318,33 @@ const UserManagement = () => {
     }
   };
 
+  const handleDeleteInvitation = async (invitationId: string) => {
+    if (!confirm('Tem certeza que deseja deletar este convite?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_invitations')
+        .delete()
+        .eq('id', invitationId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Convite Deletado',
+        description: 'O convite foi removido com sucesso'
+      });
+
+      loadData();
+    } catch (error) {
+      console.error('Error deleting invitation:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao deletar convite',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const copyInvitationLink = (token: string) => {
     const invitationUrl = `${window.location.origin}/aceitar-convite?token=${token}`;
     navigator.clipboard.writeText(invitationUrl);
@@ -315,6 +352,18 @@ const UserManagement = () => {
       title: "Link Copiado!",
       description: "Link do convite copiado para a área de transferência"
     });
+  };
+
+  const calculateTimeDiff = (start?: string, end?: string) => {
+    if (!start || !end) return '-';
+    const diff = new Date(end).getTime() - new Date(start).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    return `${minutes}m`;
   };
 
   const getRoleName = (role: string) => {
@@ -620,7 +669,7 @@ const UserManagement = () => {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
@@ -629,22 +678,53 @@ const UserManagement = () => {
           <CardContent>
             <div className="text-2xl font-bold">{users.length}</div>
             <p className="text-xs text-muted-foreground">
-              Usuários cadastrados no sistema
+              Usuários cadastrados
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Convites Pendentes</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Convites Enviados</CardTitle>
+            <Mail className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {invitations.filter(inv => !inv.accepted_at && new Date(inv.expires_at) > new Date()).length}
+            <div className="text-2xl font-bold text-green-600">
+              {invitations.filter(inv => inv.email_id).length}
             </div>
             <p className="text-xs text-muted-foreground">
-              Aguardando resposta
+              Emails enviados
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Emails Abertos</CardTitle>
+            <Eye className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {invitations.filter(inv => inv.opened_at).length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Taxa: {invitations.filter(inv => inv.email_id).length > 0 ? 
+                Math.round((invitations.filter(inv => inv.opened_at).length / invitations.filter(inv => inv.email_id).length) * 100) : 0}%
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Convites Aceitos</CardTitle>
+            <CheckCircle className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {invitations.filter(inv => inv.accepted_at).length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Taxa de conversão
             </p>
           </CardContent>
         </Card>
@@ -755,7 +835,7 @@ const UserManagement = () => {
             <CardHeader>
               <CardTitle>Convites Enviados</CardTitle>
               <CardDescription>
-                Histórico de convites enviados aos usuários
+                Histórico de convites com tracking completo de engajamento
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -764,9 +844,9 @@ const UserManagement = () => {
                   <TableRow>
                     <TableHead>Email</TableHead>
                     <TableHead>Perfil</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Data do Convite</TableHead>
-                    <TableHead>Expira em</TableHead>
+                    <TableHead>Status do Email</TableHead>
+                    <TableHead>Status do Convite</TableHead>
+                    <TableHead>Data</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -777,11 +857,49 @@ const UserManagement = () => {
                     
                     return (
                       <TableRow key={invitation.id}>
-                        <TableCell>{invitation.email}</TableCell>
+                        <TableCell className="font-medium">{invitation.email}</TableCell>
                         <TableCell>
                           <Badge className={getRoleColor(invitation.role)}>
                             {getRoleName(invitation.role)}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {invitation.email_id ? (
+                              <>
+                                <Badge variant="outline" className="gap-1 w-fit">
+                                  <Mail className="h-3 w-3" />
+                                  Enviado
+                                </Badge>
+                                {invitation.delivered_at && (
+                                  <Badge variant="outline" className="gap-1 w-fit bg-green-50">
+                                    <CheckCircle className="h-3 w-3 text-green-600" />
+                                    Entregue
+                                  </Badge>
+                                )}
+                                {invitation.opened_at && (
+                                  <Badge className="gap-1 w-fit bg-blue-500">
+                                    <Eye className="h-3 w-3" />
+                                    Aberto
+                                  </Badge>
+                                )}
+                                {invitation.clicked_at && (
+                                  <Badge className="gap-1 w-fit bg-green-500">
+                                    <MousePointer className="h-3 w-3" />
+                                    Clicado
+                                  </Badge>
+                                )}
+                                {invitation.bounced_at && (
+                                  <Badge variant="destructive" className="gap-1 w-fit">
+                                    <AlertCircle className="h-3 w-3" />
+                                    Bounce
+                                  </Badge>
+                                )}
+                              </>
+                            ) : (
+                              <Badge variant="outline">Não enviado</Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge className={status.color}>
@@ -790,22 +908,46 @@ const UserManagement = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {new Date(invitation.created_at).toLocaleDateString('pt-BR')}
+                          <div className="text-sm">
+                            {new Date(invitation.created_at).toLocaleDateString('pt-BR')}
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(invitation.created_at).toLocaleTimeString('pt-BR', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          {new Date(invitation.expires_at).toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          {!invitation.accepted_at && new Date(invitation.expires_at) > new Date() && (
+                          <div className="flex gap-1">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => copyInvitationLink(invitation.invitation_token)}
+                              onClick={() => {
+                                setSelectedInvitation(invitation);
+                                setDetailsDialogOpen(true);
+                              }}
                             >
-                              <Copy className="h-3 w-3 mr-1" />
-                              Copiar Link
+                              <Eye className="h-3 w-3 mr-1" />
+                              Detalhes
                             </Button>
-                          )}
+                            {!invitation.accepted_at && new Date(invitation.expires_at) > new Date() && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyInvitationLink(invitation.invitation_token)}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteInvitation(invitation.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -816,6 +958,219 @@ const UserManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog de Detalhes do Convite */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Detalhes do Convite
+            </DialogTitle>
+            <DialogDescription>
+              Timeline completa e estatísticas de engajamento
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedInvitation && (
+            <div className="space-y-6">
+              {/* Informações Básicas */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Informações do Convite</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="font-medium">{selectedInvitation.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Perfil</p>
+                    <Badge className={getRoleColor(selectedInvitation.role)}>
+                      {getRoleName(selectedInvitation.role)}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Criado em</p>
+                    <p className="font-medium">
+                      {new Date(selectedInvitation.created_at).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Expira em</p>
+                    <p className="font-medium">
+                      {new Date(selectedInvitation.expires_at).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                  {selectedInvitation.email_id && (
+                    <div className="col-span-2">
+                      <p className="text-sm text-muted-foreground">Email ID (Resend)</p>
+                      <p className="font-mono text-xs bg-muted p-2 rounded">
+                        {selectedInvitation.email_id}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Timeline de Eventos */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Timeline de Eventos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="border-l-2 border-muted pl-4 space-y-4">
+                    {selectedInvitation.sent_at && (
+                      <div className="relative">
+                        <div className="absolute -left-[21px] h-3 w-3 rounded-full bg-green-500 border-2 border-background"></div>
+                        <div className="flex gap-2 items-start">
+                          <Mail className="h-4 w-4 mt-1 text-green-600" />
+                          <div className="flex-1">
+                            <p className="font-medium">Email Enviado</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(selectedInvitation.sent_at).toLocaleString('pt-BR')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedInvitation.delivered_at && (
+                      <div className="relative">
+                        <div className="absolute -left-[21px] h-3 w-3 rounded-full bg-green-500 border-2 border-background"></div>
+                        <div className="flex gap-2 items-start">
+                          <CheckCircle className="h-4 w-4 mt-1 text-green-600" />
+                          <div className="flex-1">
+                            <p className="font-medium">Email Entregue</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(selectedInvitation.delivered_at).toLocaleString('pt-BR')}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Tempo até entrega: {calculateTimeDiff(selectedInvitation.sent_at, selectedInvitation.delivered_at)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedInvitation.opened_at && (
+                      <div className="relative">
+                        <div className="absolute -left-[21px] h-3 w-3 rounded-full bg-blue-500 border-2 border-background"></div>
+                        <div className="flex gap-2 items-start">
+                          <Eye className="h-4 w-4 mt-1 text-blue-600" />
+                          <div className="flex-1">
+                            <p className="font-medium">Email Aberto</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(selectedInvitation.opened_at).toLocaleString('pt-BR')}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Tempo até abertura: {calculateTimeDiff(selectedInvitation.sent_at, selectedInvitation.opened_at)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedInvitation.clicked_at && (
+                      <div className="relative">
+                        <div className="absolute -left-[21px] h-3 w-3 rounded-full bg-purple-500 border-2 border-background"></div>
+                        <div className="flex gap-2 items-start">
+                          <MousePointer className="h-4 w-4 mt-1 text-purple-600" />
+                          <div className="flex-1">
+                            <p className="font-medium">Link Clicado</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(selectedInvitation.clicked_at).toLocaleString('pt-BR')}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Tempo até clique: {calculateTimeDiff(selectedInvitation.sent_at, selectedInvitation.clicked_at)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedInvitation.accepted_at && (
+                      <div className="relative">
+                        <div className="absolute -left-[21px] h-3 w-3 rounded-full bg-green-600 border-2 border-background"></div>
+                        <div className="flex gap-2 items-start">
+                          <CheckCircle className="h-4 w-4 mt-1 text-green-600" />
+                          <div className="flex-1">
+                            <p className="font-medium">Convite Aceito</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(selectedInvitation.accepted_at).toLocaleString('pt-BR')}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Tempo até aceitação: {calculateTimeDiff(selectedInvitation.sent_at, selectedInvitation.accepted_at)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedInvitation.bounced_at && (
+                      <div className="relative">
+                        <div className="absolute -left-[21px] h-3 w-3 rounded-full bg-red-500 border-2 border-background"></div>
+                        <div className="flex gap-2 items-start">
+                          <AlertCircle className="h-4 w-4 mt-1 text-red-600" />
+                          <div className="flex-1">
+                            <p className="font-medium">Email Retornou (Bounce)</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(selectedInvitation.bounced_at).toLocaleString('pt-BR')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!selectedInvitation.sent_at && (
+                      <div className="text-muted-foreground text-sm">
+                        Nenhum evento registrado ainda
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Estatísticas */}
+              {selectedInvitation.email_id && (
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base text-blue-900">
+                      📊 Estatísticas de Engajamento
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-900">
+                        {selectedInvitation.delivered_at ? 
+                          calculateTimeDiff(selectedInvitation.sent_at, selectedInvitation.delivered_at) : 
+                          '-'
+                        }
+                      </p>
+                      <p className="text-xs text-blue-800">Tempo até entrega</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-900">
+                        {selectedInvitation.opened_at ? 
+                          calculateTimeDiff(selectedInvitation.sent_at, selectedInvitation.opened_at) : 
+                          '-'
+                        }
+                      </p>
+                      <p className="text-xs text-blue-800">Tempo até abertura</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-900">
+                        {selectedInvitation.opened_at ? '100%' : '0%'}
+                      </p>
+                      <p className="text-xs text-blue-800">Taxa de abertura</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
