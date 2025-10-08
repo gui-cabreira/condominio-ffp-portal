@@ -195,15 +195,15 @@ export default function CondominiumsPage() {
               Novo Condomínio
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-h-[90vh] flex flex-col">
-            <DialogHeader>
+          <DialogContent className="max-h-[85vh] p-0 flex flex-col gap-0">
+            <DialogHeader className="px-6 pt-6 pb-4">
               <DialogTitle>{editingId ? 'Editar' : 'Novo'} Condomínio</DialogTitle>
               <DialogDescription>
                 {editingId ? 'Edite os dados do condomínio' : 'Cadastre um novo condomínio no sistema'}
               </DialogDescription>
             </DialogHeader>
-            <ScrollArea className="flex-1 pr-4">
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <ScrollArea className="h-[calc(85vh-120px)] px-6">
+              <form onSubmit={handleSubmit} className="space-y-4 pb-6">
                 <CNPJLookup onDataFound={handleCNPJData} />
                 
                 <div>
