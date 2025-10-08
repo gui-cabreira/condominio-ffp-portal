@@ -257,9 +257,9 @@ const AdministratorsPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-ffp-navy flex items-center gap-2">
             <Building2 className="w-8 h-8" />
