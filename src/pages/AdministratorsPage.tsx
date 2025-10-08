@@ -451,16 +451,16 @@ const AdministratorsPage = () => {
       ) : filteredAdministrators && filteredAdministrators.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAdministrators.map((admin) => (
-            <Card key={admin.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Building2 className="w-5 h-5 text-ffp-navy" />
-                      {admin.name}
+            <Card key={admin.id} className="flex flex-col h-full min-h-[320px]">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <CardTitle className="text-base flex items-start gap-2 break-words">
+                      <Building2 className="w-5 h-5 text-ffp-navy shrink-0 mt-0.5" />
+                      <span className="line-clamp-2">{admin.name}</span>
                     </CardTitle>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 shrink-0">
                     <Button
                       size="icon"
                       variant="ghost"
@@ -468,6 +468,7 @@ const AdministratorsPage = () => {
                         setSelectedAdmin(admin);
                         setViewDialogOpen(true);
                       }}
+                      className="h-8 w-8"
                     >
                       <FileText className="w-4 h-4" />
                     </Button>
@@ -475,6 +476,7 @@ const AdministratorsPage = () => {
                       size="icon"
                       variant="ghost"
                       onClick={() => handleEdit(admin)}
+                      className="h-8 w-8"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -482,52 +484,58 @@ const AdministratorsPage = () => {
                       size="icon"
                       variant="ghost"
                       onClick={() => handleDelete(admin.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 flex-1 flex flex-col">
                 {admin.fantasy_name && (
-                  <div className="text-sm">
+                  <div className="text-sm min-w-0">
                     <span className="text-muted-foreground">Nome Fantasia:</span>
-                    <p className="font-medium">{admin.fantasy_name}</p>
+                    <p className="font-medium truncate">{admin.fantasy_name}</p>
                   </div>
                 )}
                 
                 {admin.cnpj && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <FileText className="w-4 h-4" />
-                    <span>{admin.cnpj}</span>
+                  <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0">
+                    <FileText className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{admin.cnpj}</span>
                   </div>
                 )}
 
                 {admin.email && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="w-4 h-4" />
-                    <span className="truncate">{admin.email}</span>
+                  <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0">
+                    <Mail className="w-4 h-4 shrink-0" />
+                    <span className="truncate" title={admin.email}>{admin.email}</span>
                   </div>
                 )}
                 
                 {admin.phone && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Phone className="w-4 h-4" />
-                    <span>{admin.phone}</span>
+                  <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0">
+                    <Phone className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{admin.phone}</span>
                   </div>
                 )}
 
                 {admin.portal_url && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600 border-t pt-2">
-                    <LinkIcon className="w-4 h-4" />
-                    <a href={admin.portal_url} target="_blank" rel="noopener noreferrer" className="truncate hover:underline text-blue-600">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 border-t pt-2 min-w-0">
+                    <LinkIcon className="w-4 h-4 shrink-0" />
+                    <a 
+                      href={admin.portal_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="truncate hover:underline text-blue-600"
+                      title={admin.portal_url}
+                    >
                       Portal de Boletos
                     </a>
                   </div>
                 )}
 
-                <div className="border-t pt-3 mt-3">
+                <div className="border-t pt-3 mt-auto">
                   <Button
                     variant="outline"
                     className="w-full"
