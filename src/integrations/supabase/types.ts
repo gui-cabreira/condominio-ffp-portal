@@ -733,9 +733,17 @@ export type Database = {
           condominium_id: string
           created_at: string
           id: string
+          owner_city: string | null
+          owner_complement: string | null
+          owner_cpf: string | null
           owner_email: string | null
           owner_name: string | null
+          owner_neighborhood: string | null
+          owner_number: string | null
           owner_phone: string | null
+          owner_state: string | null
+          owner_street: string | null
+          owner_zip_code: string | null
           unit_number: string
           updated_at: string
         }
@@ -743,9 +751,17 @@ export type Database = {
           condominium_id: string
           created_at?: string
           id?: string
+          owner_city?: string | null
+          owner_complement?: string | null
+          owner_cpf?: string | null
           owner_email?: string | null
           owner_name?: string | null
+          owner_neighborhood?: string | null
+          owner_number?: string | null
           owner_phone?: string | null
+          owner_state?: string | null
+          owner_street?: string | null
+          owner_zip_code?: string | null
           unit_number: string
           updated_at?: string
         }
@@ -753,9 +769,17 @@ export type Database = {
           condominium_id?: string
           created_at?: string
           id?: string
+          owner_city?: string | null
+          owner_complement?: string | null
+          owner_cpf?: string | null
           owner_email?: string | null
           owner_name?: string | null
+          owner_neighborhood?: string | null
+          owner_number?: string | null
           owner_phone?: string | null
+          owner_state?: string | null
+          owner_street?: string | null
+          owner_zip_code?: string | null
           unit_number?: string
           updated_at?: string
         }

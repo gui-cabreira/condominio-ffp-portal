@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +9,8 @@ import { ChevronLeft, ChevronRight, Plus, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PhoneInput } from '@/components/forms/PhoneInput';
+import { CPFInput } from '@/components/forms/CPFInput';
+import { AddressForm, AddressData } from '@/components/forms/AddressForm';
 
 interface NewChargeDialogProps {
   open: boolean;
@@ -21,8 +24,16 @@ interface NewChargeDialogProps {
 interface NewUnitData {
   unit_number: string;
   owner_name: string;
+  owner_cpf: string;
   owner_email: string;
   owner_phone: string;
+  owner_street: string;
+  owner_number: string;
+  owner_complement: string;
+  owner_neighborhood: string;
+  owner_city: string;
+  owner_state: string;
+  owner_zip_code: string;
 }
 
 export function NewChargeDialog({ 
@@ -39,11 +50,21 @@ export function NewChargeDialog({
   const [selectedUnit, setSelectedUnit] = useState('');
   const [showNewUnit, setShowNewUnit] = useState(false);
   const [boletoFile, setBoletoFile] = useState<File | null>(null);
+  const [workflows, setWorkflows] = useState<any[]>([]);
+  const [selectedWorkflow, setSelectedWorkflow] = useState('');
   const [newUnit, setNewUnit] = useState<NewUnitData>({
     unit_number: '',
     owner_name: '',
+    owner_cpf: '',
     owner_email: '',
     owner_phone: '',
+    owner_street: '',
+    owner_number: '',
+    owner_complement: '',
+    owner_neighborhood: '',
+    owner_city: '',
+    owner_state: '',
+    owner_zip_code: '',
   });
   const [chargeData, setChargeData] = useState({
     amount: 0,
@@ -52,6 +73,27 @@ export function NewChargeDialog({
     description: '',
   });
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (open) {
+      loadWorkflows();
+    }
+  }, [open]);
+
+  const loadWorkflows = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('workflows')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setWorkflows(data || []);
+    } catch (error) {
+      console.error('Error loading workflows:', error);
+    }
+  };
 
   const filteredCondominiums = selectedAdministrator
     ? condominiums.filter(c => c.administrator_id === selectedAdministrator)
@@ -86,10 +128,10 @@ export function NewChargeDialog({
       });
       return;
     }
-    if (step === 3 && showNewUnit && (!newUnit.unit_number || !newUnit.owner_name)) {
+    if (step === 3 && showNewUnit && (!newUnit.unit_number || !newUnit.owner_name || !newUnit.owner_cpf || !newUnit.owner_phone)) {
       toast({
         title: 'Atenção',
-        description: 'Preencha os dados obrigatórios da unidade',
+        description: 'Preencha todos os dados obrigatórios: Unidade, Nome, CPF e Telefone',
         variant: 'destructive',
       });
       return;
@@ -117,8 +159,16 @@ export function NewChargeDialog({
             condominium_id: selectedCondominium,
             unit_number: newUnit.unit_number,
             owner_name: newUnit.owner_name,
+            owner_cpf: newUnit.owner_cpf,
             owner_email: newUnit.owner_email,
             owner_phone: newUnit.owner_phone,
+            owner_street: newUnit.owner_street,
+            owner_number: newUnit.owner_number,
+            owner_complement: newUnit.owner_complement,
+            owner_neighborhood: newUnit.owner_neighborhood,
+            owner_city: newUnit.owner_city,
+            owner_state: newUnit.owner_state,
+            owner_zip_code: newUnit.owner_zip_code,
           }])
           .select()
           .single();
@@ -137,6 +187,7 @@ export function NewChargeDialog({
           reference_month: chargeData.reference_month || null,
           description: chargeData.description || null,
           administrator_id: selectedAdministrator,
+          workflow_id: selectedWorkflow || null,
         }])
         .select()
         .single();
@@ -172,8 +223,22 @@ export function NewChargeDialog({
       setSelectedAdministrator('');
       setSelectedCondominium('');
       setSelectedUnit('');
+      setSelectedWorkflow('');
       setShowNewUnit(false);
-      setNewUnit({ unit_number: '', owner_name: '', owner_email: '', owner_phone: '' });
+      setNewUnit({
+        unit_number: '',
+        owner_name: '',
+        owner_cpf: '',
+        owner_email: '',
+        owner_phone: '',
+        owner_street: '',
+        owner_number: '',
+        owner_complement: '',
+        owner_neighborhood: '',
+        owner_city: '',
+        owner_state: '',
+        owner_zip_code: '',
+      });
       setChargeData({ amount: 0, due_date: '', reference_month: '', description: '' });
       setBoletoFile(null);
       onOpenChange(false);
@@ -202,21 +267,35 @@ export function NewChargeDialog({
     return unit ? `Unidade ${unit.unit_number} - ${unit.owner_name}` : '';
   };
 
+  const handleAddressChange = (address: AddressData) => {
+    setNewUnit({
+      ...newUnit,
+      owner_street: address.street,
+      owner_number: address.number,
+      owner_complement: address.complement,
+      owner_neighborhood: address.neighborhood,
+      owner_city: address.city,
+      owner_state: address.state,
+      owner_zip_code: address.cep,
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] p-0 flex flex-col gap-0">
+        <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>Nova Cobrança - Etapa {step} de 4</DialogTitle>
           <DialogDescription>
             {step === 1 && 'Selecione a administradora'}
             {step === 2 && 'Selecione o condomínio'}
             {step === 3 && !showNewUnit && 'Selecione ou cadastre uma unidade'}
-            {step === 3 && showNewUnit && 'Cadastre os dados da nova unidade'}
-            {step === 4 && 'Revise os dados da cobrança'}
+            {step === 3 && showNewUnit && 'Cadastre os dados completos do proprietário'}
+            {step === 4 && 'Revise os dados e finalize a cobrança'}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <ScrollArea className="h-[calc(90vh-180px)] px-6">
+          <div className="space-y-4 pb-6">
           {/* Etapa 1: Administradora */}
           {step === 1 && (
             <div className="space-y-4">
@@ -306,58 +385,98 @@ export function NewChargeDialog({
 
           {/* Etapa 3: Cadastrar Nova Unidade */}
           {step === 3 && showNewUnit && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="boleto_upload">Anexar Boleto (opcional para pré-preencher)</Label>
-                <Input
-                  id="boleto_upload"
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => setBoletoFile(e.target.files?.[0] || null)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Anexe o boleto para extrair dados automaticamente
-                </p>
+            <div className="space-y-6">
+              <Card className="bg-muted/30">
+                <CardHeader>
+                  <CardTitle className="text-base">Anexar Boleto (Opcional)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Input
+                    id="boleto_upload"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => setBoletoFile(e.target.files?.[0] || null)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Anexe o boleto para pré-preencher dados automaticamente (funcionalidade futura)
+                  </p>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Dados da Unidade</h3>
+                
+                <div>
+                  <Label htmlFor="unit_number">Número da Unidade *</Label>
+                  <Input
+                    id="unit_number"
+                    value={newUnit.unit_number}
+                    onChange={(e) => setNewUnit({ ...newUnit, unit_number: e.target.value })}
+                    placeholder="Ex: 101, 202, Bloco A Apt 301"
+                    required
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="unit_number">Número da Unidade *</Label>
-                <Input
-                  id="unit_number"
-                  value={newUnit.unit_number}
-                  onChange={(e) => setNewUnit({ ...newUnit, unit_number: e.target.value })}
-                  placeholder="Ex: 101, 202, etc."
-                  required
-                />
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Dados do Proprietário</h3>
+                
+                <div>
+                  <Label htmlFor="owner_name">Nome Completo *</Label>
+                  <Input
+                    id="owner_name"
+                    value={newUnit.owner_name}
+                    onChange={(e) => setNewUnit({ ...newUnit, owner_name: e.target.value })}
+                    placeholder="Nome completo do proprietário"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="owner_cpf">CPF *</Label>
+                  <CPFInput
+                    id="owner_cpf"
+                    value={newUnit.owner_cpf}
+                    onChange={(val) => setNewUnit({ ...newUnit, owner_cpf: val })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="owner_phone">Telefone *</Label>
+                  <PhoneInput
+                    id="owner_phone"
+                    value={newUnit.owner_phone}
+                    onChange={(val) => setNewUnit({ ...newUnit, owner_phone: val })}
+                    showIcon={true}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="owner_email">Email</Label>
+                  <Input
+                    id="owner_email"
+                    type="email"
+                    value={newUnit.owner_email}
+                    onChange={(e) => setNewUnit({ ...newUnit, owner_email: e.target.value })}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="owner_name">Nome do Proprietário *</Label>
-                <Input
-                  id="owner_name"
-                  value={newUnit.owner_name}
-                  onChange={(e) => setNewUnit({ ...newUnit, owner_name: e.target.value })}
-                  placeholder="Nome completo"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="owner_email">Email do Proprietário</Label>
-                <Input
-                  id="owner_email"
-                  type="email"
-                  value={newUnit.owner_email}
-                  onChange={(e) => setNewUnit({ ...newUnit, owner_email: e.target.value })}
-                  placeholder="email@exemplo.com"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="owner_phone">Telefone do Proprietário</Label>
-                <PhoneInput
-                  value={newUnit.owner_phone}
-                  onChange={(val) => setNewUnit({ ...newUnit, owner_phone: val })}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Endereço do Proprietário</h3>
+                <AddressForm
+                  value={{
+                    cep: newUnit.owner_zip_code,
+                    street: newUnit.owner_street,
+                    number: newUnit.owner_number,
+                    complement: newUnit.owner_complement,
+                    neighborhood: newUnit.owner_neighborhood,
+                    city: newUnit.owner_city,
+                    state: newUnit.owner_state,
+                  }}
+                  onChange={handleAddressChange}
                 />
               </div>
             </div>
@@ -429,6 +548,26 @@ export function NewChargeDialog({
                 />
               </div>
 
+              <div>
+                <Label htmlFor="workflow">Workflow de Cobrança</Label>
+                <select
+                  id="workflow"
+                  className="w-full p-2 border rounded-md bg-background"
+                  value={selectedWorkflow}
+                  onChange={(e) => setSelectedWorkflow(e.target.value)}
+                >
+                  <option value="">Selecione um workflow (opcional)</option>
+                  {workflows.map((workflow) => (
+                    <option key={workflow.id} value={workflow.id}>
+                      {workflow.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  O workflow define as etapas automáticas de cobrança
+                </p>
+              </div>
+
               {boletoFile && (
                 <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
                   <Upload className="h-4 w-4" />
@@ -437,10 +576,11 @@ export function NewChargeDialog({
               )}
             </div>
           )}
-        </div>
+          </div>
+        </ScrollArea>
 
         {/* Botões de navegação */}
-        <div className="flex items-center justify-between pt-4 border-t">
+        <div className="flex items-center justify-between px-6 pb-6 pt-4 border-t">
           <Button
             type="button"
             variant="outline"
