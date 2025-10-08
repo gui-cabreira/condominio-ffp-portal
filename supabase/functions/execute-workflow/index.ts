@@ -30,6 +30,40 @@ serve(async (req) => {
 
     if (execError) throw execError
 
+    // Buscar dados completos da cobrança
+    const { data: charge, error: chargeError } = await supabaseClient
+      .from('charges')
+      .select(`
+        *,
+        units!inner(
+          id,
+          unit_number,
+          owner_name,
+          owner_email,
+          owner_phone,
+          owner_cpf,
+          condominiums!inner(
+            id,
+            name
+          )
+        )
+      `)
+      .eq('id', execution.charge_id)
+      .single()
+
+    if (chargeError) {
+      console.error('Erro ao buscar cobrança:', chargeError)
+      throw chargeError
+    }
+
+    console.log('Dados da cobrança:', {
+      amount: charge.amount,
+      due_date: charge.due_date,
+      owner_email: charge.units.owner_email,
+      unit: charge.units.unit_number,
+      condominium: charge.units.condominiums.name
+    })
+
     // Buscar nós do workflow
     const { data: nodes, error: nodesError } = await supabaseClient
       .from('workflow_nodes')
@@ -89,20 +123,49 @@ serve(async (req) => {
       }
 
       // Criar passo de execução
-      const { error: stepError } = await supabaseClient
+      const { data: createdStep, error: stepError } = await supabaseClient
         .from('workflow_execution_steps')
         .insert({
           execution_id: executionId,
           node_id: currentNode.node_id,
           node_type: currentNode.node_type,
-          status: currentNode.node_type === 'delay' ? 'pending' : 'completed',
+          status: currentNode.node_type === 'delay' || currentNode.node_type === 'email' || currentNode.node_type === 'whatsapp' || currentNode.node_type === 'sms' ? 'pending' : 'completed',
           scheduled_for: scheduledFor.toISOString(),
           started_at: currentTime.toISOString(),
-          completed_at: currentNode.node_type === 'delay' ? null : currentTime.toISOString(),
+          completed_at: currentNode.node_type === 'start' || currentNode.node_type === 'end' ? currentTime.toISOString() : null,
           result: currentNode.config
         })
+        .select()
+        .single()
 
       if (stepError) throw stepError
+
+      // Se for email e deve ser enviado agora, chamar edge function
+      if (currentNode.node_type === 'email' && scheduledFor <= new Date()) {
+        console.log('Enviando email imediatamente...')
+        
+        const { error: emailError } = await supabaseClient.functions.invoke('send-workflow-email', {
+          body: {
+            stepId: createdStep.id,
+            to: charge.units.owner_email,
+            subject: (currentNode.config as any)?.subject || 'Notificação de Cobrança',
+            message: (currentNode.config as any)?.message || 'Você tem uma cobrança pendente.',
+            chargeData: {
+              owner_name: charge.units.owner_name,
+              amount: charge.amount,
+              due_date: charge.due_date,
+              unit_number: charge.units.unit_number,
+              condominium_name: charge.units.condominiums.name
+            }
+          }
+        })
+
+        if (emailError) {
+          console.error('Erro ao enviar email:', emailError)
+        }
+      } else if ((currentNode.node_type === 'email' || currentNode.node_type === 'whatsapp' || currentNode.node_type === 'sms') && scheduledFor > new Date()) {
+        console.log(`${currentNode.node_type} agendado para ${scheduledFor.toISOString()}`)
+      }
 
       // Verificar se é um loop
       const loopConfig = loops?.find(l => l.node_id === currentNode.node_id)

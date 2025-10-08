@@ -946,6 +946,8 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
+          email_id: string | null
+          error_details: Json | null
           error_message: string | null
           execution_id: string
           id: string
@@ -953,6 +955,7 @@ export type Database = {
           node_type: string
           result: Json | null
           scheduled_for: string | null
+          sent_at: string | null
           started_at: string | null
           status: string
           updated_at: string
@@ -960,6 +963,8 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          email_id?: string | null
+          error_details?: Json | null
           error_message?: string | null
           execution_id: string
           id?: string
@@ -967,6 +972,7 @@ export type Database = {
           node_type: string
           result?: Json | null
           scheduled_for?: string | null
+          sent_at?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -974,6 +980,8 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          email_id?: string | null
+          error_details?: Json | null
           error_message?: string | null
           execution_id?: string
           id?: string
@@ -981,6 +989,7 @@ export type Database = {
           node_type?: string
           result?: Json | null
           scheduled_for?: string | null
+          sent_at?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string

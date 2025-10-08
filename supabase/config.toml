@@ -17,3 +17,12 @@ verify_jwt = true
 
 [functions.lookup-cnpj]
 verify_jwt = true
+
+[functions.execute-workflow]
+verify_jwt = true
+
+[functions.send-workflow-email]
+verify_jwt = true
+
+[functions.process-scheduled-steps]
+verify_jwt = false
