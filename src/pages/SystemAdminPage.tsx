@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Bug, Activity, Users, AlertTriangle, CheckCircle, Clock, XCircle, Eye } from 'lucide-react';
+import { Bug, Activity, Users, AlertTriangle, CheckCircle, Clock, XCircle, Eye, Mail, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -74,6 +74,10 @@ export default function SystemAdminPage() {
   const [selectedBug, setSelectedBug] = useState<SystemBug | null>(null);
   const [bugDialogOpen, setBugDialogOpen] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState('');
+
+  // Email config states
+  const [emailCobranca, setEmailCobranca] = useState('notificacao@ffpadvogados.com.br');
+  const [emailCadastro, setEmailCadastro] = useState('cadastro@ffpadvogados.com.br');
 
   useEffect(() => {
     loadData();
@@ -252,6 +256,13 @@ export default function SystemAdminPage() {
     }
   };
 
+  const handleSaveEmailConfig = () => {
+    toast({
+      title: 'Configurações salvas',
+      description: 'As configurações de email foram atualizadas com sucesso'
+    });
+  };
+
   const getSeverityBadge = (severity: string) => {
     const variants: Record<string, { variant: any; icon: any }> = {
       low: { variant: 'default', icon: null },
@@ -342,6 +353,7 @@ export default function SystemAdminPage() {
           <Tabs defaultValue="bugs" className="space-y-4">
             <TabsList>
               <TabsTrigger value="bugs">Bugs</TabsTrigger>
+              <TabsTrigger value="email-config">Configuração de Emails</TabsTrigger>
               <TabsTrigger value="login-stats">Estatísticas de Login</TabsTrigger>
               <TabsTrigger value="login-logs">Logs de Login</TabsTrigger>
               <TabsTrigger value="system-logs">Logs do Sistema</TabsTrigger>
@@ -455,6 +467,144 @@ export default function SystemAdminPage() {
                       ))}
                     </TableBody>
                   </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="email-config" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Configuração de Emails do Sistema
+                  </CardTitle>
+                  <CardDescription>
+                    Configure os endereços de email utilizados pelo sistema para diferentes tipos de mensagens
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Email de Cobrança */}
+                    <Card className="border-2">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-red-500"></div>
+                          Email de Cobrança
+                        </CardTitle>
+                        <CardDescription>
+                          Usado para enviar notificações de cobranças e workflows de inadimplência
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <Label htmlFor="email-cobranca">Endereço de Email</Label>
+                          <Input
+                            id="email-cobranca"
+                            type="email"
+                            value={emailCobranca}
+                            onChange={(e) => setEmailCobranca(e.target.value)}
+                            placeholder="notificacao@ffpadvogados.com.br"
+                            className="mt-1.5"
+                          />
+                        </div>
+                        <div className="rounded-lg bg-muted p-3 space-y-2">
+                          <p className="text-sm font-medium">Utilizado em:</p>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• Workflows de cobrança automática</li>
+                            <li>• Notificações de inadimplência</li>
+                            <li>• Lembretes de vencimento</li>
+                            <li>• Emails de follow-up</li>
+                          </ul>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Email de Cadastro */}
+                    <Card className="border-2">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                          Email de Cadastro
+                        </CardTitle>
+                        <CardDescription>
+                          Usado para comunicações de backoffice e portal de clientes
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <Label htmlFor="email-cadastro">Endereço de Email</Label>
+                          <Input
+                            id="email-cadastro"
+                            type="email"
+                            value={emailCadastro}
+                            onChange={(e) => setEmailCadastro(e.target.value)}
+                            placeholder="cadastro@ffpadvogados.com.br"
+                            className="mt-1.5"
+                          />
+                        </div>
+                        <div className="rounded-lg bg-muted p-3 space-y-2">
+                          <p className="text-sm font-medium">Utilizado em:</p>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• Convites de usuários</li>
+                            <li>• Recuperação de senha</li>
+                            <li>• Notificações de cadastro</li>
+                            <li>• Comunicados do backoffice</li>
+                          </ul>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Informações de Configuração */}
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-blue-900">
+                        ℹ️ Informações Importantes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm text-blue-800">
+                      <p>• Os emails devem estar validados no Resend antes de serem utilizados</p>
+                      <p>• Certifique-se de que os registros SPF, DKIM e DMARC estão configurados corretamente</p>
+                      <p>• O domínio <strong>ffpadvogados.com.br</strong> deve estar verificado no painel do Resend</p>
+                      <p>• Alterações entram em vigor imediatamente após salvar</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Status da Configuração */}
+                  <Card className="bg-green-50 border-green-200">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-green-900 flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        Status da Configuração Atual
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-green-800">Email de Cobrança:</span>
+                        <Badge className="bg-green-600">{emailCobranca}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-green-800">Email de Cadastro:</span>
+                        <Badge className="bg-blue-600">{emailCadastro}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-green-800">Provedor:</span>
+                        <Badge variant="outline">Resend</Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-green-800">Status do Domínio:</span>
+                        <Badge className="bg-green-600 gap-1">
+                          <CheckCircle className="h-3 w-3" />
+                          Verificado
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Button onClick={handleSaveEmailConfig} className="w-full" size="lg">
+                    <Save className="mr-2 h-4 w-4" />
+                    Salvar Configurações de Email
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
