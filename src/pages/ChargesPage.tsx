@@ -4,12 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { NewChargeDialog } from '@/components/NewChargeDialog';
 
 interface Charge {
   id: string;
@@ -42,7 +43,7 @@ export default function ChargesPage() {
   const [administrators, setAdministrators] = useState<any[]>([]);
   const [condominiums, setCondominiums] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newChargeDialogOpen, setNewChargeDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedCharge, setSelectedCharge] = useState<string | null>(null);
   const [boletoFile, setBoletoFile] = useState<File | null>(null);
@@ -50,14 +51,6 @@ export default function ChargesPage() {
   const [selectedAdministrator, setSelectedAdministrator] = useState<string>('');
   const [selectedCondominium, setSelectedCondominium] = useState<string>('');
   const { toast } = useToast();
-
-  const [formData, setFormData] = useState({
-    unit_id: '',
-    amount: 0,
-    due_date: '',
-    reference_month: '',
-    description: '',
-  });
 
   useEffect(() => {
     loadData();
@@ -122,33 +115,6 @@ export default function ChargesPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const { error } = await supabase
-        .from('charges')
-        .insert([formData]);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Sucesso',
-        description: 'Cobrança cadastrada com sucesso',
-      });
-
-      setFormData({ unit_id: '', amount: 0, due_date: '', reference_month: '', description: '' });
-      setDialogOpen(false);
-      loadData();
-    } catch (error) {
-      console.error('Error saving charge:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao salvar cobrança',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const handleUploadBoleto = async () => {
     if (!boletoFile || !selectedCharge) return;
@@ -279,90 +245,19 @@ export default function ChargesPage() {
           <p className="text-muted-foreground">Gerencie todas as cobranças e boletos</p>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setFormData({ unit_id: '', amount: 0, due_date: '', reference_month: '', description: '' })}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Cobrança
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Nova Cobrança</DialogTitle>
-              <DialogDescription>Cadastre uma nova cobrança no sistema</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="unit_id">Unidade *</Label>
-                <select
-                  id="unit_id"
-                  className="w-full p-2 border rounded-md bg-background"
-                  value={formData.unit_id}
-                  onChange={(e) => setFormData({ ...formData, unit_id: e.target.value })}
-                  required
-                >
-                  <option value="">Selecione...</option>
-                  {units
-                    .sort((a, b) => {
-                      // Ordenar por Administradora > Condomínio > Unidade
-                      const adminCompare = (a.condominiums?.name || '').localeCompare(b.condominiums?.name || '');
-                      if (adminCompare !== 0) return adminCompare;
-                      return a.unit_number.localeCompare(b.unit_number);
-                    })
-                    .map((unit) => (
-                      <option key={unit.id} value={unit.id}>
-                        {unit.condominiums?.name} - Unidade {unit.unit_number} ({unit.owner_name})
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="amount">Valor *</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="due_date">Data de Vencimento *</Label>
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="reference_month">Mês de Referência</Label>
-                <Input
-                  id="reference_month"
-                  type="month"
-                  value={formData.reference_month}
-                  onChange={(e) => setFormData({ ...formData, reference_month: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Descrição</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit">Salvar</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => setNewChargeDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Cobrança
+        </Button>
+
+        <NewChargeDialog
+          open={newChargeDialogOpen}
+          onOpenChange={setNewChargeDialogOpen}
+          administrators={administrators}
+          condominiums={condominiums}
+          units={units}
+          onSuccess={loadData}
+        />
       </div>
 
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
