@@ -186,8 +186,13 @@ export default function SystemAdminPage() {
       .order('last_login', { ascending: false });
 
     if (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      toast({
+        title: 'Erro ao carregar estatísticas',
+        description: error.message,
+        variant: 'destructive'
+      });
     } else {
+      console.log('Login stats loaded:', data);
       setLoginStats((data || []) as LoginStats[]);
     }
   };
@@ -354,6 +359,7 @@ export default function SystemAdminPage() {
             <TabsList>
               <TabsTrigger value="bugs">Bugs</TabsTrigger>
               <TabsTrigger value="email-config">Configuração de Emails</TabsTrigger>
+              <TabsTrigger value="email-test">Teste de Convites</TabsTrigger>
               <TabsTrigger value="login-stats">Estatísticas de Login</TabsTrigger>
               <TabsTrigger value="login-logs">Logs de Login</TabsTrigger>
               <TabsTrigger value="system-logs">Logs do Sistema</TabsTrigger>
@@ -609,6 +615,132 @@ export default function SystemAdminPage() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="email-test">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Teste de Sistema de Convites
+                  </CardTitle>
+                  <CardDescription>
+                    Envie convites de teste e acompanhe todo o rastreamento de emails (envio, entrega, abertura, cliques)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Formulário de Teste */}
+                  <div className="rounded-lg border bg-card p-6 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="test-email">Email de Teste</Label>
+                      <Input
+                        id="test-email"
+                        type="email"
+                        placeholder="seuemail@exemplo.com"
+                        className="max-w-md"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="test-role">Role</Label>
+                      <Select defaultValue="employee">
+                        <SelectTrigger className="max-w-md">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Administrador</SelectItem>
+                          <SelectItem value="employee">Funcionário</SelectItem>
+                          <SelectItem value="supervisor">Supervisor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button className="w-full max-w-md">
+                      <Mail className="mr-2 h-4 w-4" />
+                      Enviar Convite de Teste
+                    </Button>
+                  </div>
+
+                  {/* Informações do Rastreamento */}
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-blue-900">
+                        📊 O que você pode rastrear:
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm text-blue-800">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        <span><strong>Email Enviado:</strong> Quando o email foi despachado pelo sistema</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        <span><strong>Email Entregue:</strong> Quando chegou na caixa de entrada</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        <span><strong>Email Aberto:</strong> Quando o destinatário abriu o email</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4" />
+                        <span><strong>Link Clicado:</strong> Quando clicou no botão de aceitar convite</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span><strong>Bounce:</strong> Se o email retornou (endereço inválido)</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Como Funciona */}
+                  <Card className="bg-green-50 border-green-200">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-green-900">
+                        ✨ Como Funciona:
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm text-green-800">
+                      <p>1. Digite um email válido que você tenha acesso</p>
+                      <p>2. Envie o convite de teste</p>
+                      <p>3. Vá para a aba <strong>"Gestão de Usuários"</strong> no menu</p>
+                      <p>4. Na seção <strong>"Convites Enviados"</strong>, você verá:</p>
+                      <ul className="ml-6 space-y-1 mt-2">
+                        <li>• Badges coloridas mostrando o status do email</li>
+                        <li>• Botão "Detalhes" para ver timeline completa</li>
+                        <li>• Estatísticas de engajamento em tempo real</li>
+                      </ul>
+                      <p className="mt-3"><strong>Dica:</strong> Abra o email no seu celular e veja os eventos aparecendo em tempo real! 📱</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Links Úteis */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">
+                        🔗 Links Úteis
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Button variant="outline" className="w-full justify-between" asChild>
+                        <a href="/portal/corporativo/usuarios" className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Ver Convites Enviados
+                          </span>
+                          <span className="text-xs text-muted-foreground">Gestão de Usuários</span>
+                        </a>
+                      </Button>
+                      <Button variant="outline" className="w-full justify-between" asChild>
+                        <a href="https://resend.com/emails" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <Mail className="h-4 w-4" />
+                            Dashboard do Resend
+                          </span>
+                          <span className="text-xs text-muted-foreground">Ver emails enviados</span>
+                        </a>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="login-stats">
               <Card>
                 <CardHeader>
@@ -616,35 +748,43 @@ export default function SystemAdminPage() {
                   <CardDescription>Último login e tentativas de acesso</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Total de Logins</TableHead>
-                        <TableHead>Último Login</TableHead>
-                        <TableHead>Tentativas Falhas</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loginStats.map((stat) => (
-                        <TableRow key={stat.user_id}>
-                          <TableCell className="font-medium">{stat.email}</TableCell>
-                          <TableCell>{stat.total_logins}</TableCell>
-                          <TableCell>
-                            {stat.last_login 
-                              ? format(new Date(stat.last_login), 'dd/MM/yyyy HH:mm', { locale: ptBR })
-                              : 'Nunca'
-                            }
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={stat.failed_attempts > 0 ? 'destructive' : 'default'}>
-                              {stat.failed_attempts}
-                            </Badge>
-                          </TableCell>
+                  {loginStats.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhuma estatística de login disponível ainda.</p>
+                      <p className="text-sm mt-2">Os dados aparecerão após os primeiros logins dos usuários.</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Total de Logins</TableHead>
+                          <TableHead>Último Login</TableHead>
+                          <TableHead>Tentativas Falhas</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {loginStats.map((stat) => (
+                          <TableRow key={stat.user_id}>
+                            <TableCell className="font-medium">{stat.email}</TableCell>
+                            <TableCell>{stat.total_logins}</TableCell>
+                            <TableCell>
+                              {stat.last_login 
+                                ? format(new Date(stat.last_login), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                                : 'Nunca'
+                              }
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={stat.failed_attempts > 0 ? 'destructive' : 'default'}>
+                                {stat.failed_attempts}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -656,34 +796,42 @@ export default function SystemAdminPage() {
                   <CardDescription>Histórico detalhado de acessos ao sistema</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data/Hora</TableHead>
-                        <TableHead>IP</TableHead>
-                        <TableHead>User Agent</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loginLogs.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell>
-                            {format(new Date(log.login_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">{log.ip_address || 'N/A'}</TableCell>
-                          <TableCell className="truncate max-w-xs text-sm">
-                            {log.user_agent || 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={log.success ? 'default' : 'destructive'}>
-                              {log.success ? 'Sucesso' : 'Falha'}
-                            </Badge>
-                          </TableCell>
+                  {loginLogs.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum log de login registrado ainda.</p>
+                      <p className="text-sm mt-2">Os dados aparecerão após os primeiros logins dos usuários.</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data/Hora</TableHead>
+                          <TableHead>IP</TableHead>
+                          <TableHead>User Agent</TableHead>
+                          <TableHead>Status</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {loginLogs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell>
+                              {format(new Date(log.login_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">{log.ip_address || 'N/A'}</TableCell>
+                            <TableCell className="truncate max-w-xs text-sm">
+                              {log.user_agent || 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={log.success ? 'default' : 'destructive'}>
+                                {log.success ? 'Sucesso' : 'Falha'}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -695,30 +843,38 @@ export default function SystemAdminPage() {
                   <CardDescription>Eventos e operações do sistema</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data/Hora</TableHead>
-                        <TableHead>Categoria</TableHead>
-                        <TableHead>Tipo de Evento</TableHead>
-                        <TableHead>Descrição</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {systemLogs.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell>
-                            {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}
-                          </TableCell>
-                          <TableCell>
-                            <Badge>{log.event_category}</Badge>
-                          </TableCell>
-                          <TableCell className="font-medium">{log.event_type}</TableCell>
-                          <TableCell className="max-w-md truncate">{log.description}</TableCell>
+                  {systemLogs.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum log do sistema registrado ainda.</p>
+                      <p className="text-sm mt-2">Os logs aparecerão conforme o sistema for utilizado.</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data/Hora</TableHead>
+                          <TableHead>Categoria</TableHead>
+                          <TableHead>Tipo de Evento</TableHead>
+                          <TableHead>Descrição</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {systemLogs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell>
+                              {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell>
+                              <Badge>{log.event_category}</Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">{log.event_type}</TableCell>
+                            <TableCell className="max-w-md truncate">{log.description}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
