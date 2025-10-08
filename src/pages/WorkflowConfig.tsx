@@ -33,9 +33,6 @@ import { useWorkflow } from '@/hooks/useWorkflow';
 
 // Tipos de nós personalizados
 const MessageNode = ({ data }: { data: any }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [message, setMessage] = useState(data.message || '');
-
   const getIcon = () => {
     switch (data.type) {
       case 'whatsapp':
@@ -49,45 +46,30 @@ const MessageNode = ({ data }: { data: any }) => {
     }
   };
 
+  const truncateMessage = (msg: string, maxLength: number = 50) => {
+    if (!msg) return 'Clique para configurar a mensagem...';
+    if (msg.length <= maxLength) return msg;
+    return msg.substring(0, maxLength) + '...';
+  };
+
   return (
-    <div className="bg-white border-2 border-gray-200 rounded-lg p-4 min-w-[250px] shadow-md hover:shadow-lg transition-shadow">
+    <div 
+      className="bg-white border-2 border-gray-200 rounded-lg p-4 min-w-[250px] shadow-md hover:shadow-lg transition-shadow cursor-pointer hover:border-blue-400"
+      onClick={() => data.onEdit && data.onEdit(data.nodeId)}
+    >
       <Handle type="target" position={Position.Top} className="w-3 h-3 !bg-blue-500" />
       
       <div className="flex items-center gap-2 mb-2">
         {getIcon()}
         <span className="font-semibold text-sm capitalize">{data.type}</span>
-        <span className="text-xs text-gray-500">+{data.delay || 0} dias</span>
+        {data.delay > 0 && (
+          <span className="text-xs text-gray-500">+{data.delay} dias</span>
+        )}
       </div>
       
-      {isEditing ? (
-        <div className="space-y-2">
-          <Textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Digite sua mensagem..."
-            className="text-sm"
-            rows={3}
-          />
-          <div className="flex gap-2">
-            <Button size="sm" onClick={() => {
-              data.message = message;
-              setIsEditing(false);
-            }}>
-              Salvar
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
-              Cancelar
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div 
-          className="text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-2 rounded"
-          onClick={() => setIsEditing(true)}
-        >
-          {data.message || 'Clique para editar a mensagem...'}
-        </div>
-      )}
+      <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-200">
+        {truncateMessage(data.message)}
+      </div>
 
       <Handle type="source" position={Position.Bottom} className="w-3 h-3 !bg-blue-500" />
     </div>
@@ -157,6 +139,10 @@ const WorkflowConfig = () => {
   const [autoSave, setAutoSave] = useState(false);
   const [notifyOnComplete, setNotifyOnComplete] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [editingNode, setEditingNode] = useState<any>(null);
+  const [editingMessage, setEditingMessage] = useState('');
+  const [editingDelay, setEditingDelay] = useState(0);
   const { saveWorkflow, loadWorkflow, loading } = useWorkflow();
 
   // Estados do React Flow
@@ -185,15 +171,52 @@ const WorkflowConfig = () => {
     [setEdges, toast]
   );
 
+  const openMessageDialog = useCallback((nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (node) {
+      setEditingNode(node);
+      setEditingMessage(String(node.data.message || ''));
+      setEditingDelay(typeof node.data.delay === 'number' ? node.data.delay : 0);
+      setMessageDialogOpen(true);
+    }
+  }, [nodes]);
+
+  const saveMessageEdit = () => {
+    if (editingNode) {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === editingNode.id
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  message: editingMessage,
+                  delay: editingDelay,
+                },
+              }
+            : node
+        )
+      );
+      setMessageDialogOpen(false);
+      toast({
+        title: 'Mensagem atualizada',
+        description: 'As alterações foram salvas'
+      });
+    }
+  };
+
   const addNode = (type: string, nodeType: string) => {
+    const newNodeId = `${Date.now()}`;
     const newNode: Node = {
-      id: `${nodes.length + 1}`,
+      id: newNodeId,
       type: nodeType,
       position: { x: Math.random() * 400 + 100, y: Math.random() * 400 + 200 },
       data: { 
+        nodeId: newNodeId,
         type,
         message: '',
-        delay: nodeType === 'delay' ? 1 : undefined
+        delay: nodeType === 'delay' ? 1 : 0,
+        onEdit: openMessageDialog
       },
     };
     setNodes((nds) => [...nds, newNode]);
@@ -202,6 +225,20 @@ const WorkflowConfig = () => {
       description: `Nó do tipo ${type} adicionado ao workflow`
     });
   };
+
+  // Update existing nodes with onEdit callback when nodes change
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          nodeId: node.id,
+          onEdit: openMessageDialog,
+        },
+      }))
+    );
+  }, [openMessageDialog]);
 
   const applyTemplate = (templateName: string) => {
     setSelectedTemplate(templateName);
@@ -444,6 +481,84 @@ Equipe de Cobrança`,
           </div>
         </div>
       </header>
+
+      {/* Dialog para editar mensagem */}
+      <Dialog open={messageDialogOpen} onOpenChange={setMessageDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col gap-0 p-0">
+          <DialogHeader className="px-6 pt-6 pb-4">
+            <DialogTitle className="flex items-center gap-2">
+              {editingNode?.data.type === 'whatsapp' && <MessageCircle className="w-5 h-5 text-green-600" />}
+              {editingNode?.data.type === 'email' && <Mail className="w-5 h-5 text-blue-600" />}
+              {editingNode?.data.type === 'sms' && <FileText className="w-5 h-5 text-purple-600" />}
+              Configurar Mensagem - {editingNode?.data.type?.toUpperCase()}
+            </DialogTitle>
+            <DialogDescription>
+              Configure o conteúdo da mensagem e o tempo de espera antes do envio
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 flex-1 overflow-y-auto px-6">
+            <div className="space-y-2">
+              <Label htmlFor="delay">Aguardar antes de enviar (dias)</Label>
+              <Input
+                id="delay"
+                type="number"
+                min="0"
+                value={editingDelay}
+                onChange={(e) => setEditingDelay(parseInt(e.target.value) || 0)}
+                placeholder="Ex: 3"
+              />
+              <p className="text-xs text-muted-foreground">
+                Dias para aguardar após a etapa anterior antes de enviar esta mensagem
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="message">Conteúdo da Mensagem</Label>
+              <Textarea
+                id="message"
+                value={editingMessage}
+                onChange={(e) => setEditingMessage(e.target.value)}
+                placeholder="Digite o conteúdo da mensagem..."
+                className="min-h-[200px] font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Você pode usar variáveis: {'{nome}'}, {'{valor}'}, {'{data_vencimento}'}, {'{link}'}
+              </p>
+            </div>
+
+            <div className="border-t pt-4">
+              <Label className="mb-2 block">Templates Disponíveis</Label>
+              <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto">
+                {messageTemplates[editingNode?.data.type as keyof typeof messageTemplates]?.map((template, idx) => (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    className="justify-start text-left h-auto py-2"
+                    onClick={() => setEditingMessage(template.content)}
+                  >
+                    <div className="flex flex-col items-start">
+                      <span className="font-semibold text-sm">{template.name}</span>
+                      <span className="text-xs text-muted-foreground line-clamp-2">
+                        {template.content.substring(0, 80)}...
+                      </span>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 px-6 py-4 border-t">
+            <Button variant="outline" onClick={() => setMessageDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={saveMessageEdit}>
+              Salvar Mensagem
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className={`${isFullscreen ? 'h-[calc(100vh-4rem)]' : 'max-w-7xl'} mx-auto px-4 sm:px-6 lg:px-8 ${isFullscreen ? 'py-0' : 'py-8'}`}>
         {isFullscreen ? (
