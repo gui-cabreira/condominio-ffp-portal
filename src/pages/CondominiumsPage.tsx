@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -194,69 +195,71 @@ export default function CondominiumsPage() {
               Novo Condomínio
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>{editingId ? 'Editar' : 'Novo'} Condomínio</DialogTitle>
               <DialogDescription>
                 {editingId ? 'Edite os dados do condomínio' : 'Cadastre um novo condomínio no sistema'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <CNPJLookup onDataFound={handleCNPJData} />
-              
-              <div>
-                <Label htmlFor="name">Nome do Condomínio *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  placeholder="Ex: Edifício Vila Real"
-                />
-              </div>
-              <div>
-                <Label htmlFor="address">Endereço Completo</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Rua, Número - Bairro, Cidade/UF"
-                />
-              </div>
-              <div>
-                <Label htmlFor="total_units">Total de Unidades *</Label>
-                <Input
-                  id="total_units"
-                  type="number"
-                  value={formData.total_units}
-                  onChange={(e) => setFormData({ ...formData, total_units: parseInt(e.target.value) || 0 })}
-                  required
-                  min="1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="administrator_id">Administradora</Label>
-                <select
-                  id="administrator_id"
-                  className="w-full p-2 border rounded-md bg-background"
-                  value={formData.administrator_id}
-                  onChange={(e) => setFormData({ ...formData, administrator_id: e.target.value })}
-                >
-                  <option value="">Selecione...</option>
-                  {administrators.map((admin) => (
-                    <option key={admin.id} value={admin.id}>
-                      {admin.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit">Salvar</Button>
-              </div>
-            </form>
+            <ScrollArea className="flex-1 pr-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <CNPJLookup onDataFound={handleCNPJData} />
+                
+                <div>
+                  <Label htmlFor="name">Nome do Condomínio *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    placeholder="Ex: Edifício Vila Real"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="address">Endereço Completo</Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="Rua, Número - Bairro, Cidade/UF"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="total_units">Total de Unidades *</Label>
+                  <Input
+                    id="total_units"
+                    type="number"
+                    value={formData.total_units}
+                    onChange={(e) => setFormData({ ...formData, total_units: parseInt(e.target.value) || 0 })}
+                    required
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="administrator_id">Administradora</Label>
+                  <select
+                    id="administrator_id"
+                    className="w-full p-2 border rounded-md bg-background"
+                    value={formData.administrator_id}
+                    onChange={(e) => setFormData({ ...formData, administrator_id: e.target.value })}
+                  >
+                    <option value="">Selecione...</option>
+                    {administrators.map((admin) => (
+                      <option key={admin.id} value={admin.id}>
+                        {admin.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Salvar</Button>
+                </div>
+              </form>
+            </ScrollArea>
           </DialogContent>
         </Dialog>
       </div>
