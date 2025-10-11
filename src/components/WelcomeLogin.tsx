@@ -79,9 +79,13 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
         <div
           className={`relative transition-all duration-700 ${
             showAvatar
-              ? 'opacity-100 translate-y-0 scale-100'
+              ? 'opacity-100 translate-y-0 scale-100 animate-bounce'
               : 'opacity-0 translate-y-8 scale-50'
           }`}
+          style={{
+            animationDuration: showAvatar ? '1s' : '0s',
+            animationIterationCount: showAvatar ? '3' : '0'
+          }}
         >
           {/* Glow ring */}
           <div className="absolute inset-0 -m-4">
@@ -89,7 +93,7 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
           </div>
           
           {/* Avatar ring */}
-          <div className="relative p-1 rounded-full bg-gradient-to-br from-primary via-accent to-primary animate-[spin_3s_linear_infinite]">
+          <div className="relative p-1 rounded-full bg-gradient-to-br from-primary via-accent to-primary">
             <div className="p-1 rounded-full bg-background">
               <Avatar className="h-32 w-32 border-4 border-background shadow-2xl">
                 <AvatarImage src={avatarUrl} alt={userName} />
