@@ -27,6 +27,8 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
   const { email } = data.user;
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
   const confirmationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`;
+  
+  const logoUrl = "https://iugxnhdxbpzauqwkjtao.supabase.co/storage/v1/object/public/avatars/33cfb7d4-6c60-414d-8f2b-599c21ac2ff4.png";
 
   switch (type) {
     case "recovery":
@@ -39,34 +41,110 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-                .header { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 40px 20px; text-align: center; }
-                .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; }
-                .content { padding: 40px 30px; }
-                .content p { color: #374151; line-height: 1.6; margin: 0 0 20px 0; }
-                .button { display: inline-block; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; margin: 20px 0; }
-                .button:hover { background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); }
-                .footer { background-color: #f9fafb; padding: 20px 30px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
-                .warning { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 20px 0; border-radius: 4px; }
-                .warning p { color: #92400e; margin: 0; font-size: 14px; }
+                @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;500;600&display=swap');
+                
+                body { 
+                  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                  background-color: #f5f5f5; 
+                  margin: 0; 
+                  padding: 0; 
+                }
+                .container { 
+                  max-width: 600px; 
+                  margin: 40px auto; 
+                  background-color: #ffffff; 
+                  border-radius: 12px; 
+                  overflow: hidden; 
+                  box-shadow: 0 4px 20px rgba(30, 58, 138, 0.15); 
+                }
+                .header { 
+                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  padding: 40px 20px; 
+                  text-align: center; 
+                }
+                .logo { 
+                  max-width: 200px; 
+                  height: auto; 
+                  margin-bottom: 20px; 
+                }
+                .header h1 { 
+                  color: #d4af37; 
+                  margin: 0; 
+                  font-size: 28px; 
+                  font-weight: 700; 
+                  font-family: 'Playfair Display', serif; 
+                }
+                .content { 
+                  padding: 40px 30px; 
+                }
+                .content p { 
+                  color: #374151; 
+                  line-height: 1.8; 
+                  margin: 0 0 20px 0; 
+                  font-size: 15px; 
+                }
+                .button { 
+                  display: inline-block; 
+                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  color: #ffffff !important; 
+                  text-decoration: none; 
+                  padding: 16px 40px; 
+                  border-radius: 8px; 
+                  font-weight: 600; 
+                  margin: 20px 0; 
+                  transition: all 0.3s ease;
+                  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+                }
+                .button:hover { 
+                  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); 
+                  box-shadow: 0 6px 16px rgba(30, 58, 138, 0.4);
+                  transform: translateY(-2px);
+                }
+                .footer { 
+                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  padding: 30px; 
+                  text-align: center; 
+                  color: #d4af37;
+                }
+                .footer p { 
+                  margin: 5px 0; 
+                  font-size: 14px; 
+                }
+                .footer strong { 
+                  font-family: 'Playfair Display', serif; 
+                  font-size: 18px; 
+                  color: #d4af37;
+                }
+                .warning { 
+                  background-color: #fef3c7; 
+                  border-left: 4px solid #d4af37; 
+                  padding: 16px 20px; 
+                  margin: 25px 0; 
+                  border-radius: 6px; 
+                }
+                .warning p { 
+                  color: #92400e; 
+                  margin: 0; 
+                  font-size: 14px; 
+                }
               </style>
             </head>
             <body>
               <div class="container">
                 <div class="header">
-                  <h1>🔐 Redefinir Senha</h1>
+                  <img src="${logoUrl}" alt="FFP Advogados" class="logo">
+                  <h1>Redefinir Senha</h1>
                 </div>
                 <div class="content">
                   <p>Olá,</p>
-                  <p>Recebemos uma solicitação para redefinir a senha da sua conta em <strong>FFP Advogados</strong>.</p>
+                  <p>Recebemos uma solicitação para redefinir a senha da sua conta no sistema <strong>FFP Advogados</strong>.</p>
                   <p>Para criar uma nova senha, clique no botão abaixo:</p>
                   <center>
-                    <a href="${confirmationUrl}" class="button">Redefinir Senha</a>
+                    <a href="${confirmationUrl}" class="button">Redefinir Minha Senha</a>
                   </center>
-                  <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
+                  <p style="font-size: 13px; color: #6b7280; margin-top: 30px;">
                     Ou copie e cole este link no seu navegador:<br>
-                    <a href="${confirmationUrl}" style="color: #3b82f6; word-break: break-all;">${confirmationUrl}</a>
+                    <a href="${confirmationUrl}" style="color: #2563eb; word-break: break-all;">${confirmationUrl}</a>
                   </p>
                   <div class="warning">
                     <p><strong>⚠️ Importante:</strong> Este link é válido por 1 hora e só pode ser usado uma vez.</p>
@@ -75,8 +153,8 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
                 </div>
                 <div class="footer">
                   <p><strong>FFP Advogados</strong></p>
-                  <p>Sistema de Gestão de Inadimplência</p>
-                  <p style="margin-top: 10px;">Este é um email automático, por favor não responda.</p>
+                  <p style="color: #ffffff; opacity: 0.9;">Sistema de Gestão de Inadimplência</p>
+                  <p style="margin-top: 15px; font-size: 12px; color: #ffffff; opacity: 0.8;">Este é um email automático, por favor não responda.</p>
                 </div>
               </div>
             </body>
@@ -95,34 +173,110 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-                .header { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 40px 20px; text-align: center; }
-                .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; }
-                .content { padding: 40px 30px; }
-                .content p { color: #374151; line-height: 1.6; margin: 0 0 20px 0; }
-                .button { display: inline-block; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; margin: 20px 0; }
-                .button:hover { background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); }
-                .footer { background-color: #f9fafb; padding: 20px 30px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
-                .info { background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px 16px; margin: 20px 0; border-radius: 4px; }
-                .info p { color: #1e40af; margin: 0; font-size: 14px; }
+                @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;500;600&display=swap');
+                
+                body { 
+                  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                  background-color: #f5f5f5; 
+                  margin: 0; 
+                  padding: 0; 
+                }
+                .container { 
+                  max-width: 600px; 
+                  margin: 40px auto; 
+                  background-color: #ffffff; 
+                  border-radius: 12px; 
+                  overflow: hidden; 
+                  box-shadow: 0 4px 20px rgba(30, 58, 138, 0.15); 
+                }
+                .header { 
+                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  padding: 40px 20px; 
+                  text-align: center; 
+                }
+                .logo { 
+                  max-width: 200px; 
+                  height: auto; 
+                  margin-bottom: 20px; 
+                }
+                .header h1 { 
+                  color: #d4af37; 
+                  margin: 0; 
+                  font-size: 28px; 
+                  font-weight: 700; 
+                  font-family: 'Playfair Display', serif; 
+                }
+                .content { 
+                  padding: 40px 30px; 
+                }
+                .content p { 
+                  color: #374151; 
+                  line-height: 1.8; 
+                  margin: 0 0 20px 0; 
+                  font-size: 15px; 
+                }
+                .button { 
+                  display: inline-block; 
+                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  color: #ffffff !important; 
+                  text-decoration: none; 
+                  padding: 16px 40px; 
+                  border-radius: 8px; 
+                  font-weight: 600; 
+                  margin: 20px 0; 
+                  transition: all 0.3s ease;
+                  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+                }
+                .button:hover { 
+                  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); 
+                  box-shadow: 0 6px 16px rgba(30, 58, 138, 0.4);
+                  transform: translateY(-2px);
+                }
+                .footer { 
+                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  padding: 30px; 
+                  text-align: center; 
+                  color: #d4af37;
+                }
+                .footer p { 
+                  margin: 5px 0; 
+                  font-size: 14px; 
+                }
+                .footer strong { 
+                  font-family: 'Playfair Display', serif; 
+                  font-size: 18px; 
+                  color: #d4af37;
+                }
+                .info { 
+                  background-color: #dbeafe; 
+                  border-left: 4px solid #2563eb; 
+                  padding: 16px 20px; 
+                  margin: 25px 0; 
+                  border-radius: 6px; 
+                }
+                .info p { 
+                  color: #1e40af; 
+                  margin: 0; 
+                  font-size: 14px; 
+                }
               </style>
             </head>
             <body>
               <div class="container">
                 <div class="header">
-                  <h1>✉️ Confirme seu Email</h1>
+                  <img src="${logoUrl}" alt="FFP Advogados" class="logo">
+                  <h1>Bem-vindo!</h1>
                 </div>
                 <div class="content">
                   <p>Olá,</p>
-                  <p>Bem-vindo ao sistema <strong>FFP Advogados</strong>!</p>
+                  <p>Seja bem-vindo ao sistema <strong>FFP Advogados</strong>!</p>
                   <p>Para ativar sua conta e começar a usar o sistema, precisamos confirmar seu endereço de email.</p>
                   <center>
-                    <a href="${confirmationUrl}" class="button">Confirmar Email</a>
+                    <a href="${confirmationUrl}" class="button">Confirmar Meu Email</a>
                   </center>
-                  <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
+                  <p style="font-size: 13px; color: #6b7280; margin-top: 30px;">
                     Ou copie e cole este link no seu navegador:<br>
-                    <a href="${confirmationUrl}" style="color: #3b82f6; word-break: break-all;">${confirmationUrl}</a>
+                    <a href="${confirmationUrl}" style="color: #2563eb; word-break: break-all;">${confirmationUrl}</a>
                   </p>
                   <div class="info">
                     <p><strong>ℹ️ Dica:</strong> Após confirmar seu email, você poderá acessar o sistema com suas credenciais.</p>
@@ -131,8 +285,8 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
                 </div>
                 <div class="footer">
                   <p><strong>FFP Advogados</strong></p>
-                  <p>Sistema de Gestão de Inadimplência</p>
-                  <p style="margin-top: 10px;">Este é um email automático, por favor não responda.</p>
+                  <p style="color: #ffffff; opacity: 0.9;">Sistema de Gestão de Inadimplência</p>
+                  <p style="margin-top: 15px; font-size: 12px; color: #ffffff; opacity: 0.8;">Este é um email automático, por favor não responda.</p>
                 </div>
               </div>
             </body>
@@ -150,20 +304,82 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-                .header { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 40px 20px; text-align: center; }
-                .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; }
-                .content { padding: 40px 30px; }
-                .content p { color: #374151; line-height: 1.6; margin: 0 0 20px 0; }
-                .button { display: inline-block; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; margin: 20px 0; }
-                .footer { background-color: #f9fafb; padding: 20px 30px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
+                @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;500;600&display=swap');
+                
+                body { 
+                  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                  background-color: #f5f5f5; 
+                  margin: 0; 
+                  padding: 0; 
+                }
+                .container { 
+                  max-width: 600px; 
+                  margin: 40px auto; 
+                  background-color: #ffffff; 
+                  border-radius: 12px; 
+                  overflow: hidden; 
+                  box-shadow: 0 4px 20px rgba(30, 58, 138, 0.15); 
+                }
+                .header { 
+                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  padding: 40px 20px; 
+                  text-align: center; 
+                }
+                .logo { 
+                  max-width: 200px; 
+                  height: auto; 
+                  margin-bottom: 20px; 
+                }
+                .header h1 { 
+                  color: #d4af37; 
+                  margin: 0; 
+                  font-size: 28px; 
+                  font-weight: 700; 
+                  font-family: 'Playfair Display', serif; 
+                }
+                .content { 
+                  padding: 40px 30px; 
+                }
+                .content p { 
+                  color: #374151; 
+                  line-height: 1.8; 
+                  margin: 0 0 20px 0; 
+                  font-size: 15px; 
+                }
+                .button { 
+                  display: inline-block; 
+                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  color: #ffffff !important; 
+                  text-decoration: none; 
+                  padding: 16px 40px; 
+                  border-radius: 8px; 
+                  font-weight: 600; 
+                  margin: 20px 0; 
+                  transition: all 0.3s ease;
+                  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+                }
+                .footer { 
+                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  padding: 30px; 
+                  text-align: center; 
+                  color: #d4af37;
+                }
+                .footer p { 
+                  margin: 5px 0; 
+                  font-size: 14px; 
+                }
+                .footer strong { 
+                  font-family: 'Playfair Display', serif; 
+                  font-size: 18px; 
+                  color: #d4af37;
+                }
               </style>
             </head>
             <body>
               <div class="container">
                 <div class="header">
-                  <h1>📧 Confirmar Alteração de Email</h1>
+                  <img src="${logoUrl}" alt="FFP Advogados" class="logo">
+                  <h1>Alteração de Email</h1>
                 </div>
                 <div class="content">
                   <p>Olá,</p>
@@ -176,7 +392,8 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
                 </div>
                 <div class="footer">
                   <p><strong>FFP Advogados</strong></p>
-                  <p>Sistema de Gestão de Inadimplência</p>
+                  <p style="color: #ffffff; opacity: 0.9;">Sistema de Gestão de Inadimplência</p>
+                  <p style="margin-top: 15px; font-size: 12px; color: #ffffff; opacity: 0.8;">Este é um email automático, por favor não responda.</p>
                 </div>
               </div>
             </body>
