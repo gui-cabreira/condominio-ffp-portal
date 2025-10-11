@@ -31,6 +31,9 @@ const CorporateLogin = () => {
     const result = await signIn(data.email, data.password);
     
     if (!result.error) {
+      // Aguardar um pouco para garantir que o usuário está autenticado
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Buscar perfil do usuário
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -38,10 +41,21 @@ const CorporateLogin = () => {
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         
-        setUserProfile(profile);
-        setShowWelcome(true);
+        if (profile) {
+          setUserProfile(profile);
+          setShowWelcome(true);
+        } else {
+          // Se não tiver perfil, criar um básico para mostrar o welcome
+          setUserProfile({
+            email: data.email,
+            first_name: data.email.split('@')[0],
+            last_name: '',
+            avatar_url: null
+          });
+          setShowWelcome(true);
+        }
       }
     }
   };

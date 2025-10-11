@@ -133,6 +133,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
 
       if (error) {
+        // Criar registro de falha de login
+        try {
+          await supabase.from('login_logs').insert({
+            user_id: null,
+            success: false,
+            metadata: {
+              email: email,
+              error: error.message,
+              timestamp: new Date().toISOString()
+            }
+          });
+        } catch (logError) {
+          console.error('Error creating failed login log:', logError);
+        }
+        
         toast({
           title: "Erro de Autenticação",
           description: error.message,
@@ -142,15 +157,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       if (data.user) {
+        // Criar registro de login
+        try {
+          await supabase.from('login_logs').insert({
+            user_id: data.user.id,
+            success: true,
+            metadata: {
+              email: data.user.email,
+              timestamp: new Date().toISOString()
+            }
+          });
+        } catch (logError) {
+          console.error('Error creating login log:', logError);
+        }
+        
         toast({
           title: "Login realizado com sucesso!",
           description: "Redirecionando...",
         });
-        
-        // Small delay to show toast before redirect
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1000);
       }
 
       return { error: null };
