@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileDialog } from './ProfileDialog';
+import { LogoutScreen } from './LogoutScreen';
 import { useNavigate } from 'react-router-dom';
 
 export function CorporateHeader() {
@@ -19,6 +20,8 @@ export function CorporateHeader() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [showLogoutScreen, setShowLogoutScreen] = useState(false);
+  const [logoutInfo, setLogoutInfo] = useState<any>(null);
 
   useEffect(() => {
     loadProfile();
@@ -37,8 +40,10 @@ export function CorporateHeader() {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/portal');
+    await signOut((userInfo) => {
+      setLogoutInfo(userInfo);
+      setShowLogoutScreen(true);
+    });
   };
 
   const getInitials = () => {
@@ -55,6 +60,16 @@ export function CorporateHeader() {
     if (profile?.first_name) return profile.first_name;
     return user?.email || 'Usuário';
   };
+
+  if (showLogoutScreen && logoutInfo) {
+    return (
+      <LogoutScreen
+        userName={logoutInfo.userName}
+        userEmail={logoutInfo.userEmail}
+        avatarUrl={logoutInfo.avatarUrl}
+      />
+    );
+  }
 
   return (
     <>

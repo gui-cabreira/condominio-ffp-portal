@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
+type LogoutCallback = (userInfo: { userName: string; userEmail: string; avatarUrl?: string }) => void;
+
 type UserRole = Database['public']['Enums']['user_role'];
 
 interface AuthContextType {
@@ -12,7 +14,7 @@ interface AuthContextType {
   loading: boolean;
   userRoles: string[];
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
+  signOut: (onLogoutStart?: LogoutCallback) => Promise<void>;
   hasRole: (role: UserRole) => Promise<boolean>;
 }
 
@@ -190,8 +192,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (onLogoutStart?: LogoutCallback) => {
     try {
+      // Buscar informações do usuário antes de fazer logout
+      if (user && onLogoutStart) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        const fullName = profile 
+          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || user.email || 'Usuário'
+          : user.email || 'Usuário';
+
+        onLogoutStart({
+          userName: fullName,
+          userEmail: user.email || '',
+          avatarUrl: profile?.avatar_url
+        });
+
+        // Aguardar a animação de logout
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
       cleanupAuthState();
       
       try {
