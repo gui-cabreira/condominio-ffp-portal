@@ -69,7 +69,7 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
           }`}
         >
           <img
-            src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+            src="/lovable-uploads/33cfb7d4-6c60-414d-8f2b-599c21ac2ff4.png"
             alt="FFP Advogados"
             className="h-16 w-auto drop-shadow-2xl"
           />
@@ -89,15 +89,15 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
         >
           {/* Glow ring */}
           <div className="absolute inset-0 -m-4">
-            <div className="w-full h-full rounded-full bg-gradient-to-r from-primary/40 via-accent/40 to-primary/40 blur-xl animate-pulse" />
+            <div className="w-full h-full rounded-full bg-gradient-to-r from-ffp-gold/60 via-white/40 to-ffp-gold/60 blur-xl animate-pulse" />
           </div>
           
           {/* Avatar ring */}
-          <div className="relative p-1 rounded-full bg-gradient-to-br from-primary via-accent to-primary">
-            <div className="p-1 rounded-full bg-background">
-              <Avatar className="h-32 w-32 border-4 border-background shadow-2xl">
+          <div className="relative p-1 rounded-full bg-gradient-to-br from-ffp-gold via-white to-ffp-gold">
+            <div className="p-1 rounded-full bg-ffp-navy">
+              <Avatar className="h-32 w-32 border-4 border-ffp-navy shadow-2xl">
                 <AvatarImage src={avatarUrl} alt={userName} />
-                <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary to-accent text-primary-foreground">
+                <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-ffp-gold to-ffp-gold-light text-ffp-navy">
                   {getInitials(userName)}
                 </AvatarFallback>
               </Avatar>
@@ -108,7 +108,7 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
         {/* Greeting */}
         <div className="text-center space-y-2">
           <h1
-            className={`text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent transition-all duration-700 ${
+            className={`text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-ffp-gold to-white bg-clip-text text-transparent transition-all duration-700 ${
               showGreeting
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-4'
@@ -118,7 +118,7 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
           </h1>
           
           <p
-            className={`text-lg text-muted-foreground transition-all duration-700 ${
+            className={`text-lg text-ffp-gold transition-all duration-700 ${
               showSubtext
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-4'
@@ -136,9 +136,9 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
               : 'opacity-0 translate-y-4'
           }`}
         >
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="w-2 h-2 bg-ffp-gold rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-2 h-2 bg-ffp-gold rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-2 h-2 bg-ffp-gold rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
         </div>
 
         {/* Decorative elements */}
@@ -146,7 +146,7 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
           {[...Array(20)].map((_, i) => (
             <div
               key={i}
-              className="absolute w-1 h-1 bg-primary/20 rounded-full animate-pulse"
+              className="absolute w-1 h-1 bg-ffp-gold/30 rounded-full animate-pulse"
               style={{
                 top: `${Math.random() * 100}%`,
                 left: `${Math.random() * 100}%`,
