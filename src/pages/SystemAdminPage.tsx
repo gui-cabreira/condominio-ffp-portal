@@ -13,9 +13,29 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Bug, Activity, Users, AlertTriangle, CheckCircle, Clock, XCircle, Eye, Mail, Save } from 'lucide-react';
+import { Bug, Activity, Users, AlertTriangle, CheckCircle, Clock, XCircle, Eye, Mail, Save, Send, MailOpen, MailX, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+interface EmailStats {
+  total_sent: number;
+  total_delivered: number;
+  total_opened: number;
+  total_bounced: number;
+  open_rate: number;
+  delivery_rate: number;
+}
+
+interface RecentEmail {
+  id: string;
+  email: string;
+  type: string;
+  sent_at: string;
+  delivered_at?: string;
+  opened_at?: string;
+  bounced_at?: string;
+  status: 'sent' | 'delivered' | 'opened' | 'bounced' | 'failed';
+}
 
 interface SystemBug {
   id: string;
@@ -65,6 +85,15 @@ export default function SystemAdminPage() {
   const [loginLogs, setLoginLogs] = useState<LoginLog[]>([]);
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
   const [loginStats, setLoginStats] = useState<LoginStats[]>([]);
+  const [emailStats, setEmailStats] = useState<EmailStats>({
+    total_sent: 0,
+    total_delivered: 0,
+    total_opened: 0,
+    total_bounced: 0,
+    open_rate: 0,
+    delivery_rate: 0
+  });
+  const [recentEmails, setRecentEmails] = useState<RecentEmail[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form states
@@ -89,9 +118,56 @@ export default function SystemAdminPage() {
       loadBugs(),
       loadLoginLogs(),
       loadSystemLogs(),
-      loadLoginStats()
+      loadLoginStats(),
+      loadEmailStats()
     ]);
     setLoading(false);
+  };
+
+  const loadEmailStats = async () => {
+    // Buscar convites com tracking
+    const { data: invitations } = await supabase
+      .from('user_invitations')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (!invitations) return;
+
+    const total_sent = invitations.filter(i => i.sent_at).length;
+    const total_delivered = invitations.filter(i => i.delivered_at).length;
+    const total_opened = invitations.filter(i => i.opened_at).length;
+    const total_bounced = invitations.filter(i => i.bounced_at).length;
+
+    setEmailStats({
+      total_sent,
+      total_delivered,
+      total_opened,
+      total_bounced,
+      open_rate: total_sent > 0 ? (total_opened / total_sent) * 100 : 0,
+      delivery_rate: total_sent > 0 ? (total_delivered / total_sent) * 100 : 0
+    });
+
+    // Mapear para formato de recent emails
+    const emails: RecentEmail[] = invitations.map(inv => {
+      let status: RecentEmail['status'] = 'sent';
+      if (inv.bounced_at) status = 'bounced';
+      else if (inv.opened_at) status = 'opened';
+      else if (inv.delivered_at) status = 'delivered';
+      
+      return {
+        id: inv.id,
+        email: inv.email,
+        type: inv.role === 'admin' ? 'Convite Admin' : `Convite ${inv.role}`,
+        sent_at: inv.sent_at || inv.created_at,
+        delivered_at: inv.delivered_at || undefined,
+        opened_at: inv.opened_at || undefined,
+        bounced_at: inv.bounced_at || undefined,
+        status
+      };
+    }).filter(e => e.sent_at);
+
+    setRecentEmails(emails);
   };
 
   const loadBugs = async () => {
@@ -358,12 +434,221 @@ export default function SystemAdminPage() {
           <Tabs defaultValue="bugs" className="space-y-4">
             <TabsList>
               <TabsTrigger value="bugs">Bugs</TabsTrigger>
+              <TabsTrigger value="email-monitoring">Monitoramento de E-mails</TabsTrigger>
               <TabsTrigger value="email-config">Configuração de Emails</TabsTrigger>
               <TabsTrigger value="email-test">Teste de Convites</TabsTrigger>
               <TabsTrigger value="login-stats">Estatísticas de Login</TabsTrigger>
               <TabsTrigger value="login-logs">Logs de Login</TabsTrigger>
               <TabsTrigger value="system-logs">Logs do Sistema</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="email-monitoring" className="space-y-4">
+              {/* Email Statistics Cards */}
+              <div className="grid gap-4 md:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">E-mails Enviados</CardTitle>
+                    <Send className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{emailStats.total_sent}</div>
+                    <p className="text-xs text-muted-foreground">Últimos 50 registros</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Taxa de Entrega</CardTitle>
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600">
+                      {emailStats.delivery_rate.toFixed(1)}%
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {emailStats.total_delivered} entregues
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Taxa de Abertura</CardTitle>
+                    <MailOpen className="h-4 w-4 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {emailStats.open_rate.toFixed(1)}%
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {emailStats.total_opened} abertos
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Bounce Rate</CardTitle>
+                    <MailX className="h-4 w-4 text-destructive" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-destructive">
+                      {emailStats.total_bounced}
+                    </div>
+                    <p className="text-xs text-muted-foreground">E-mails devolvidos</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Recent Emails Table */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Últimas Solicitações de E-mail
+                  </CardTitle>
+                  <CardDescription>
+                    Acompanhe o status dos últimos 50 e-mails enviados pelo sistema
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Destinatário</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Enviado</TableHead>
+                        <TableHead>Entregue</TableHead>
+                        <TableHead>Aberto</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentEmails.map((email) => (
+                        <TableRow key={email.id}>
+                          <TableCell className="font-medium">{email.email}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{email.type}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {email.sent_at 
+                              ? format(new Date(email.sent_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                              : '-'
+                            }
+                          </TableCell>
+                          <TableCell>
+                            {email.delivered_at 
+                              ? format(new Date(email.delivered_at), 'dd/MM HH:mm', { locale: ptBR })
+                              : '-'
+                            }
+                          </TableCell>
+                          <TableCell>
+                            {email.opened_at 
+                              ? format(new Date(email.opened_at), 'dd/MM HH:mm', { locale: ptBR })
+                              : '-'
+                            }
+                          </TableCell>
+                          <TableCell>
+                            {email.status === 'opened' && (
+                              <Badge className="bg-blue-600">
+                                <MailOpen className="mr-1 h-3 w-3" />
+                                Aberto
+                              </Badge>
+                            )}
+                            {email.status === 'delivered' && (
+                              <Badge className="bg-green-600">
+                                <CheckCircle className="mr-1 h-3 w-3" />
+                                Entregue
+                              </Badge>
+                            )}
+                            {email.status === 'sent' && (
+                              <Badge variant="secondary">
+                                <Send className="mr-1 h-3 w-3" />
+                                Enviado
+                              </Badge>
+                            )}
+                            {email.status === 'bounced' && (
+                              <Badge variant="destructive">
+                                <MailX className="mr-1 h-3 w-3" />
+                                Devolvido
+                              </Badge>
+                            )}
+                            {email.status === 'failed' && (
+                              <Badge variant="destructive">
+                                <XCircle className="mr-1 h-3 w-3" />
+                                Falhou
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {recentEmails.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            Nenhum e-mail enviado ainda
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              {/* System Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informações do Sistema de E-mails</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        Auth Hook Configurado
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Edge function <code className="bg-muted px-1 rounded">auth-email</code> está ativa e enviando e-mails através do Resend com design FFP.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        Resend Integrado
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Domínio verificado: <code className="bg-muted px-1 rounded">ffpadvogados.com.br</code>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-semibold mb-2">Links Úteis</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open('https://supabase.com/dashboard/project/iugxnhdxbpzauqwkjtao/functions/auth-email/logs', '_blank')}
+                      >
+                        Ver Logs Auth Email
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open('https://resend.com/emails', '_blank')}
+                      >
+                        Resend Dashboard
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open('https://supabase.com/dashboard/project/iugxnhdxbpzauqwkjtao/auth/hooks', '_blank')}
+                      >
+                        Configurar Hooks
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="bugs" className="space-y-4">
               <Card>
