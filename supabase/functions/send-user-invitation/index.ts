@@ -39,7 +39,7 @@ serve(async (req) => {
         error: 'Usuário já cadastrado no sistema',
         success: false
       }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -63,7 +63,7 @@ serve(async (req) => {
         error: 'Já existe um convite pendente para este email',
         success: false
       }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
