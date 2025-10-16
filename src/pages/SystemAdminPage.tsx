@@ -37,6 +37,16 @@ interface RecentEmail {
   status: 'sent' | 'delivered' | 'opened' | 'bounced' | 'failed';
 }
 
+interface PendingInvitation {
+  id: string;
+  email: string;
+  role: string;
+  created_at: string;
+  expires_at: string;
+  sent_at?: string;
+  invited_by?: string;
+}
+
 interface SystemBug {
   id: string;
   title: string;
@@ -94,6 +104,7 @@ export default function SystemAdminPage() {
     delivery_rate: 0
   });
   const [recentEmails, setRecentEmails] = useState<RecentEmail[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form states
@@ -124,9 +135,25 @@ export default function SystemAdminPage() {
       loadLoginLogs(),
       loadSystemLogs(),
       loadLoginStats(),
-      loadEmailStats()
+      loadEmailStats(),
+      loadPendingInvitations()
     ]);
     setLoading(false);
+  };
+
+  const loadPendingInvitations = async () => {
+    const { data, error } = await supabase
+      .from('user_invitations')
+      .select('*')
+      .is('accepted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao carregar convites:', error);
+      return;
+    }
+
+    setPendingInvitations((data || []) as PendingInvitation[]);
   };
 
   const loadEmailStats = async () => {
@@ -349,6 +376,31 @@ export default function SystemAdminPage() {
     });
   };
 
+  const handleDeleteInvitation = async (invitationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_invitations')
+        .delete()
+        .eq('id', invitationId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Convite excluído',
+        description: 'O convite foi removido com sucesso'
+      });
+
+      await loadPendingInvitations();
+      await loadEmailStats();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao excluir convite',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleSendTestInvite = async () => {
     if (!testEmail) {
       toast({
@@ -514,6 +566,7 @@ export default function SystemAdminPage() {
           <Tabs defaultValue="bugs" className="space-y-4">
             <TabsList>
               <TabsTrigger value="bugs">Bugs</TabsTrigger>
+              <TabsTrigger value="pending-invitations">Gestão de Convites</TabsTrigger>
               <TabsTrigger value="email-monitoring">Monitoramento de E-mails</TabsTrigger>
               <TabsTrigger value="email-config">Configuração de Emails</TabsTrigger>
               <TabsTrigger value="email-test">Teste de Convites</TabsTrigger>
@@ -521,6 +574,94 @@ export default function SystemAdminPage() {
               <TabsTrigger value="login-logs">Logs de Login</TabsTrigger>
               <TabsTrigger value="system-logs">Logs do Sistema</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="pending-invitations" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Convites Pendentes
+                  </CardTitle>
+                  <CardDescription>
+                    Gerencie convites que ainda não foram aceitos. Você pode excluir convites para permitir o reenvio.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Enviado em</TableHead>
+                        <TableHead>Expira em</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingInvitations.map((invitation) => {
+                        const isExpired = new Date(invitation.expires_at) < new Date();
+                        const roleNames: Record<string, string> = {
+                          'admin': 'Administrador',
+                          'employee': 'Funcionário',
+                          'supervisor': 'Supervisor'
+                        };
+                        
+                        return (
+                          <TableRow key={invitation.id}>
+                            <TableCell className="font-medium">{invitation.email}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {roleNames[invitation.role] || invitation.role}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {invitation.sent_at 
+                                ? format(new Date(invitation.sent_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                                : format(new Date(invitation.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                              }
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(invitation.expires_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell>
+                              {isExpired ? (
+                                <Badge variant="destructive">
+                                  <Clock className="mr-1 h-3 w-3" />
+                                  Expirado
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">
+                                  <Clock className="mr-1 h-3 w-3" />
+                                  Pendente
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteInvitation(invitation.id)}
+                              >
+                                <XCircle className="mr-1 h-4 w-4" />
+                                Excluir
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {pendingInvitations.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            Nenhum convite pendente
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="email-monitoring" className="space-y-4">
               {/* Email Statistics Cards */}
