@@ -387,17 +387,14 @@ export default function SystemAdminPage() {
         }
       });
 
+      // Verificar se houve erro de rede/função (não confundir com erro de validação)
       if (functionError) {
+        console.error('Erro ao chamar função:', functionError);
         throw functionError;
       }
 
-      if (data?.error) {
-        toast({
-          title: 'Erro ao enviar convite',
-          description: data.error,
-          variant: 'destructive'
-        });
-      } else if (data?.success) {
+      // A função retornou, verificar o resultado
+      if (data?.success) {
         toast({
           title: 'Convite enviado! 🎉',
           description: `Email de teste enviado para ${testEmail}. Vá para Gestão de Usuários para acompanhar o tracking.`
@@ -406,6 +403,13 @@ export default function SystemAdminPage() {
         
         // Recarregar dados de email
         await loadEmailStats();
+      } else if (data?.error) {
+        // Erro de validação retornado pela função (usuário já existe, convite pendente, etc)
+        toast({
+          title: 'Não foi possível enviar o convite',
+          description: data.error,
+          variant: 'destructive'
+        });
       }
 
     } catch (error: any) {
