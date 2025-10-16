@@ -378,41 +378,35 @@ export default function SystemAdminPage() {
         throw new Error('Usuário não autenticado');
       }
 
-      // Criar convite no banco
-      const { data: invitation, error: inviteError } = await supabase
-        .from('user_invitations')
-        .insert({
+      // Enviar convite via edge function (que cria o convite no banco e envia o email)
+      const { data, error: functionError } = await supabase.functions.invoke('send-user-invitation', {
+        body: { 
           email: testEmail,
           role: testRole,
-          invited_by: user.id
-        })
-        .select()
-        .single();
-
-      if (inviteError) throw inviteError;
-
-      // Enviar email via edge function
-      const { error: emailError } = await supabase.functions.invoke('send-user-invitation', {
-        body: { invitationId: invitation.id }
+          invitedBy: user.id
+        }
       });
 
-      if (emailError) {
-        console.error('Erro ao enviar email:', emailError);
+      if (functionError) {
+        throw functionError;
+      }
+
+      if (data?.error) {
         toast({
-          title: 'Convite criado com avisos',
-          description: 'O convite foi criado mas houve um problema ao enviar o email. Verifique os logs.',
+          title: 'Erro ao enviar convite',
+          description: data.error,
           variant: 'destructive'
         });
-      } else {
+      } else if (data?.success) {
         toast({
           title: 'Convite enviado! 🎉',
           description: `Email de teste enviado para ${testEmail}. Vá para Gestão de Usuários para acompanhar o tracking.`
         });
         setTestEmail('');
+        
+        // Recarregar dados de email
+        await loadEmailStats();
       }
-
-      // Recarregar dados de email
-      await loadEmailStats();
 
     } catch (error: any) {
       console.error('Erro ao enviar convite:', error);
