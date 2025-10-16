@@ -387,13 +387,8 @@ export default function SystemAdminPage() {
         }
       });
 
-      // Verificar se houve erro de rede/função (não confundir com erro de validação)
-      if (functionError) {
-        console.error('Erro ao chamar função:', functionError);
-        throw functionError;
-      }
-
-      // A função retornou, verificar o resultado
+      // Importante: mesmo com functionError (HTTP 400), o data ainda pode conter a resposta
+      // Primeiro verificamos se temos uma resposta com dados úteis
       if (data?.success) {
         toast({
           title: 'Convite enviado! 🎉',
@@ -405,11 +400,16 @@ export default function SystemAdminPage() {
         await loadEmailStats();
       } else if (data?.error) {
         // Erro de validação retornado pela função (usuário já existe, convite pendente, etc)
+        // Este é um erro esperado e tratado pela edge function
         toast({
           title: 'Não foi possível enviar o convite',
           description: data.error,
           variant: 'destructive'
         });
+      } else if (functionError) {
+        // Erro de rede/servidor sem dados úteis
+        console.error('Erro ao chamar função:', functionError);
+        throw functionError;
       }
 
     } catch (error: any) {
