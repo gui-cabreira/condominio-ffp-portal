@@ -107,6 +107,11 @@ export default function SystemAdminPage() {
   // Email config states
   const [emailCobranca, setEmailCobranca] = useState('notificacao@ffpadvogados.com.br');
   const [emailCadastro, setEmailCadastro] = useState('cadastro@ffpadvogados.com.br');
+  
+  // Test invite states
+  const [testEmail, setTestEmail] = useState('');
+  const [testRole, setTestRole] = useState<'admin' | 'employee' | 'supervisor'>('employee');
+  const [sendingInvite, setSendingInvite] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -342,6 +347,83 @@ export default function SystemAdminPage() {
       title: 'Configurações salvas',
       description: 'As configurações de email foram atualizadas com sucesso'
     });
+  };
+
+  const handleSendTestInvite = async () => {
+    if (!testEmail) {
+      toast({
+        title: 'Email obrigatório',
+        description: 'Digite um email válido para enviar o convite de teste',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(testEmail)) {
+      toast({
+        title: 'Email inválido',
+        description: 'Digite um endereço de email válido',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setSendingInvite(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Criar convite no banco
+      const { data: invitation, error: inviteError } = await supabase
+        .from('user_invitations')
+        .insert({
+          email: testEmail,
+          role: testRole,
+          invited_by: user.id
+        })
+        .select()
+        .single();
+
+      if (inviteError) throw inviteError;
+
+      // Enviar email via edge function
+      const { error: emailError } = await supabase.functions.invoke('send-user-invitation', {
+        body: { invitationId: invitation.id }
+      });
+
+      if (emailError) {
+        console.error('Erro ao enviar email:', emailError);
+        toast({
+          title: 'Convite criado com avisos',
+          description: 'O convite foi criado mas houve um problema ao enviar o email. Verifique os logs.',
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: 'Convite enviado! 🎉',
+          description: `Email de teste enviado para ${testEmail}. Vá para Gestão de Usuários para acompanhar o tracking.`
+        });
+        setTestEmail('');
+      }
+
+      // Recarregar dados de email
+      await loadEmailStats();
+
+    } catch (error: any) {
+      console.error('Erro ao enviar convite:', error);
+      toast({
+        title: 'Erro ao enviar convite',
+        description: error.message || 'Ocorreu um erro ao processar o convite de teste',
+        variant: 'destructive'
+      });
+    } finally {
+      setSendingInvite(false);
+    }
   };
 
   const getSeverityBadge = (severity: string) => {
@@ -919,13 +1001,20 @@ export default function SystemAdminPage() {
                       <Input
                         id="test-email"
                         type="email"
+                        value={testEmail}
+                        onChange={(e) => setTestEmail(e.target.value)}
                         placeholder="seuemail@exemplo.com"
                         className="max-w-md"
+                        disabled={sendingInvite}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="test-role">Role</Label>
-                      <Select defaultValue="employee">
+                      <Select 
+                        value={testRole} 
+                        onValueChange={(v: any) => setTestRole(v)}
+                        disabled={sendingInvite}
+                      >
                         <SelectTrigger className="max-w-md">
                           <SelectValue />
                         </SelectTrigger>
@@ -936,9 +1025,22 @@ export default function SystemAdminPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button className="w-full max-w-md">
-                      <Mail className="mr-2 h-4 w-4" />
-                      Enviar Convite de Teste
+                    <Button 
+                      className="w-full max-w-md"
+                      onClick={handleSendTestInvite}
+                      disabled={sendingInvite}
+                    >
+                      {sendingInvite ? (
+                        <>
+                          <Clock className="mr-2 h-4 w-4 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Enviar Convite de Teste
+                        </>
+                      )}
                     </Button>
                   </div>
 
