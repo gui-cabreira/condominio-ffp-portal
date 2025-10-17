@@ -154,7 +154,7 @@ serve(async (req) => {
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: 'Cadastro <cadastro@ffpadvogados.com.br>',
       to: [email],
-      subject: 'Convite para o Sistema FFP Advogados',
+      subject: '[FFPAdvogados] - Convite de Acesso ao Portal Corporativo',
       html: emailTemplate,
       tags: [
         { name: 'category', value: 'user_invitation' },
