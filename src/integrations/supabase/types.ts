@@ -578,6 +578,7 @@ export type Database = {
           last_name: string | null
           neighborhood: string | null
           phone: string | null
+          profile_completed: boolean | null
           rg: string | null
           state: string | null
           street: string | null
@@ -596,6 +597,7 @@ export type Database = {
           last_name?: string | null
           neighborhood?: string | null
           phone?: string | null
+          profile_completed?: boolean | null
           rg?: string | null
           state?: string | null
           street?: string | null
@@ -614,6 +616,7 @@ export type Database = {
           last_name?: string | null
           neighborhood?: string | null
           phone?: string | null
+          profile_completed?: boolean | null
           rg?: string | null
           state?: string | null
           street?: string | null

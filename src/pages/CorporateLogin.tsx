@@ -43,6 +43,12 @@ const CorporateLogin = () => {
           .eq('id', user.id)
           .maybeSingle();
         
+        // Verificar se o perfil está completo
+        if (profile && !profile.profile_completed) {
+          navigate('/completar-perfil');
+          return;
+        }
+        
         if (profile) {
           setUserProfile(profile);
           setShowWelcome(true);

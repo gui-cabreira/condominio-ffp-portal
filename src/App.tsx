@@ -32,6 +32,7 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import ProfileCompletion from "./pages/ProfileCompletion";
 import { CorporateLayout } from "./components/CorporateLayout";
 
 const queryClient = new QueryClient({
@@ -157,6 +158,7 @@ const App = () => {
               </AuthGuard>
             } />
             <Route path="/aceitar-convite" element={<AcceptInvitation />} />
+            <Route path="/completar-perfil" element={<ProfileCompletion />} />
             <Route path="/cadastro" element={<Signup />} />
             <Route path="/esqueci-senha" element={<ForgotPassword />} />
             <Route path="/redefinir-senha" element={<ResetPassword />} />
