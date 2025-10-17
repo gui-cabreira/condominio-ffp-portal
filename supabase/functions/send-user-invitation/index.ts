@@ -87,7 +87,8 @@ serve(async (req) => {
     console.log('Invitation created:', invitation.id);
 
     // URL para aceitar o convite
-    const invitationUrl = `${req.headers.get('origin')}/aceitar-convite?token=${invitation.invitation_token}`;
+    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://ffpadvogados.com.br';
+    const invitationUrl = `${frontendUrl}/aceitar-convite?token=${invitation.invitation_token}`;
 
     // Preparar dados do email
     const roleNames = {
@@ -124,7 +125,7 @@ serve(async (req) => {
 <body>
     <div class="container">
         <div class="header">
-            <img src="${supabaseUrl}/storage/v1/object/public/branding/ffp-logo.png" alt="FFP Advogados" class="logo">
+            <img src="https://ffpadvogados.com.br/assets/logo.png" alt="FFP Advogados" class="logo">
             <h2>Convite para o Sistema</h2>
         </div>
         <div class="content">
@@ -153,7 +154,7 @@ serve(async (req) => {
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
     
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'Cadastro <cadastro@ffpadvogados.com.br>',
+      from: 'FFP Advogados <contato@ffpadvogados.com.br>',
       to: [email],
       subject: '[FFPAdvogados] - Convite de Acesso ao Portal Corporativo',
       html: emailTemplate,
