@@ -88,6 +88,7 @@ serve(async (req) => {
 
     // URL para aceitar o convite
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://ffpadvogados.com.br';
+    const customDomain = 'https://srv.ffpadvogados.com.br';
     const invitationUrl = `${frontendUrl}/aceitar-convite?token=${invitation.invitation_token}`;
 
     // Preparar dados do email
@@ -239,7 +240,7 @@ serve(async (req) => {
 <body>
     <div class="container">
         <div class="header">
-            <img src="${frontendUrl}/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" alt="FFP Advogados" class="logo" />
+            <img src="${customDomain}/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" alt="FFP Advogados" class="logo" />
             <h1>Convite para o Portal Corporativo</h1>
         </div>
         <div class="content">
