@@ -51,10 +51,20 @@ const AcceptInvitation = () => {
         .eq('invitation_token', token)
         .is('accepted_at', null)
         .gt('expires_at', new Date().toISOString())
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error loading invitation:', error);
+        toast({
+          title: "Convite Inválido",
+          description: "Este convite não foi encontrado ou já expirou",
+          variant: "destructive"
+        });
+        navigate('/');
+        return;
+      }
+
+      if (!data) {
         toast({
           title: "Convite Inválido",
           description: "Este convite não foi encontrado ou já expirou",
@@ -183,16 +193,16 @@ const AcceptInvitation = () => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'bg-red-100 text-red-800';
-      case 'employee': return 'bg-blue-100 text-blue-800';
-      case 'supervisor': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'admin': return 'bg-destructive/10 text-destructive';
+      case 'employee': return 'bg-primary/10 text-primary';
+      case 'supervisor': return 'bg-accent text-accent-foreground';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
@@ -200,11 +210,18 @@ const AcceptInvitation = () => {
 
   if (!invitation) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <CardTitle>Convite Inválido</CardTitle>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader className="text-center space-y-4">
+            <div className="flex justify-center">
+              <img 
+                src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
+                alt="FFP Advogados" 
+                className="h-16 w-auto"
+              />
+            </div>
+            <XCircle className="h-16 w-16 text-destructive mx-auto" />
+            <CardTitle className="text-2xl">Convite Inválido</CardTitle>
             <CardDescription>
               Este convite não foi encontrado ou já expirou
             </CardDescription>
@@ -220,44 +237,48 @@ const AcceptInvitation = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-lg shadow-lg border-2">
+        <CardHeader className="text-center space-y-4 pb-6">
+          <div className="flex justify-center">
             <img 
               src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
               alt="FFP Advogados" 
-              className="h-12 w-auto"
+              className="h-20 w-auto"
             />
           </div>
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <CardTitle>Convite para o Sistema</CardTitle>
-          <CardDescription>
-            Você foi convidado para se juntar ao sistema FFP Advogados
-          </CardDescription>
+          <div className="space-y-2">
+            <div className="flex justify-center">
+              <CheckCircle className="h-16 w-16 text-primary" />
+            </div>
+            <CardTitle className="text-2xl font-bold">Convite para o Sistema</CardTitle>
+            <CardDescription className="text-base">
+              Você foi convidado para se juntar ao sistema FFP Advogados
+            </CardDescription>
+          </div>
         </CardHeader>
         
         <CardContent className="space-y-6">
           {/* Informações do Convite */}
-          <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">Email:</span>
-              <span className="text-sm font-medium">{invitation.email}</span>
+          <div className="space-y-3 p-5 bg-muted/50 rounded-lg border">
+            <div className="flex items-center gap-3">
+              <Mail className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Email:</span>
+              <span className="text-sm font-semibold">{invitation.email}</span>
             </div>
             
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">Perfil:</span>
+            <div className="flex items-center gap-3">
+              <User className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Perfil:</span>
               <Badge className={getRoleColor(invitation.role)}>
                 {getRoleName(invitation.role)}
               </Badge>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">Expira em:</span>
-              <span className="text-sm font-medium">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Expira em:</span>
+              <span className="text-sm font-semibold">
                 {new Date(invitation.expires_at).toLocaleDateString('pt-BR')}
               </span>
             </div>
@@ -265,7 +286,7 @@ const AcceptInvitation = () => {
 
           {/* Formulário de Cadastro */}
           <form onSubmit={handleAcceptInvitation} className="space-y-4">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="firstName">Nome *</Label>
                 <Input
@@ -273,6 +294,7 @@ const AcceptInvitation = () => {
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   required
+                  className="mt-1"
                 />
               </div>
               <div>
@@ -281,6 +303,7 @@ const AcceptInvitation = () => {
                   id="lastName"
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  className="mt-1"
                 />
               </div>
             </div>
@@ -294,8 +317,9 @@ const AcceptInvitation = () => {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
                 minLength={6}
+                className="mt-1"
               />
-              <p className="text-xs text-gray-500 mt-1">Mínimo de 6 caracteres</p>
+              <p className="text-xs text-muted-foreground mt-1">Mínimo de 6 caracteres</p>
             </div>
 
             <div>
@@ -306,12 +330,13 @@ const AcceptInvitation = () => {
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 required
+                className="mt-1"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full h-11 text-base font-semibold"
               disabled={isRegistering}
             >
               {isRegistering ? (
@@ -321,18 +346,17 @@ const AcceptInvitation = () => {
                 </>
               ) : (
                 <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
+                  <CheckCircle className="h-5 w-5 mr-2" />
                   Aceitar Convite e Criar Conta
                 </>
               )}
             </Button>
           </form>
 
-          <div className="text-center">
+          <div className="text-center pt-2">
             <Button
               variant="outline"
               onClick={() => navigate('/')}
-              className="text-sm"
             >
               Cancelar
             </Button>
