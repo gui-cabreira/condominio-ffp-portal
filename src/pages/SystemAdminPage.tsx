@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Bug, Activity, Users, AlertTriangle, CheckCircle, Clock, XCircle, Eye, Mail, Save, Send, MailOpen, MailX, TrendingUp } from 'lucide-react';
+import { Bug, Activity, Users, AlertTriangle, CheckCircle, Clock, XCircle, Eye, Mail, Save, Send, MailOpen, MailX, TrendingUp, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -291,7 +291,7 @@ export default function SystemAdminPage() {
     const { data, error } = await supabase
       .from('login_statistics')
       .select('*')
-      .order('last_login', { ascending: false });
+      .order('total_logins', { ascending: false });
 
     if (error) {
       toast({
@@ -300,8 +300,13 @@ export default function SystemAdminPage() {
         variant: 'destructive'
       });
     } else {
-      console.log('Login stats loaded:', data);
+      console.log('Login stats reloaded at:', new Date().toISOString());
+      console.log('Stats data:', data);
       setLoginStats((data || []) as LoginStats[]);
+      toast({
+        title: 'Estatísticas atualizadas',
+        description: `${data?.length || 0} usuário(s) encontrado(s)`,
+      });
     }
   };
 
@@ -1269,9 +1274,20 @@ export default function SystemAdminPage() {
 
             <TabsContent value="login-stats">
               <Card>
-                <CardHeader>
-                  <CardTitle>Estatísticas de Login dos Usuários</CardTitle>
-                  <CardDescription>Último login e tentativas de acesso</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Estatísticas de Login dos Usuários</CardTitle>
+                    <CardDescription>Último login e tentativas de acesso</CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => loadLoginStats()} 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Atualizar
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   {loginStats.length === 0 ? (
