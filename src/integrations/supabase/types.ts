@@ -567,6 +567,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approved: boolean | null
+          approved_at: string | null
+          approved_by: string | null
           avatar_url: string | null
           birth_date: string | null
           city: string | null
@@ -586,6 +589,9 @@ export type Database = {
           zip_code: string | null
         }
         Insert: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
           avatar_url?: string | null
           birth_date?: string | null
           city?: string | null
@@ -605,6 +611,9 @@ export type Database = {
           zip_code?: string | null
         }
         Update: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
           avatar_url?: string | null
           birth_date?: string | null
           city?: string | null
@@ -624,6 +633,13 @@ export type Database = {
           zip_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "profiles_id_fkey"
             columns: ["id"]

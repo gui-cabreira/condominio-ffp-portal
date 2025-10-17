@@ -6,25 +6,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, ArrowLeft } from 'lucide-react';
 
 const Signup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+    email: ''
   });
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.firstName || !formData.email || !formData.password) {
+    if (!formData.firstName || !formData.email) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -33,32 +30,39 @@ const Signup = () => {
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Erro",
-        description: "As senhas não coincidem",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      toast({
-        title: "Erro",
-        description: "A senha deve ter pelo menos 6 caracteres",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       setLoading(true);
 
+      // Verificar se o usuário já existe
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('email, approved')
+        .eq('email', formData.email)
+        .maybeSingle();
+
+      if (existingProfile) {
+        if (existingProfile.approved) {
+          toast({
+            title: "Email já cadastrado",
+            description: "Este email já possui uma conta aprovada. Faça login.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Cadastro Pendente",
+            description: "Seu cadastro está aguardando aprovação de um administrador.",
+            variant: "default"
+          });
+        }
+        return;
+      }
+
+      // Criar usuário pendente (sem senha ainda)
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
-        password: formData.password,
+        password: Math.random().toString(36).substring(2, 15), // Senha temporária aleatória
         options: {
-          emailRedirectTo: `${window.location.origin}/portal/corporativo/dashboard`,
+          emailRedirectTo: `${window.location.origin}/completar-perfil`,
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName
@@ -69,8 +73,8 @@ const Signup = () => {
       if (error) {
         if (error.message.includes('User already registered')) {
           toast({
-            title: "Usuário já existe",
-            description: "Este email já está cadastrado. Faça login.",
+            title: "Email já cadastrado",
+            description: "Este email já está em uso. Tente fazer login ou aguarde aprovação.",
             variant: "destructive"
           });
           return;
@@ -79,9 +83,15 @@ const Signup = () => {
       }
 
       if (data.user) {
+        // Marcar perfil como não aprovado
+        await supabase
+          .from('profiles')
+          .update({ approved: false })
+          .eq('id', data.user.id);
+
         toast({
-          title: "Conta criada com sucesso!",
-          description: "Verifique seu email para confirmar a conta.",
+          title: "Cadastro Enviado!",
+          description: "Seu cadastro foi enviado para aprovação. Você receberá um email quando for aprovado.",
         });
 
         // Redirecionar para login
@@ -111,9 +121,9 @@ const Signup = () => {
               className="h-12 w-auto"
             />
           </div>
-          <CardTitle className="text-2xl text-ffp-navy">Criar Conta</CardTitle>
+          <CardTitle className="text-2xl text-ffp-navy">Solicitar Acesso</CardTitle>
           <CardDescription>
-            Cadastre-se para acessar o sistema FFP Advogados
+            Preencha o formulário abaixo para solicitar acesso ao sistema FFP Advogados. Seu cadastro será analisado por um administrador.
           </CardDescription>
         </CardHeader>
         
@@ -150,43 +160,11 @@ const Signup = () => {
               />
             </div>
 
-            <div>
-              <Label htmlFor="password">Senha *</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  minLength={6}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Mínimo de 6 caracteres</p>
-            </div>
-
-            <div>
-              <Label htmlFor="confirmPassword">Confirmar Senha *</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                required
-              />
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+              <p className="text-sm text-blue-900 font-medium">ℹ️ Processo de Aprovação</p>
+              <p className="text-xs text-blue-800 mt-1">
+                Após enviar sua solicitação, um administrador irá revisar seu cadastro. Você receberá um email de confirmação quando for aprovado, com instruções para definir sua senha e acessar o sistema.
+              </p>
             </div>
 
             <Button
@@ -197,12 +175,12 @@ const Signup = () => {
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Criando conta...
+                  Enviando solicitação...
                 </>
               ) : (
                 <>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Criar Conta
+                  Solicitar Acesso
                 </>
               )}
             </Button>

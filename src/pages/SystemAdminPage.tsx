@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { PendingUsersApproval } from '@/components/PendingUsersApproval';
 import { CorporateLayout } from '@/components/CorporateLayout';
 import { AuthGuard } from '@/components/AuthGuard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -568,8 +569,9 @@ export default function SystemAdminPage() {
             </Card>
           </div>
 
-          <Tabs defaultValue="bugs" className="space-y-4">
+          <Tabs defaultValue="pending-users" className="space-y-4">
             <TabsList>
+              <TabsTrigger value="pending-users">Aprovação de Cadastros</TabsTrigger>
               <TabsTrigger value="bugs">Bugs</TabsTrigger>
               <TabsTrigger value="pending-invitations">Gestão de Convites</TabsTrigger>
               <TabsTrigger value="email-monitoring">Monitoramento de E-mails</TabsTrigger>
@@ -579,6 +581,10 @@ export default function SystemAdminPage() {
               <TabsTrigger value="login-logs">Logs de Login</TabsTrigger>
               <TabsTrigger value="system-logs">Logs do Sistema</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="pending-users">
+              <PendingUsersApproval />
+            </TabsContent>
 
             <TabsContent value="pending-invitations" className="space-y-4">
               <Card>
