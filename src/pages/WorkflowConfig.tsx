@@ -172,14 +172,17 @@ const WorkflowConfig = () => {
   );
 
   const openMessageDialog = useCallback((nodeId: string) => {
-    const node = nodes.find(n => n.id === nodeId);
-    if (node) {
-      setEditingNode(node);
-      setEditingMessage(String(node.data.message || ''));
-      setEditingDelay(typeof node.data.delay === 'number' ? node.data.delay : 0);
-      setMessageDialogOpen(true);
-    }
-  }, [nodes]);
+    setNodes((currentNodes) => {
+      const node = currentNodes.find(n => n.id === nodeId);
+      if (node) {
+        setEditingNode(node);
+        setEditingMessage(String(node.data.message || ''));
+        setEditingDelay(typeof node.data.delay === 'number' ? node.data.delay : 0);
+        setMessageDialogOpen(true);
+      }
+      return currentNodes; // Não modifica nodes, apenas lê
+    });
+  }, []);
 
   const saveMessageEdit = () => {
     if (editingNode) {
