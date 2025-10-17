@@ -217,3 +217,43 @@ export function useCommunicationData() {
     }
   });
 }
+
+export function useWeeklyPerformance() {
+  return useQuery({
+    queryKey: ['weekly-performance'],
+    queryFn: async () => {
+      const weeks = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+      const weeklyData = [];
+
+      for (let i = 0; i < 4; i++) {
+        const weekEnd = new Date();
+        weekEnd.setDate(weekEnd.getDate() - (i * 7));
+        const weekStart = new Date(weekEnd);
+        weekStart.setDate(weekStart.getDate() - 7);
+
+        // Mensagens enviadas na semana
+        const { data: messages } = await supabase
+          .from('messages')
+          .select('responded_at')
+          .gte('sent_at', weekStart.toISOString())
+          .lte('sent_at', weekEnd.toISOString());
+
+        // Cobranças pagas na semana
+        const { data: charges } = await supabase
+          .from('charges')
+          .select('status, payment_date')
+          .gte('created_at', weekStart.toISOString())
+          .lte('created_at', weekEnd.toISOString());
+
+        weeklyData.unshift({
+          week: weeks[3 - i],
+          enviados: messages?.length || 0,
+          respondidos: messages?.filter(m => m.responded_at).length || 0,
+          pagos: charges?.filter(c => c.status === 'paid').length || 0
+        });
+      }
+
+      return weeklyData;
+    }
+  });
+}
