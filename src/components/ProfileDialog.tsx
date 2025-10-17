@@ -8,6 +8,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, Loader2 } from 'lucide-react';
+import { CPFInput } from '@/components/forms/CPFInput';
+import { PhoneInput } from '@/components/forms/PhoneInput';
+import { AddressForm } from '@/components/forms/AddressForm';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ProfileDialogProps {
   open: boolean;
@@ -18,6 +22,15 @@ interface ProfileDialogProps {
     first_name?: string;
     last_name?: string;
     avatar_url?: string;
+    cpf?: string;
+    rg?: string;
+    phone?: string;
+    birth_date?: string;
+    zip_code?: string;
+    street?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
   } | null;
   onProfileUpdate: () => void;
 }
@@ -26,6 +39,15 @@ export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: 
   const [formData, setFormData] = useState({
     first_name: profile?.first_name || '',
     last_name: profile?.last_name || '',
+    cpf: profile?.cpf || '',
+    rg: profile?.rg || '',
+    phone: profile?.phone || '',
+    birth_date: profile?.birth_date || '',
+    zip_code: profile?.zip_code || '',
+    street: profile?.street || '',
+    neighborhood: profile?.neighborhood || '',
+    city: profile?.city || '',
+    state: profile?.state || '',
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -140,6 +162,17 @@ export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: 
     }
   };
 
+  const handleAddressChange = (data: any) => {
+    setFormData(prev => ({
+      ...prev,
+      zip_code: data.cep || prev.zip_code,
+      street: data.street || prev.street,
+      neighborhood: data.neighborhood || prev.neighborhood,
+      city: data.city || prev.city,
+      state: data.state || prev.state
+    }));
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
@@ -174,7 +207,7 @@ export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Editar Perfil</DialogTitle>
           <DialogDescription>
@@ -182,112 +215,173 @@ export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: 
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Foto de Perfil</Label>
-            <div className="flex flex-col gap-4">
-              {imgSrc ? (
-                <div className="space-y-2">
-                  <ReactCrop
-                    crop={crop}
-                    onChange={(c) => setCrop(c)}
-                    onComplete={(c) => setCompletedCrop(c)}
-                    aspect={1}
-                    circularCrop
-                  >
-                    <img
-                      ref={imgRef}
-                      src={imgSrc}
-                      alt="Crop preview"
-                      className="max-h-96 w-full object-contain"
-                    />
-                  </ReactCrop>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      onClick={uploadAvatar}
-                      disabled={uploading || !completedCrop}
-                      className="flex-1"
+        <ScrollArea className="max-h-[calc(90vh-8rem)] pr-4">
+          <form onSubmit={handleSave} className="space-y-6">
+            <div className="space-y-2">
+              <Label>Foto de Perfil</Label>
+              <div className="flex flex-col gap-4">
+                {imgSrc ? (
+                  <div className="space-y-2">
+                    <ReactCrop
+                      crop={crop}
+                      onChange={(c) => setCrop(c)}
+                      onComplete={(c) => setCompletedCrop(c)}
+                      aspect={1}
+                      circularCrop
                     >
-                      {uploading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Enviando...
-                        </>
-                      ) : (
-                        'Salvar Foto'
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setImgSrc('')}
-                    >
-                      Cancelar
-                    </Button>
+                      <img
+                        ref={imgRef}
+                        src={imgSrc}
+                        alt="Crop preview"
+                        className="max-h-96 w-full object-contain"
+                      />
+                    </ReactCrop>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={uploadAvatar}
+                        disabled={uploading || !completedCrop}
+                        className="flex-1"
+                      >
+                        {uploading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          'Salvar Foto'
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setImgSrc('')}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ) : (
+                ) : (
+                  <div>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={onSelectFile}
+                      className="hidden"
+                      id="avatar-upload"
+                    />
+                    <Label
+                      htmlFor="avatar-upload"
+                      className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent transition-colors"
+                    >
+                      <Upload className="h-5 w-5" />
+                      <span>Escolher foto</span>
+                    </Label>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Informações Pessoais</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <Label htmlFor="first_name">Nome</Label>
                   <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={onSelectFile}
-                    className="hidden"
-                    id="avatar-upload"
+                    id="first_name"
+                    value={formData.first_name}
+                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                   />
-                  <Label
-                    htmlFor="avatar-upload"
-                    className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent transition-colors"
-                  >
-                    <Upload className="h-5 w-5" />
-                    <span>Escolher foto</span>
-                  </Label>
                 </div>
-              )}
-            </div>
-          </div>
+                <div>
+                  <Label htmlFor="last_name">Sobrenome</Label>
+                  <Input
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="first_name">Nome</Label>
-              <Input
-                id="first_name"
-                value={formData.first_name}
-                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+              <div>
+                <Label>Email</Label>
+                <Input value={profile?.email} disabled className="bg-muted" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="cpf">CPF</Label>
+                  <CPFInput
+                    value={formData.cpf}
+                    onChange={(value) => setFormData({ ...formData, cpf: value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="rg">RG</Label>
+                  <Input
+                    id="rg"
+                    value={formData.rg}
+                    onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
+                    placeholder="00.000.000-0"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="phone">Telefone</Label>
+                  <PhoneInput
+                    value={formData.phone}
+                    onChange={(value) => setFormData({ ...formData, phone: value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="birth_date">Data de Nascimento</Label>
+                  <Input
+                    id="birth_date"
+                    type="date"
+                    value={formData.birth_date}
+                    onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Endereço</h3>
+              
+              <AddressForm
+                value={{
+                  cep: formData.zip_code,
+                  street: formData.street,
+                  number: '',
+                  complement: '',
+                  neighborhood: formData.neighborhood,
+                  city: formData.city,
+                  state: formData.state
+                }}
+                onChange={handleAddressChange}
               />
             </div>
-            <div>
-              <Label htmlFor="last_name">Sobrenome</Label>
-              <Input
-                id="last_name"
-                value={formData.last_name}
-                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-              />
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </Button>
             </div>
-          </div>
-
-          <div>
-            <Label>Email</Label>
-            <Input value={profile?.email} disabled className="bg-muted" />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                'Salvar'
-              )}
-            </Button>
-          </div>
-        </form>
+          </form>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
