@@ -1246,7 +1246,7 @@ export type Database = {
     }
     Functions: {
       accept_invitation: {
-        Args: { invitation_token: string; user_id: string }
+        Args: { p_invitation_token: string; p_user_id: string }
         Returns: boolean
       }
       create_admin_user: {

@@ -149,8 +149,8 @@ const AcceptInvitation = () => {
       // Aceitar o convite usando a função do banco
       const { data: acceptData, error: acceptError } = await supabase
         .rpc('accept_invitation', {
-          invitation_token: token,
-          user_id: authData.user.id
+          p_invitation_token: token,
+          p_user_id: authData.user.id
         });
 
       if (acceptError) {
