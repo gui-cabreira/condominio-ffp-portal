@@ -105,7 +105,8 @@ serve(async (req) => {
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #1f2937; color: white; padding: 20px; text-align: center; }
+        .header { background: #1f2937; color: white; padding: 30px 20px; text-align: center; }
+        .logo { max-width: 180px; height: auto; margin-bottom: 15px; }
         .content { padding: 20px; background: #f9f9f9; }
         .button { 
             display: inline-block; 
@@ -123,7 +124,7 @@ serve(async (req) => {
 <body>
     <div class="container">
         <div class="header">
-            <h1>FFP Advogados</h1>
+            <img src="${supabaseUrl}/storage/v1/object/public/branding/ffp-logo.png" alt="FFP Advogados" class="logo">
             <h2>Convite para o Sistema</h2>
         </div>
         <div class="content">
