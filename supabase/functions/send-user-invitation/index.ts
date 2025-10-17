@@ -99,7 +99,7 @@ serve(async (req) => {
 
     const emailTemplate = `
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
     <meta charset="utf-8">
     <title>Convite para o Sistema FFP Advogados</title>
@@ -125,7 +125,7 @@ serve(async (req) => {
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://ffpadvogados.com.br/assets/logo.png" alt="FFP Advogados" class="logo">
+            <img src="https://ffpadvogados.com.br/assets/logo.png" alt="FFP Advogados" class="logo" />
             <h2>Convite para o Sistema</h2>
         </div>
         <div class="content">
@@ -145,8 +145,7 @@ serve(async (req) => {
         </div>
     </div>
 </body>
-</html>
-    `;
+</html>`;
 
     // Enviar email via Resend
     console.log('Enviando email via Resend para:', email);
