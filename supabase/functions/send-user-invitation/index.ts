@@ -102,46 +102,184 @@ serve(async (req) => {
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8">
-    <title>Convite para o Sistema FFP Advogados</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convite para o Portal FFP Advogados</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #1f2937; color: white; padding: 30px 20px; text-align: center; }
-        .logo { max-width: 180px; height: auto; margin-bottom: 15px; }
-        .content { padding: 20px; background: #f9f9f9; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6; 
+            color: #1e293b;
+            background: #f8fafc;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 40px auto; 
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .header { 
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            padding: 48px 32px;
+            text-align: center;
+        }
+        .logo { 
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 24px;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 20px;
+            display: block;
+        }
+        .header h1 {
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+        .content { 
+            padding: 40px 32px;
+            background: #ffffff;
+        }
+        .greeting {
+            font-size: 18px;
+            color: #1e293b;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+        .message {
+            font-size: 16px;
+            color: #475569;
+            margin-bottom: 16px;
+            line-height: 1.7;
+        }
+        .role-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #d4af37 0%, #c99a2e 100%);
+            color: #1e293b;
+            padding: 8px 20px;
+            border-radius: 24px;
+            font-weight: 600;
+            font-size: 15px;
+            margin: 8px 0;
+            letter-spacing: 0.3px;
+        }
+        .button-container {
+            text-align: center;
+            margin: 32px 0;
+        }
         .button { 
             display: inline-block; 
-            background: #d4af37; 
-            color: #1f2937; 
-            padding: 12px 30px; 
-            text-decoration: none; 
-            border-radius: 5px; 
-            font-weight: bold;
-            margin: 20px 0;
+            background: linear-gradient(135deg, #d4af37 0%, #c99a2e 100%);
+            color: #1e293b;
+            padding: 16px 48px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+            letter-spacing: 0.3px;
         }
-        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+        .link-box {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 24px 0;
+            word-break: break-all;
+            font-size: 13px;
+            color: #64748b;
+            font-family: 'Courier New', monospace;
+        }
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            margin: 24px 0;
+            border-radius: 4px;
+        }
+        .warning-title {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        .warning-text {
+            color: #78350f;
+            font-size: 14px;
+            margin: 0;
+        }
+        .footer { 
+            background: #f8fafc;
+            text-align: center;
+            padding: 32px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .footer-text {
+            color: #64748b;
+            font-size: 13px;
+            margin: 0;
+        }
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+            margin: 24px 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://ffpadvogados.com.br/assets/logo.png" alt="FFP Advogados" class="logo" />
-            <h2>Convite para o Sistema</h2>
+            <img src="${frontendUrl}/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" alt="FFP Advogados" class="logo" />
+            <h1>Convite para o Portal Corporativo</h1>
         </div>
         <div class="content">
-            <p>Olá!</p>
-            <p>Você foi convidado(a) para fazer parte da equipe do sistema FFP Advogados como <strong>${roleNames[role] || role}</strong>.</p>
-            <p>Para aceitar o convite e criar sua conta, clique no botão abaixo:</p>
-            <div style="text-align: center;">
-                <a href="${invitationUrl}" class="button">Aceitar Convite</a>
+            <p class="greeting">Olá! 👋</p>
+            <p class="message">
+                Você foi convidado(a) para fazer parte da equipe do <strong>Portal Corporativo FFP Advogados</strong>.
+            </p>
+            <p class="message">
+                Sua função no sistema será: <span class="role-badge">${roleNames[role] || role}</span>
+            </p>
+            
+            <div class="divider"></div>
+            
+            <p class="message">
+                Para aceitar o convite e criar sua conta de acesso, clique no botão abaixo:
+            </p>
+            
+            <div class="button-container">
+                <a href="${invitationUrl}" class="button">✓ Aceitar Convite e Criar Conta</a>
             </div>
-            <p>Ou copie e cole este link no seu navegador:</p>
-            <p style="word-break: break-all; background: #fff; padding: 10px; border: 1px solid #ddd;">${invitationUrl}</p>
-            <p><strong>Importante:</strong> Este convite expira em 7 dias.</p>
-            <p>Se você não solicitou este convite, pode ignorar este email.</p>
+            
+            <p class="message" style="text-align: center; font-size: 14px; color: #94a3b8;">
+                Ou copie e cole este link no seu navegador:
+            </p>
+            <div class="link-box">${invitationUrl}</div>
+            
+            <div class="warning">
+                <p class="warning-title">⏱️ Atenção: Prazo de Validade</p>
+                <p class="warning-text">Este convite expira em <strong>7 dias</strong>. Após este período, será necessário solicitar um novo convite.</p>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p class="message" style="font-size: 14px; color: #94a3b8;">
+                Se você não solicitou este convite ou não reconhece esta ação, pode ignorar este email com segurança.
+            </p>
         </div>
         <div class="footer">
-            <p>© 2024 FFP Advogados. Todos os direitos reservados.</p>
+            <p class="footer-text">© ${new Date().getFullYear()} FFP Advogados. Todos os direitos reservados.</p>
+            <p class="footer-text" style="margin-top: 8px;">Portal Corporativo - Sistema de Gestão Condominial</p>
         </div>
     </div>
 </body>
