@@ -12,29 +12,59 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 serve(async (req) => {
+  // ========== LOG 1: INÍCIO DA EXECUÇÃO ==========
+  console.log('🚀 [INÍCIO] Função send-user-invitation iniciada');
+  console.log('📨 [REQUEST] Method:', req.method);
+  console.log('📨 [REQUEST] Headers:', Object.fromEntries(req.headers.entries()));
+  
   if (req.method === 'OPTIONS') {
+    console.log('✅ [CORS] Respondendo OPTIONS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const { email, role, invitedBy } = await req.json();
     
-    console.log('Sending invitation to:', email, 'Role:', role);
+    // ========== LOG 2: PARSING BODY ==========
+    const body = await req.json();
+    console.log('📦 [BODY] Dados recebidos:', JSON.stringify(body, null, 2));
+    
+    const { email, role, invitedBy } = body;
+    
+    // ========== LOG 3: VALIDAÇÃO ==========
+    console.log('🔍 [VALIDAÇÃO] Iniciando validações...');
+    
+    if (!email || !role) {
+      console.error('❌ [VALIDAÇÃO] Campos obrigatórios faltando');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Email e role são obrigatórios' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    console.log('✅ [VALIDAÇÃO] Campos obrigatórios OK - Email:', email, 'Role:', role);
 
-    // Verificar se o usuário já está cadastrado
+    // ========== LOG 4: VERIFICAR USUÁRIO EXISTENTE ==========
+    console.log('🔍 [DB] Verificando se usuário já existe...');
     const { data: existingUser, error: userError } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, email')
       .eq('email', email)
       .maybeSingle();
 
     if (userError) {
-      console.error('Error checking existing user:', userError);
+      console.error('❌ [DB] Erro ao verificar usuário existente:', userError);
       throw userError;
     }
 
     if (existingUser) {
+      console.log('⚠️ [VALIDAÇÃO] Usuário já existe:', existingUser.email);
       return new Response(JSON.stringify({
         error: 'Usuário já cadastrado no sistema',
         success: false
@@ -43,22 +73,26 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    
+    console.log('✅ [DB] Usuário não existe, prosseguindo...');
 
-    // Verificar se já existe convite pendente
+    // ========== LOG 5: VERIFICAR CONVITE PENDENTE ==========
+    console.log('🔍 [DB] Verificando convites pendentes...');
     const { data: existingInvitation, error: invitationError } = await supabase
       .from('user_invitations')
-      .select('id')
+      .select('id, email, expires_at')
       .eq('email', email)
       .is('accepted_at', null)
       .gt('expires_at', new Date().toISOString())
       .maybeSingle();
 
     if (invitationError) {
-      console.error('Error checking existing invitation:', invitationError);
+      console.error('❌ [DB] Erro ao verificar convite pendente:', invitationError);
       throw invitationError;
     }
 
     if (existingInvitation) {
+      console.log('⚠️ [VALIDAÇÃO] Convite pendente encontrado:', existingInvitation.id);
       return new Response(JSON.stringify({
         error: 'Já existe um convite pendente para este email',
         success: false
@@ -67,8 +101,11 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    
+    console.log('✅ [DB] Nenhum convite pendente');
 
-    // Criar convite
+    // ========== LOG 6: CRIAR CONVITE NO BANCO ==========
+    console.log('💾 [DB] Criando convite no banco de dados...');
     const { data: invitation, error: createError } = await supabase
       .from('user_invitations')
       .insert({
@@ -80,16 +117,20 @@ serve(async (req) => {
       .single();
 
     if (createError) {
-      console.error('Error creating invitation:', createError);
+      console.error('❌ [DB] Erro ao criar convite:', createError);
       throw createError;
     }
 
-    console.log('Invitation created:', invitation.id);
+    console.log('✅ [DB] Convite criado com sucesso:', invitation.id);
 
-    // URL para aceitar o convite
+    // ========== LOG 7: PREPARAR EMAIL ==========
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://ffpadvogados.com.br';
     const customDomain = 'https://srv.ffpadvogados.com.br';
     const invitationUrl = `${frontendUrl}/aceitar-convite?token=${invitation.invitation_token}`;
+
+    console.log('📧 [EMAIL] Preparando envio via Resend...');
+    console.log('📧 [EMAIL] Destinatário:', email);
+    console.log('📧 [EMAIL] URL de convite:', invitationUrl);
 
     // Preparar dados do email
     const roleNames = {
@@ -286,8 +327,9 @@ serve(async (req) => {
 </body>
 </html>`;
 
-    // Enviar email via Resend
-    console.log('Enviando email via Resend para:', email);
+    // ========== LOG 8: ENVIAR EMAIL VIA RESEND ==========
+    console.log('📤 [RESEND] Iniciando envio de email...');
+    console.log('📤 [RESEND] API Key configurada:', Deno.env.get('RESEND_API_KEY') ? 'SIM' : 'NÃO');
     
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
     
@@ -303,8 +345,12 @@ serve(async (req) => {
     });
 
     if (emailError) {
-      console.error('Erro ao enviar email:', emailError);
+      console.error('❌ [RESEND] Erro ao enviar email:', JSON.stringify(emailError, null, 2));
+      console.error('❌ [RESEND] Error name:', emailError.name);
+      console.error('❌ [RESEND] Error message:', emailError.message);
+      
       // Deletar convite se email falhou
+      console.log('🗑️ [DB] Deletando convite devido a falha no envio...');
       await supabase
         .from('user_invitations')
         .delete()
@@ -313,9 +359,10 @@ serve(async (req) => {
       throw new Error(`Erro ao enviar email: ${emailError.message}`);
     }
 
-    console.log('Email enviado com sucesso! ID:', emailData?.id);
+    console.log('✅ [RESEND] Email enviado com sucesso! ID:', emailData?.id);
 
-    // Atualizar convite com email_id e sent_at
+    // ========== LOG 9: ATUALIZAR CONVITE COM EMAIL_ID ==========
+    console.log('💾 [DB] Atualizando convite com email_id...');
     const { error: updateError } = await supabase
       .from('user_invitations')
       .update({
@@ -325,8 +372,15 @@ serve(async (req) => {
       .eq('id', invitation.id);
 
     if (updateError) {
-      console.error('Erro ao atualizar convite:', updateError);
+      console.error('❌ [DB] Erro ao atualizar convite:', updateError);
+    } else {
+      console.log('✅ [DB] Convite atualizado com sucesso');
     }
+
+    // ========== LOG 10: SUCESSO FINAL ==========
+    console.log('🎉 [SUCESSO] Convite enviado com sucesso para:', email);
+    console.log('🎉 [SUCESSO] Invitation ID:', invitation.id);
+    console.log('🎉 [SUCESSO] Email ID:', emailData?.id);
 
     return new Response(JSON.stringify({
       success: true,
@@ -342,7 +396,11 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in send-user-invitation function:', error);
+    console.error('💥 [ERRO FATAL] Error in send-user-invitation function:', error);
+    console.error('💥 [STACK]', error.stack);
+    console.error('💥 [NAME]', error.name);
+    console.error('💥 [MESSAGE]', error.message);
+    
     return new Response(JSON.stringify({ 
       error: error.message,
       success: false 
