@@ -23,12 +23,13 @@ interface AuthEmailData {
 }
 
 const getEmailTemplate = (type: string, data: AuthEmailData) => {
-  const { token_hash, email_action_type, redirect_to } = data.email_data;
+  const { token_hash, email_action_type } = data.email_data;
   const { email } = data.user;
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-  const confirmationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`;
+  const customDomain = "https://srv.ffpadvogados.com.br";
+  const confirmationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${customDomain}`;
   
-  const logoUrl = "https://iugxnhdxbpzauqwkjtao.supabase.co/storage/v1/object/public/avatars/33cfb7d4-6c60-414d-8f2b-599c21ac2ff4.png";
+  const logoUrl = "https://srv.ffpadvogados.com.br/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png";
 
   switch (type) {
     case "recovery":
@@ -58,7 +59,7 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
                   box-shadow: 0 4px 20px rgba(30, 58, 138, 0.15); 
                 }
                 .header { 
-                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  background: linear-gradient(135deg, #1e293b 0%, #334155 100%); 
                   padding: 40px 20px; 
                   text-align: center; 
                 }
@@ -85,23 +86,23 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
                 }
                 .button { 
                   display: inline-block; 
-                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
-                  color: #ffffff !important; 
+                  background: linear-gradient(135deg, #d4af37 0%, #c99a2e 100%); 
+                  color: #1e293b !important; 
                   text-decoration: none; 
                   padding: 16px 40px; 
                   border-radius: 8px; 
                   font-weight: 600; 
                   margin: 20px 0; 
                   transition: all 0.3s ease;
-                  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+                  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
                 }
                 .button:hover { 
-                  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); 
-                  box-shadow: 0 6px 16px rgba(30, 58, 138, 0.4);
+                  background: linear-gradient(135deg, #c99a2e 0%, #b8941f 100%); 
+                  box-shadow: 0 6px 16px rgba(212, 175, 55, 0.4);
                   transform: translateY(-2px);
                 }
                 .footer { 
-                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  background: linear-gradient(135deg, #1e293b 0%, #334155 100%); 
                   padding: 30px; 
                   text-align: center; 
                   color: #d4af37;
@@ -190,7 +191,7 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
                   box-shadow: 0 4px 20px rgba(30, 58, 138, 0.15); 
                 }
                 .header { 
-                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  background: linear-gradient(135deg, #1e293b 0%, #334155 100%); 
                   padding: 40px 20px; 
                   text-align: center; 
                 }
@@ -217,23 +218,23 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
                 }
                 .button { 
                   display: inline-block; 
-                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
-                  color: #ffffff !important; 
+                  background: linear-gradient(135deg, #d4af37 0%, #c99a2e 100%); 
+                  color: #1e293b !important; 
                   text-decoration: none; 
                   padding: 16px 40px; 
                   border-radius: 8px; 
                   font-weight: 600; 
                   margin: 20px 0; 
                   transition: all 0.3s ease;
-                  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+                  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
                 }
                 .button:hover { 
-                  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); 
-                  box-shadow: 0 6px 16px rgba(30, 58, 138, 0.4);
+                  background: linear-gradient(135deg, #c99a2e 0%, #b8941f 100%); 
+                  box-shadow: 0 6px 16px rgba(212, 175, 55, 0.4);
                   transform: translateY(-2px);
                 }
                 .footer { 
-                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  background: linear-gradient(135deg, #1e293b 0%, #334155 100%); 
                   padding: 30px; 
                   text-align: center; 
                   color: #d4af37;
@@ -321,7 +322,7 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
                   box-shadow: 0 4px 20px rgba(30, 58, 138, 0.15); 
                 }
                 .header { 
-                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  background: linear-gradient(135deg, #1e293b 0%, #334155 100%); 
                   padding: 40px 20px; 
                   text-align: center; 
                 }
@@ -348,18 +349,18 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
                 }
                 .button { 
                   display: inline-block; 
-                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
-                  color: #ffffff !important; 
+                  background: linear-gradient(135deg, #d4af37 0%, #c99a2e 100%); 
+                  color: #1e293b !important; 
                   text-decoration: none; 
                   padding: 16px 40px; 
                   border-radius: 8px; 
                   font-weight: 600; 
                   margin: 20px 0; 
                   transition: all 0.3s ease;
-                  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+                  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
                 }
                 .footer { 
-                  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); 
+                  background: linear-gradient(135deg, #1e293b 0%, #334155 100%); 
                   padding: 30px; 
                   text-align: center; 
                   color: #d4af37;
