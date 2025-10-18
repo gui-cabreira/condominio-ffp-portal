@@ -9,12 +9,15 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { CPFInput } from '@/components/forms/CPFInput';
 import { PhoneInput } from '@/components/forms/PhoneInput';
 import { AddressForm } from '@/components/forms/AddressForm';
+import { MaskedInput } from '@/components/forms/MaskedInput';
+import { rgMask } from '@/lib/masks';
 
 export default function ProfileCompletion() {
+  const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -121,9 +124,16 @@ export default function ProfileCompletion() {
         .getPublicUrl(filePath);
 
       setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
-      toast.success('Foto enviada com sucesso!');
+      toast({
+        title: 'Sucesso',
+        description: 'Foto enviada com sucesso!'
+      });
     } catch (error: any) {
-      toast.error('Erro ao enviar foto: ' + error.message);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao enviar foto: ' + error.message,
+        variant: 'destructive'
+      });
     } finally {
       setUploadingAvatar(false);
     }
@@ -164,14 +174,21 @@ export default function ProfileCompletion() {
 
       if (error) throw error;
 
-      toast.success('Perfil completado com sucesso!');
+      toast({
+        title: 'Sucesso',
+        description: 'Perfil completado com sucesso!'
+      });
       
       // Aguardar um pouco para garantir que o perfil foi atualizado
       await new Promise(resolve => setTimeout(resolve, 500));
       
       navigate('/portal/corporativo/dashboard');
     } catch (error: any) {
-      toast.error('Erro ao salvar perfil: ' + error.message);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao salvar perfil: ' + error.message,
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
@@ -179,11 +196,19 @@ export default function ProfileCompletion() {
 
   const nextStep = () => {
     if (step === 1 && (!formData.first_name || !formData.last_name)) {
-      toast.error('Por favor, preencha seu nome completo');
+      toast({
+        title: 'Atenção',
+        description: 'Por favor, preencha seu nome completo',
+        variant: 'destructive'
+      });
       return;
     }
     if (step === 2 && (!formData.cpf || !formData.phone)) {
-      toast.error('Por favor, preencha CPF e telefone');
+      toast({
+        title: 'Atenção',
+        description: 'Por favor, preencha CPF e telefone',
+        variant: 'destructive'
+      });
       return;
     }
     setStep(step + 1);
@@ -315,10 +340,12 @@ export default function ProfileCompletion() {
 
                 <div>
                   <Label htmlFor="rg">RG</Label>
-                  <Input
+                  <MaskedInput
                     id="rg"
+                    mask={rgMask}
                     value={formData.rg}
-                    onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, rg: value })}
+                    placeholder="00.000.000-0"
                     className="mt-1"
                   />
                 </div>

@@ -80,8 +80,8 @@ serve(async (req) => {
       .upsert({
         id: user.id,
         email: user.email,
-        first_name: user.user_metadata?.given_name || user.user_metadata?.name?.split(' ')[0] || '',
-        last_name: user.user_metadata?.family_name || user.user_metadata?.name?.split(' ').slice(1).join(' ') || '',
+        first_name: metadata?.first_name || user.user_metadata?.first_name || user.user_metadata?.given_name || '',
+        last_name: metadata?.last_name || user.user_metadata?.last_name || user.user_metadata?.family_name || '',
         avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
         approved: true, // Usuários Azure são aprovados automaticamente
         profile_completed: false, // Precisam completar perfil
