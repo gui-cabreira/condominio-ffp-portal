@@ -22,6 +22,12 @@ export const AuthGuard = ({ children, requiredRole, redirectTo = '/portal' }: Au
           return;
         }
 
+        // Developer tem acesso total a tudo
+        const isDeveloper = await hasRole('developer');
+        if (isDeveloper) {
+          return;
+        }
+
         if (requiredRole) {
           const userHasRole = await hasRole(requiredRole);
           if (!userHasRole) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Upload, User, CheckCircle } from 'lucide-react';
+import { Upload, User, CheckCircle, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { CPFInput } from '@/components/forms/CPFInput';
 import { PhoneInput } from '@/components/forms/PhoneInput';
@@ -16,10 +17,12 @@ import { AddressForm } from '@/components/forms/AddressForm';
 export default function ProfileCompletion() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [step, setStep] = useState(1);
   const [userRole, setUserRole] = useState<string>('');
+  const isForced = searchParams.get('force') === 'true';
   
   const [formData, setFormData] = useState({
     first_name: '',
@@ -41,20 +44,58 @@ export default function ProfileCompletion() {
       navigate('/portal/corporativo/login');
       return;
     }
-    fetchUserRole();
+    fetchUserData();
   }, [user, navigate]);
 
-  const fetchUserRole = async () => {
+  // Bloquear navegação se for obrigatório
+  useEffect(() => {
+    if (isForced) {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = '';
+      };
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+  }, [isForced]);
+
+  const fetchUserData = async () => {
     if (!user) return;
     
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
+    // Buscar dados existentes do perfil
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*, user_roles(role)')
+      .eq('id', user.id)
       .single();
     
-    if (data) {
-      setUserRole(data.role);
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        avatar_url: profile.avatar_url || '',
+        cpf: profile.cpf || '',
+        rg: profile.rg || '',
+        phone: profile.phone || '',
+        birth_date: profile.birth_date || '',
+        zip_code: profile.zip_code || '',
+        street: profile.street || '',
+        neighborhood: profile.neighborhood || '',
+        city: profile.city || '',
+        state: profile.state || ''
+      }));
+      
+      // Buscar role do usuário
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (roleData) {
+        setUserRole(roleData.role);
+      }
     }
   };
 
@@ -88,7 +129,15 @@ export default function ProfileCompletion() {
     }
   };
 
-  const handleAddressChange = (data: any) => {
+  const handleAddressChange = (data: {
+    cep: string;
+    street: string;
+    number: string;
+    complement: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+  }) => {
     setFormData(prev => ({
       ...prev,
       zip_code: data.cep || prev.zip_code,
@@ -116,6 +165,10 @@ export default function ProfileCompletion() {
       if (error) throw error;
 
       toast.success('Perfil completado com sucesso!');
+      
+      // Aguardar um pouco para garantir que o perfil foi atualizado
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       navigate('/portal/corporativo/dashboard');
     } catch (error: any) {
       toast.error('Erro ao salvar perfil: ' + error.message);
@@ -169,174 +222,188 @@ export default function ProfileCompletion() {
               )}
             </div>
           </div>
-          
-          <CardTitle className="text-2xl text-ffp-navy">
-            Bem-vindo ao FFP Portal! 🎉
-          </CardTitle>
-          <CardDescription>
-            Complete seu perfil para começar a usar a plataforma
+
+          <CardTitle className="text-3xl font-bold text-ffp-navy">Complete seu Perfil</CardTitle>
+          <CardDescription className="text-gray-600">
+            {isForced ? 'Complete seu perfil para acessar o sistema FFP' : 'Preencha suas informações pessoais'}
           </CardDescription>
-          
-          <div className="flex justify-center gap-2 pt-4">
-            {[1, 2, 3].map((s) => (
-              <div
-                key={s}
-                className={`h-2 w-12 rounded-full transition-all duration-300 ${
-                  s === step
-                    ? 'bg-ffp-gold scale-110'
-                    : s < step
-                    ? 'bg-ffp-navy'
-                    : 'bg-gray-200'
-                }`}
-              />
-            ))}
+
+          {isForced && (
+            <Alert className="mt-4 border-amber-200 bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 text-sm">
+                <strong>Atenção:</strong> Você precisa completar seu perfil para ter acesso ao sistema FFP Advogados.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex items-center justify-between pt-4">
+            <div className="flex gap-2 flex-1">
+              {[1, 2, 3].map((s) => (
+                <div
+                  key={s}
+                  className={`h-2 flex-1 rounded-full transition-all ${
+                    s <= step ? 'bg-ffp-gold' : 'bg-gray-200'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-sm text-gray-500 ml-4">Etapa {step} de 3</span>
           </div>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Etapa 1: Dados Pessoais */}
             {step === 1 && (
               <div className="space-y-4 animate-fade-in">
+                <div className="flex items-center gap-2 text-ffp-navy mb-4">
+                  <User className="h-5 w-5" />
+                  <h3 className="font-semibold text-lg">Dados Pessoais</h3>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div>
                     <Label htmlFor="first_name">Nome *</Label>
                     <Input
                       id="first_name"
                       value={formData.first_name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
-                      placeholder="Seu nome"
+                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                       required
+                      className="mt-1"
                     />
                   </div>
-                  <div className="space-y-2">
+
+                  <div>
                     <Label htmlFor="last_name">Sobrenome *</Label>
                     <Input
                       id="last_name"
                       value={formData.last_name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
-                      placeholder="Seu sobrenome"
+                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                       required
+                      className="mt-1"
                     />
                   </div>
                 </div>
-                
-                <div className="space-y-2">
+
+                <div>
                   <Label htmlFor="birth_date">Data de Nascimento</Label>
                   <Input
                     id="birth_date"
                     type="date"
                     value={formData.birth_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, birth_date: e.target.value }))}
+                    onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+                    className="mt-1"
                   />
                 </div>
-
-                <Button
-                  type="button"
-                  onClick={nextStep}
-                  className="w-full bg-ffp-navy hover:bg-ffp-navy-dark"
-                >
-                  Próximo
-                </Button>
               </div>
             )}
 
+            {/* Etapa 2: Contato e Documentos */}
             {step === 2 && (
               <div className="space-y-4 animate-fade-in">
-                <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF *</Label>
-                  <CPFInput
-                    value={formData.cpf}
-                    onChange={(value) => setFormData(prev => ({ ...prev, cpf: value }))}
-                    required
-                  />
+                <div className="flex items-center gap-2 text-ffp-navy mb-4">
+                  <CheckCircle className="h-5 w-5" />
+                  <h3 className="font-semibold text-lg">Contato e Documentos</h3>
                 </div>
 
-                <div className="space-y-2">
+                <CPFInput
+                  value={formData.cpf}
+                  onChange={(value) => setFormData({ ...formData, cpf: value })}
+                  required
+                />
+
+                <div>
                   <Label htmlFor="rg">RG</Label>
                   <Input
                     id="rg"
                     value={formData.rg}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rg: e.target.value }))}
-                    placeholder="00.000.000-0"
+                    onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
+                    className="mt-1"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone *</Label>
-                  <PhoneInput
-                    value={formData.phone}
-                    onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
-                    required
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setStep(1)}
-                    className="flex-1"
-                  >
-                    Voltar
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={nextStep}
-                    className="flex-1 bg-ffp-navy hover:bg-ffp-navy-dark"
-                  >
-                    Próximo
-                  </Button>
-                </div>
+                <PhoneInput
+                  value={formData.phone}
+                  onChange={(value) => setFormData({ ...formData, phone: value })}
+                  required
+                />
               </div>
             )}
 
+            {/* Etapa 3: Endereço e Foto */}
             {step === 3 && (
               <div className="space-y-4 animate-fade-in">
-                <div className="text-center mb-4">
-                  <p className="text-sm text-muted-foreground">
-                    {formData.avatar_url ? (
-                      <span className="flex items-center justify-center gap-2 text-green-600">
-                        <CheckCircle className="h-4 w-4" />
-                        Foto adicionada! Você pode alterá-la clicando no ícone acima.
-                      </span>
-                    ) : (
-                      'Clique no ícone acima para adicionar sua foto (opcional)'
-                    )}
-                  </p>
+                <div className="flex items-center gap-2 text-ffp-navy mb-4">
+                  <CheckCircle className="h-5 w-5" />
+                  <h3 className="font-semibold text-lg">Endereço e Foto</h3>
                 </div>
 
                 <AddressForm
                   value={{
                     cep: formData.zip_code,
                     street: formData.street,
-                    number: '',
-                    complement: '',
                     neighborhood: formData.neighborhood,
                     city: formData.city,
-                    state: formData.state
+                    state: formData.state,
+                    number: '',
+                    complement: ''
                   }}
                   onChange={handleAddressChange}
                 />
 
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setStep(2)}
-                    className="flex-1"
-                  >
-                    Voltar
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 bg-ffp-gold hover:bg-ffp-gold-dark text-white"
-                  >
-                    {loading ? 'Salvando...' : 'Finalizar'}
-                  </Button>
+                <div className="pt-4 border-t">
+                  <Label className="text-sm text-gray-600">
+                    Foto de Perfil (opcional)
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Clique no ícone acima para fazer upload de uma foto
+                  </p>
                 </div>
               </div>
             )}
+
+            {/* Botões de Navegação */}
+            <div className="flex justify-between gap-4 pt-6 border-t">
+              {step > 1 && !isForced && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep(step - 1)}
+                  className="border-ffp-navy text-ffp-navy hover:bg-ffp-navy/10"
+                >
+                  Voltar
+                </Button>
+              )}
+
+              {step < 3 ? (
+                <Button
+                  type="button"
+                  onClick={nextStep}
+                  className="ml-auto bg-ffp-gold hover:bg-ffp-gold-dark text-ffp-navy font-semibold"
+                >
+                  Próxima Etapa
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="ml-auto bg-ffp-gold hover:bg-ffp-gold-dark text-ffp-navy font-semibold"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-ffp-navy mr-2"></div>
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Concluir
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>

@@ -746,10 +746,14 @@ const UserManagement = () => {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Usuários
+          </TabsTrigger>
+          <TabsTrigger value="azure" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Usuários Azure
           </TabsTrigger>
           <TabsTrigger value="invitations" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
@@ -821,6 +825,75 @@ const UserManagement = () => {
                             Excluir
                           </Button>
                         </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="azure" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Usuários Microsoft 365</CardTitle>
+              <CardDescription>
+                Colaboradores FFP que acessam via Azure AD
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Perfil</TableHead>
+                    <TableHead>Perfil Completo</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.filter(u => u.email?.includes('@ffpadvogados.com.br')).map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
+                        {user.first_name} {user.last_name}
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <select
+                          value={user.user_roles?.[0]?.role || 'employee'}
+                          onChange={async (e) => {
+                            const newRole = e.target.value;
+                            await supabase.from('user_roles').delete().eq('user_id', user.id);
+                            const { error } = await supabase.from('user_roles').insert([{ user_id: user.id, role: newRole as any }]);
+                            if (!error) {
+                              toast({ title: "Role atualizada com sucesso!" });
+                              loadData();
+                            }
+                          }}
+                          className="p-1 border rounded text-sm"
+                        >
+                          <option value="developer">Developer</option>
+                          <option value="admin">Admin</option>
+                          <option value="supervisor">Supervisor</option>
+                          <option value="employee">Employee</option>
+                          <option value="assistant">Assistant</option>
+                        </select>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.cpf ? "default" : "secondary"}>
+                          {user.cpf ? "✓ Completo" : "Pendente"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="outline" onClick={() => {
+                          setEditingUser(user);
+                          setEditDialogOpen(true);
+                        }}>
+                          <Edit className="h-3 w-3 mr-1" />
+                          Editar
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

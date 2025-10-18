@@ -55,3 +55,10 @@ export const AdminOrAssistant = ({ children, fallback = null }: { children: Reac
     {children}
   </AccessControl>
 );
+
+// Componente para Developer apenas
+export const DeveloperOnly = ({ children, fallback = null }: { children: ReactNode; fallback?: ReactNode }) => (
+  <AccessControl allowedRoles={['developer']} fallback={fallback}>
+    {children}
+  </AccessControl>
+);

@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const ClientDashboard = () => {
+  const [hasCharges, setHasCharges] = React.useState(true);
+
   // Dados mockados para demonstração
   const documents = [
     { id: 1, name: 'Contrato de Prestação de Serviços', date: '2024-01-10', type: 'PDF' },

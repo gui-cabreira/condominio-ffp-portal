@@ -1,68 +1,95 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Building2, ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useForm } from 'react-hook-form';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { WelcomeLogin } from '@/components/WelcomeLogin';
+import { useToast } from '@/hooks/use-toast';
 
 const CorporateLogin = () => {
-  const [showPassword, setShowPassword] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const { signIn, loading } = useAuth();
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  
-  const form = useForm({
-    defaultValues: {
-      email: '',
-      password: ''
-    }
-  });
+  const { toast } = useToast();
 
-  const onSubmit = async (data: any) => {
-    const result = await signIn(data.email, data.password);
-    
-    if (!result.error) {
-      // Aguardar um pouco para garantir que o usuário está autenticado
-      await new Promise(resolve => setTimeout(resolve, 500));
+  // Verificar callback do Azure AD
+  useEffect(() => {
+    const handleAzureCallback = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Buscar perfil do usuário
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-        
-        // Verificar se o perfil está completo
-        if (profile && !profile.profile_completed) {
-          navigate('/completar-perfil');
-          return;
-        }
-        
-        if (profile) {
-          setUserProfile(profile);
-          setShowWelcome(true);
-        } else {
-          // Se não tiver perfil, criar um básico para mostrar o welcome
-          setUserProfile({
-            email: data.email,
-            first_name: data.email.split('@')[0],
-            last_name: '',
-            avatar_url: null
+      if (session?.user) {
+        setLoading(true);
+        try {
+          // Sincronizar usuário Azure
+          const { data, error } = await supabase.functions.invoke('sync-azure-user', {
+            body: {
+              user: session.user,
+              metadata: session.user.user_metadata
+            }
           });
-          setShowWelcome(true);
+
+          if (error) throw error;
+
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*, user_roles(role)')
+              .eq('id', user.id)
+              .single();
+
+            // Se perfil não está completo, redirecionar
+            if (profile && !profile.profile_completed) {
+              navigate('/completar-perfil?force=true');
+              return;
+            }
+
+            if (profile) {
+              setUserProfile(profile);
+              setShowWelcome(true);
+            }
+          }
+        } catch (error: any) {
+          console.error('Erro ao processar login Azure:', error);
+          toast({
+            title: "Erro no login",
+            description: error.message || "Erro ao processar autenticação",
+            variant: "destructive"
+          });
+        } finally {
+          setLoading(false);
         }
       }
+    };
+
+    handleAzureCallback();
+  }, [navigate, toast]);
+
+  const handleMicrosoftLogin = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          scopes: 'email openid profile',
+          redirectTo: `${window.location.origin}/portal/corporativo/login`
+        }
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Erro ao fazer login com Microsoft:', error);
+      toast({
+        title: "Erro no login",
+        description: error.message || "Não foi possível conectar com Microsoft",
+        variant: "destructive"
+      });
+      setLoading(false);
     }
   };
 
@@ -79,6 +106,17 @@ const CorporateLogin = () => {
     );
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-ffp-navy via-ffp-navy to-gray-900 flex items-center justify-center">
+        <div className="text-center text-white">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" />
+          <p>Autenticando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -91,104 +129,56 @@ const CorporateLogin = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar ao Portal
               </Link>
-              <div className="mx-auto mb-6 w-20 h-20 bg-ffp-navy rounded-full flex items-center justify-center">
-                <Building2 className="w-10 h-10 text-white" />
+              <div className="flex justify-center mb-6">
+                <img 
+                  src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
+                  alt="FFP Advogados" 
+                  className="h-16 w-auto"
+                />
               </div>
               <h1 className="text-3xl font-bold text-ffp-navy mb-2">
-                Acesso Corporativo
+                Portal Corporativo
               </h1>
               <p className="text-gray-600">
-                Sistema interno FFP Advogados
+                Login exclusivo para colaboradores FFP Advogados
               </p>
             </div>
 
             <Card className="bg-white border border-gray-200 shadow-lg">
               <CardHeader>
-                <CardTitle className="text-ffp-navy text-center">Fazer Login</CardTitle>
+                <CardTitle className="text-ffp-navy text-center">Acesso com Microsoft 365</CardTitle>
                 <CardDescription className="text-gray-600 text-center">
-                  Entre com suas credenciais corporativas
+                  Use sua conta corporativa FFP para acessar
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-ffp-navy">E-mail Corporativo</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="email"
-                              placeholder="seu.email@ffpadvogados.com"
-                              className="border-gray-300 focus:border-ffp-gold focus:ring-ffp-gold"
-                              required
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              <CardContent className="space-y-4">
+                <Button
+                  type="button"
+                  onClick={handleMicrosoftLogin}
+                  disabled={loading}
+                  className="w-full bg-white border-2 border-ffp-navy text-ffp-navy hover:bg-ffp-navy hover:text-white transition-all h-12 font-semibold"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                      Conectando...
+                    </>
+                  ) : (
+                    <>
+                      <img 
+                        src="https://authjs.dev/img/providers/microsoft.svg" 
+                        alt="Microsoft" 
+                        className="w-6 h-6 mr-3"
+                      />
+                      Entrar com Microsoft 365
+                    </>
+                  )}
+                </Button>
 
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-ffp-navy">Senha</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                {...field}
-                                type={showPassword ? 'text' : 'password'}
-                                placeholder="••••••••"
-                                className="border-gray-300 focus:border-ffp-gold focus:ring-ffp-gold pr-10"
-                                required
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 text-gray-500 hover:text-ffp-navy"
-                                onClick={() => setShowPassword(!showPassword)}
-                              >
-                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button 
-                      type="submit" 
-                      disabled={loading}
-                      className="w-full bg-ffp-navy hover:bg-ffp-navy-dark text-white font-semibold disabled:opacity-50"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Entrando...
-                        </>
-                      ) : (
-                        'Entrar no Sistema'
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-
-                <div className="mt-6 text-center space-y-2">
-                  <Link to="/esqueci-senha" className="text-ffp-gold hover:text-ffp-gold-dark text-sm block">
-                    Esqueceu sua senha?
-                  </Link>
-                  <p className="text-sm text-gray-600">
-                    Não tem conta?{' '}
-                    <Link to="/cadastro" className="text-ffp-navy hover:underline font-medium">
-                      Criar conta
-                    </Link>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
+                  <p className="font-medium mb-1">ℹ️ Acesso restrito</p>
+                  <p className="text-xs text-blue-800">
+                    Apenas colaboradores FFP com conta Microsoft 365 corporativa podem acessar este sistema.
                   </p>
                 </div>
               </CardContent>

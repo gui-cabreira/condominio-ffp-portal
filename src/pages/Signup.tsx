@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, ArrowLeft } from 'lucide-react';
@@ -12,19 +13,30 @@ const Signup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [lgpdConsent, setLgpdConsent] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    email: ''
+    email: '',
+    cpf: ''
   });
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.firstName || !formData.email) {
+    if (!formData.firstName || !formData.email || !formData.cpf) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!lgpdConsent) {
+      toast({
+        title: "Consentimento necessário",
+        description: "Você precisa concordar com a Política de Privacidade e Termos de Uso para continuar",
         variant: "destructive"
       });
       return;
@@ -83,19 +95,23 @@ const Signup = () => {
       }
 
       if (data.user) {
-        // Marcar perfil como não aprovado
+        // Marcar perfil como não aprovado e salvar consentimento LGPD
         await supabase
           .from('profiles')
-          .update({ approved: false })
+          .update({ 
+            approved: false,
+            lgpd_consent: lgpdConsent,
+            lgpd_consent_date: new Date().toISOString()
+          })
           .eq('id', data.user.id);
 
         toast({
           title: "Cadastro Enviado!",
-          description: "Seu cadastro foi enviado para aprovação. Você receberá um email quando for aprovado.",
+          description: "Seu cadastro foi enviado. Verifique seu email para completar o processo.",
         });
 
-        // Redirecionar para login
-        navigate('/portal/corporativo');
+        // Redirecionar para portal do cliente
+        navigate('/portal');
       }
 
     } catch (error) {
@@ -160,10 +176,50 @@ const Signup = () => {
               />
             </div>
 
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-              <p className="text-sm text-blue-900 font-medium">ℹ️ Processo de Aprovação</p>
-              <p className="text-xs text-blue-800 mt-1">
-                Após enviar sua solicitação, um administrador irá revisar seu cadastro. Você receberá um email de confirmação quando for aprovado, com instruções para definir sua senha e acessar o sistema.
+            <div>
+              <Label htmlFor="cpf">CPF *</Label>
+              <Input
+                id="cpf"
+                value={formData.cpf}
+                onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                placeholder="000.000.000-00"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Usaremos seu CPF para verificar se você possui cobranças cadastradas
+              </p>
+            </div>
+
+            <div className="flex items-start gap-3 p-4 border rounded-lg bg-blue-50 border-blue-200">
+              <Checkbox 
+                id="lgpd-consent" 
+                checked={lgpdConsent}
+                onCheckedChange={(checked) => setLgpdConsent(checked as boolean)}
+                required
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <Label htmlFor="lgpd-consent" className="text-sm font-normal cursor-pointer">
+                  Autorizo o recebimento de comunicações por e-mail, SMS e WhatsApp relacionadas às minhas cobranças e acordos. Li e concordo com a{' '}
+                  <a href="/politica-privacidade" className="text-ffp-navy underline hover:text-ffp-gold" target="_blank">
+                    Política de Privacidade
+                  </a>
+                  {' '}e os{' '}
+                  <a href="/termos-uso" className="text-ffp-navy underline hover:text-ffp-gold" target="_blank">
+                    Termos de Uso
+                  </a>
+                  {' '}conforme a LGPD. *
+                </Label>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+              <p className="text-sm text-amber-900 font-medium">ℹ️ Portal do Cliente</p>
+              <p className="text-xs text-amber-800 mt-1">
+                Este é o cadastro para o Portal do Cliente FFP Advogados. Se você é um colaborador da empresa, use o{' '}
+                <Link to="/portal/corporativo/login" className="underline font-semibold">
+                  Portal Corporativo
+                </Link>.
               </p>
             </div>
 
