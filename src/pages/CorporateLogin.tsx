@@ -77,21 +77,11 @@ const CorporateLogin = () => {
         provider: 'azure',
         options: {
           scopes: 'email openid profile',
-          redirectTo: `${window.location.origin}/portal/corporativo`,
-          skipBrowserRedirect: true
+          redirectTo: `${window.location.origin}/portal/corporativo`
         }
       });
 
       if (error) throw error;
-      
-      // Abrir em nova aba (necessário porque Microsoft bloqueia iframes)
-      if (data?.url) {
-        window.open(data.url, '_blank');
-        toast({
-          title: "Login aberto em nova aba",
-          description: "Complete o login na janela que se abriu",
-        });
-      }
     } catch (error: any) {
       console.error('Erro ao fazer login com Microsoft:', error);
       toast({
@@ -99,7 +89,6 @@ const CorporateLogin = () => {
         description: error.message || "Não foi possível conectar com Microsoft",
         variant: "destructive"
       });
-    } finally {
       setLoading(false);
     }
   };
