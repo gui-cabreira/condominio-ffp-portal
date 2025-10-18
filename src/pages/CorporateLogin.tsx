@@ -73,15 +73,21 @@ const CorporateLogin = () => {
   const handleMicrosoftLogin = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'azure',
         options: {
           scopes: 'email openid profile',
-          redirectTo: `${window.location.origin}/portal/corporativo`
+          redirectTo: `${window.location.origin}/portal/corporativo`,
+          skipBrowserRedirect: false
         }
       });
 
       if (error) throw error;
+      
+      // Forçar redirecionamento na janela principal (fora do iframe)
+      if (data?.url) {
+        window.top!.location.href = data.url;
+      }
     } catch (error: any) {
       console.error('Erro ao fazer login com Microsoft:', error);
       toast({
