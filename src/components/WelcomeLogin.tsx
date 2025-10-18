@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { LogOut, UserCog, ArrowRight } from 'lucide-react';
 import { ProfileDialog } from '@/components/ProfileDialog';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface WelcomeLoginProps {
   userName: string;
@@ -23,6 +24,7 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [autoRedirect, setAutoRedirect] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
 
@@ -77,7 +79,22 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
 
   const handleLogout = async () => {
     setAutoRedirect(false);
-    await signOut();
+    setLoggingOut(true);
+    
+    // Animação de fade out
+    setShowActions(false);
+    setShowSubtext(false);
+    setShowGreeting(false);
+    setShowAvatar(false);
+    setShowLogo(false);
+    
+    // Aguardar animação antes de fazer logout
+    setTimeout(async () => {
+      await signOut();
+      toast.success('Até logo!', {
+        description: 'Você foi desconectado com sucesso.',
+      });
+    }, 700);
   };
 
   const handleManageProfile = () => {
@@ -98,12 +115,25 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ffp-navy">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-ffp-navy transition-opacity duration-700 ${
+      loggingOut ? 'opacity-0' : 'opacity-100'
+    }`}>
       {/* Ambient glow effect */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-ffp-gold/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-ffp-gold/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
+      
+      {/* Logout overlay */}
+      {loggingOut && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-ffp-navy/95 backdrop-blur-sm">
+          <div className="text-center space-y-4 animate-in fade-in duration-500">
+            <LogOut className="h-16 w-16 text-ffp-gold mx-auto animate-pulse" />
+            <p className="text-2xl text-white font-semibold">Até logo!</p>
+            <p className="text-ffp-gold">Encerrando sessão...</p>
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 flex flex-col items-center space-y-8 px-4">
         {/* Logo */}
@@ -198,8 +228,9 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
             
             <Button
               onClick={handleLogout}
-              variant="outline"
-              className="border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white font-semibold px-6 py-6 rounded-full shadow-xl transition-all"
+              disabled={loggingOut}
+              variant="ghost"
+              className="border-2 border-white/20 text-white/80 hover:bg-white/10 hover:text-white hover:border-white/40 font-semibold px-6 py-6 rounded-full shadow-xl transition-all backdrop-blur-sm"
             >
               <LogOut className="mr-2 h-5 w-5" />
               Sair
