@@ -579,6 +579,8 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          lgpd_consent: boolean | null
+          lgpd_consent_date: string | null
           neighborhood: string | null
           phone: string | null
           profile_completed: boolean | null
@@ -601,6 +603,8 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          lgpd_consent?: boolean | null
+          lgpd_consent_date?: string | null
           neighborhood?: string | null
           phone?: string | null
           profile_completed?: boolean | null
@@ -623,6 +627,8 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          lgpd_consent?: boolean | null
+          lgpd_consent_date?: string | null
           neighborhood?: string | null
           phone?: string | null
           profile_completed?: boolean | null
@@ -1287,6 +1293,7 @@ export type Database = {
         | "supervisor"
         | "employee"
         | "assistant"
+        | "developer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1420,6 +1427,7 @@ export const Constants = {
         "supervisor",
         "employee",
         "assistant",
+        "developer",
       ],
     },
   },
