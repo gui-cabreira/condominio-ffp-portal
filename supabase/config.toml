@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.auth-email]
 verify_jwt = false
+
+[functions.azure-graph-users]
+verify_jwt = true
