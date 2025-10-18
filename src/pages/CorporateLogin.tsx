@@ -77,7 +77,7 @@ const CorporateLogin = () => {
         provider: 'azure',
         options: {
           scopes: 'email openid profile',
-          redirectTo: `${window.location.origin}/portal/corporativo/login`
+          redirectTo: `${window.location.origin}/portal/corporativo`
         }
       });
 
