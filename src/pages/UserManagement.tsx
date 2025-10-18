@@ -63,10 +63,19 @@ const UserManagement = () => {
   // Query para buscar usuários Azure via Microsoft Graph API
   const { data: azureGraphData, isLoading: azureLoading } = useQuery({
     queryKey: ['azure-graph-users'],
+    retry: 0,
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('azure-graph-users');
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'Falha ao chamar função azure-graph-users');
+      if ((data as any)?.error) throw new Error((data as any).error);
       return data;
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'Erro ao buscar usuários do Azure',
+        description: err?.message || 'Verifique credenciais e permissões no Azure AD',
+        variant: 'destructive'
+      });
     }
   });
 

@@ -39,7 +39,7 @@ serve(async (req) => {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error('Token error:', errorText);
-      throw new Error('Failed to get access token');
+      throw new Error(`Failed to get access token: ${errorText}`);
     }
 
     const { access_token } = await tokenResponse.json();
@@ -58,7 +58,7 @@ serve(async (req) => {
     if (!usersResponse.ok) {
       const errorText = await usersResponse.text();
       console.error('Graph API error:', errorText);
-      throw new Error('Failed to fetch users from Graph API');
+      throw new Error(`Failed to fetch users from Graph API: ${errorText}`);
     }
 
     const data = await usersResponse.json();
