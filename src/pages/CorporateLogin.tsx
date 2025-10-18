@@ -17,6 +17,8 @@ const CorporateLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const authUrl = `https://iugxnhdxbpzauqwkjtao.supabase.co/auth/v1/authorize?provider=azure&redirect_to=${encodeURIComponent(window.location.origin + '/portal/corporativo')}&scopes=${encodeURIComponent('email openid profile')}`;
+
   // Verificar callback do Azure AD
   useEffect(() => {
     const handleAzureCallback = async () => {
@@ -77,22 +79,36 @@ const CorporateLogin = () => {
         provider: 'azure',
         options: {
           scopes: 'email openid profile',
-          redirectTo: `${window.location.origin}/portal/corporativo`
+          redirectTo: `${window.location.origin}/portal/corporativo`,
+          skipBrowserRedirect: true,
         }
       });
 
       if (error) throw error;
+
+      if (data?.url) {
+        const win = window.open(data.url, '_blank', 'noopener,noreferrer');
+        if (!win) {
+          // Fallback se o navegador bloquear popups
+          window.location.href = data.url;
+        } else {
+          toast({
+            title: 'Login aberto em nova aba',
+            description: 'Conclua o login na nova janela e volte aqui.',
+          });
+        }
+      }
     } catch (error: any) {
       console.error('Erro ao fazer login com Microsoft:', error);
       toast({
-        title: "Erro no login",
-        description: error.message || "Não foi possível conectar com Microsoft",
-        variant: "destructive"
+        title: 'Erro no login',
+        description: error.message || 'Não foi possível conectar com Microsoft',
+        variant: 'destructive',
       });
+    } finally {
       setLoading(false);
     }
   };
-
   if (showWelcome && userProfile) {
     const fullName = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.email;
     
@@ -176,6 +192,10 @@ const CorporateLogin = () => {
                     </>
                   )}
                 </Button>
+
+                <p className="text-center text-sm">
+                  Se não abrir, <a href={authUrl} target="_blank" rel="noopener noreferrer" className="text-ffp-navy underline hover:text-ffp-gold">clique aqui para continuar o login</a>.
+                </p>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
                   <p className="font-medium mb-1">ℹ️ Acesso restrito</p>
