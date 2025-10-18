@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calendar, Copy, Edit, Trash2, Eye, MousePointer, TrendingUp, AlertCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 interface User {
   id: string;
@@ -58,6 +59,16 @@ const UserManagement = () => {
   const [isInviting, setIsInviting] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
+
+  // Query para buscar usuários Azure via Microsoft Graph API
+  const { data: azureGraphData, isLoading: azureLoading } = useQuery({
+    queryKey: ['azure-graph-users'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('azure-graph-users');
+      if (error) throw error;
+      return data;
+    }
+  });
 
   // Form states
   const [inviteForm, setInviteForm] = useState({
@@ -854,49 +865,69 @@ const UserManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.filter(u => u.email?.includes('@ffpadvogados.com.br')).map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        {user.first_name} {user.last_name}
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <select
-                          value={user.user_roles?.[0]?.role || 'employee'}
-                          onChange={async (e) => {
-                            const newRole = e.target.value;
-                            await supabase.from('user_roles').delete().eq('user_id', user.id);
-                            const { error } = await supabase.from('user_roles').insert([{ user_id: user.id, role: newRole as any }]);
-                            if (!error) {
-                              toast({ title: "Role atualizada com sucesso!" });
-                              loadData();
-                            }
-                          }}
-                          className="p-1 border rounded text-sm"
-                        >
-                          <option value="developer">Developer</option>
-                          <option value="admin">Admin</option>
-                          <option value="supervisor">Supervisor</option>
-                          <option value="employee">Employee</option>
-                          <option value="assistant">Assistant</option>
-                        </select>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={user.cpf ? "default" : "secondary"}>
-                          {user.cpf ? "✓ Completo" : "Pendente"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="outline" onClick={() => {
-                          setEditingUser(user);
-                          setEditDialogOpen(true);
-                        }}>
-                          <Edit className="h-3 w-3 mr-1" />
-                          Editar
-                        </Button>
+                  {azureLoading && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center">
+                        Carregando usuários do Azure AD...
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
+                  {!azureLoading && azureGraphData?.users?.map((azureUser: any) => {
+                    const localUser = users.find(u => u.email === azureUser.mail || u.email === azureUser.userPrincipalName);
+                    return (
+                    <TableRow key={azureUser.id}>
+                      <TableCell className="font-medium">
+                        {azureUser.displayName}
+                      </TableCell>
+                      <TableCell>{azureUser.mail || azureUser.userPrincipalName}</TableCell>
+                      <TableCell>
+                        {localUser ? (
+                          <select
+                            value={localUser.user_roles?.[0]?.role || 'employee'}
+                            onChange={async (e) => {
+                              const newRole = e.target.value;
+                              await supabase.from('user_roles').delete().eq('user_id', localUser.id);
+                              const { error } = await supabase.from('user_roles').insert([{ user_id: localUser.id, role: newRole as any }]);
+                              if (!error) {
+                                toast({ title: "Role atualizada com sucesso!" });
+                                loadData();
+                              }
+                            }}
+                            className="p-1 border rounded text-sm"
+                          >
+                            <option value="developer">Developer</option>
+                            <option value="admin">Admin</option>
+                            <option value="supervisor">Supervisor</option>
+                            <option value="employee">Employee</option>
+                            <option value="assistant">Assistant</option>
+                          </select>
+                        ) : (
+                          <Badge variant="outline">Não sincronizado</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {localUser ? (
+                          <Badge variant={localUser.cpf ? "default" : "secondary"}>
+                            {localUser.cpf ? "✓ Completo" : "Pendente"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">-</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {localUser && (
+                          <Button size="sm" variant="outline" onClick={() => {
+                            setEditingUser(localUser);
+                            setEditDialogOpen(true);
+                          }}>
+                            <Edit className="h-3 w-3 mr-1" />
+                            Editar
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
