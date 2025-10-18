@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
+import { LogOut } from 'lucide-react';
 
 interface LogoutScreenProps {
   userName: string;
@@ -62,38 +63,53 @@ export function LogoutScreen({ userName, userEmail, avatarUrl, onComplete }: Log
       </div>
 
       <div className="relative z-10 flex flex-col items-center space-y-8 px-4 max-w-md w-full">
-        {/* Avatar */}
+        {/* Avatar com círculo elegante */}
         <div
-          className={`transition-all duration-700 ${
+          className={`relative transition-all duration-700 ${
             showContent
               ? 'opacity-100 scale-100'
-              : 'opacity-0 scale-90'
+              : 'opacity-0 scale-75'
           }`}
         >
-          <div className="relative">
-            {/* Glow ring */}
-            <div className="absolute inset-0 -m-4">
-              <div className="w-full h-full rounded-full bg-gradient-to-r from-primary/40 via-accent/40 to-primary/40 blur-xl animate-pulse" />
-            </div>
-            
-            {/* Avatar ring */}
-            <div className="relative p-1 rounded-full bg-gradient-to-br from-primary via-accent to-primary">
-              <div className="p-1 rounded-full bg-background">
-                <Avatar className="h-32 w-32 border-4 border-background shadow-2xl">
-                  <AvatarImage src={avatarUrl} alt={userName} />
-                  <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary to-accent text-primary-foreground">
+          {/* Outer glow - múltiplas camadas para efeito profundo */}
+          <div className="absolute inset-0 -m-8">
+            <div className="w-full h-full rounded-full bg-gradient-to-r from-gray-400/30 via-gray-200/40 to-gray-400/30 blur-2xl animate-pulse" />
+          </div>
+          <div className="absolute inset-0 -m-6">
+            <div className="w-full h-full rounded-full bg-gradient-to-r from-gray-300/20 via-white/30 to-gray-300/20 blur-xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+          </div>
+          
+          {/* Anel externo prateado com gradiente */}
+          <div className="relative p-1.5 rounded-full bg-gradient-to-br from-gray-300 via-gray-100 to-gray-300 shadow-2xl">
+            {/* Anel intermediário dourado sutil */}
+            <div className="p-0.5 rounded-full bg-gradient-to-br from-gray-200 via-white to-gray-200">
+              {/* Anel interno escuro para contraste */}
+              <div className="p-1.5 rounded-full bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800">
+                {/* Avatar */}
+                <Avatar className="h-32 w-32 border-[3px] border-gray-100/50 shadow-2xl ring-2 ring-white/20">
+                  <AvatarImage 
+                    src={avatarUrl} 
+                    alt={userName}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-gray-300 via-gray-100 to-gray-300 text-gray-800">
                     {getInitials(userName)}
                   </AvatarFallback>
                 </Avatar>
               </div>
             </div>
           </div>
+          
+          {/* Ícone de logout flutuante */}
+          <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-gradient-to-br from-gray-200 via-white to-gray-300 shadow-lg flex items-center justify-center border-2 border-gray-800 animate-pulse">
+            <LogOut className="w-6 h-6 text-gray-800" />
+          </div>
         </div>
 
-        {/* Farewell message */}
+        {/* Mensagem de despedida */}
         <div className="text-center space-y-3 w-full">
           <h1
-            className={`text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent transition-all duration-700 ${
+            className={`text-4xl md:text-5xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-200 bg-clip-text text-transparent transition-all duration-700 ${
               showContent
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-4'
@@ -103,7 +119,7 @@ export function LogoutScreen({ userName, userEmail, avatarUrl, onComplete }: Log
           </h1>
           
           <p
-            className={`text-lg text-muted-foreground transition-all duration-700 ${
+            className={`text-lg text-gray-300 transition-all duration-700 ${
               showContent
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-4'
@@ -123,11 +139,11 @@ export function LogoutScreen({ userName, userEmail, avatarUrl, onComplete }: Log
           }`}
           style={{ transitionDelay: '200ms' }}
         >
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-300">
+            <div className="w-2 h-2 bg-gray-300 rounded-full animate-pulse" />
             Saindo com segurança...
           </div>
-          <Progress value={progress} className="w-full" />
+          <Progress value={progress} className="w-full h-2 bg-gray-800/50" />
         </div>
 
         {/* Decorative elements */}
@@ -135,7 +151,7 @@ export function LogoutScreen({ userName, userEmail, avatarUrl, onComplete }: Log
           {[...Array(15)].map((_, i) => (
             <div
               key={i}
-              className="absolute w-1 h-1 bg-primary/20 rounded-full animate-pulse"
+              className="absolute w-1 h-1 bg-gray-300/30 rounded-full animate-pulse"
               style={{
                 top: `${Math.random() * 100}%`,
                 left: `${Math.random() * 100}%`,
