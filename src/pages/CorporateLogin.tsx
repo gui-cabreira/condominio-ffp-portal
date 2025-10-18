@@ -37,24 +37,16 @@ const CorporateLogin = () => {
 
           if (error) throw error;
 
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*, user_roles(role)')
-              .eq('id', user.id)
-              .single();
-
+          // Usar o perfil retornado pela edge function
+          if (data?.profile) {
             // Se perfil não está completo, redirecionar
-            if (profile && !profile.profile_completed) {
+            if (!data.profile.profile_completed) {
               navigate('/completar-perfil?force=true');
               return;
             }
 
-            if (profile) {
-              setUserProfile(profile);
-              setShowWelcome(true);
-            }
+            setUserProfile(data.profile);
+            setShowWelcome(true);
           }
         } catch (error: any) {
           console.error('Erro ao processar login Azure:', error);
