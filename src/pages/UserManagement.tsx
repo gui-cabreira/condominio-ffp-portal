@@ -61,7 +61,7 @@ const UserManagement = () => {
   const { toast } = useToast();
 
   // Query para buscar usuários Azure via Microsoft Graph API
-  const { data: azureGraphData, isLoading: azureLoading } = useQuery({
+  const { data: azureGraphData, isLoading: azureLoading, error: azureError } = useQuery({
     queryKey: ['azure-graph-users'],
     retry: 0,
     queryFn: async () => {
@@ -69,15 +69,19 @@ const UserManagement = () => {
       if (error) throw new Error(error.message || 'Falha ao chamar função azure-graph-users');
       if ((data as any)?.error) throw new Error((data as any).error);
       return data;
-    },
-    onError: (err: any) => {
+    }
+  });
+
+  // Mostrar toast quando houver erro
+  React.useEffect(() => {
+    if (azureError) {
       toast({
         title: 'Erro ao buscar usuários do Azure',
-        description: err?.message || 'Verifique credenciais e permissões no Azure AD',
+        description: (azureError as Error)?.message || 'Verifique credenciais e permissões no Azure AD',
         variant: 'destructive'
       });
     }
-  });
+  }, [azureError]);
 
   // Form states
   const [inviteForm, setInviteForm] = useState({
