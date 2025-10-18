@@ -62,13 +62,6 @@ export type Database = {
             referencedRelation: "administrators"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "administrator_contacts_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       administrators: {
@@ -165,15 +158,7 @@ export type Database = {
           updated_at?: string
           zip_code?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "administrators_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       boleto_requests: {
         Row: {
@@ -214,13 +199,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "boleto_requests_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
-          {
             foreignKeyName: "boleto_requests_charge_id_fkey"
             columns: ["charge_id"]
             isOneToOne: false
@@ -233,13 +211,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "charges"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "boleto_requests_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -294,13 +265,6 @@ export type Database = {
             referencedRelation: "administrators"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "charge_imports_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       charge_timeline: {
@@ -338,13 +302,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "charges"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "charge_timeline_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -417,6 +374,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "charges_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_limited"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "charges_workflow_id_fkey"
             columns: ["workflow_id"]
             isOneToOne: false
@@ -464,13 +428,6 @@ export type Database = {
             referencedRelation: "administrators"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "condominiums_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       login_logs: {
@@ -501,15 +458,7 @@ export type Database = {
           user_agent?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "login_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       messages: {
         Row: {
@@ -561,6 +510,13 @@ export type Database = {
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_limited"
             referencedColumns: ["id"]
           },
         ]
@@ -638,22 +594,7 @@ export type Database = {
           updated_at?: string
           zip_code?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       system_bugs: {
         Row: {
@@ -698,22 +639,7 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "system_bugs_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "system_bugs_reported_by_fkey"
-            columns: ["reported_by"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       system_logs: {
         Row: {
@@ -743,15 +669,7 @@ export type Database = {
           metadata?: Json | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "system_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       units: {
         Row: {
@@ -887,15 +805,7 @@ export type Database = {
           sent_at?: string | null
           tracking_events?: Json | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_invitations_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -916,15 +826,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       workflow_config: {
         Row: {
@@ -1223,15 +1125,7 @@ export type Database = {
           name?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "workflows_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "login_statistics"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -1267,6 +1161,85 @@ export type Database = {
           total_messages_sent: number | null
         }
         Relationships: []
+      }
+      units_limited: {
+        Row: {
+          condominium_id: string | null
+          created_at: string | null
+          id: string | null
+          owner_city: string | null
+          owner_complement: string | null
+          owner_cpf: string | null
+          owner_email: string | null
+          owner_name: string | null
+          owner_neighborhood: string | null
+          owner_number: string | null
+          owner_phone: string | null
+          owner_state: string | null
+          owner_street: string | null
+          owner_zip_code: string | null
+          unit_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          condominium_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          owner_city?: never
+          owner_complement?: never
+          owner_cpf?: never
+          owner_email?: never
+          owner_name?: never
+          owner_neighborhood?: never
+          owner_number?: never
+          owner_phone?: never
+          owner_state?: never
+          owner_street?: never
+          owner_zip_code?: never
+          unit_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          condominium_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          owner_city?: never
+          owner_complement?: never
+          owner_cpf?: never
+          owner_email?: never
+          owner_name?: never
+          owner_neighborhood?: never
+          owner_number?: never
+          owner_phone?: never
+          owner_state?: never
+          owner_street?: never
+          owner_zip_code?: never
+          unit_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "condominiums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "units_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "defaulter_statistics"
+            referencedColumns: ["condominium_id"]
+          },
+          {
+            foreignKeyName: "units_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "message_statistics"
+            referencedColumns: ["condominium_id"]
+          },
+        ]
       }
     }
     Functions: {

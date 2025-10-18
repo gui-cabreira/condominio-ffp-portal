@@ -12,9 +12,31 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY FIX: Verify request is from Supabase Auth
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Missing Authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - missing auth header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Validate JWT token
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: validatedUser }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !validatedUser) {
+      console.error('Invalid token:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const { user, metadata } = await req.json();
 
@@ -77,9 +99,9 @@ serve(async (req) => {
       throw profileError;
     }
 
-    // Atribuir role 'employee' por padrão (ou 'developer' se for Guilherme)
-    const isDeveloper = user.email === 'guilherme.cabreira@ffpadvogados.com.br';
-    const defaultRole = isDeveloper ? 'developer' : 'employee';
+    // SECURITY FIX: Removed hardcoded email check for developer role
+    // All Azure users default to 'employee' - admins must manually assign other roles
+    const defaultRole = 'employee';
 
     // Verificar se já tem role
     const { data: existingRole } = await supabase
