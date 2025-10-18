@@ -33,9 +33,19 @@ serve(async (req) => {
     // Verificar se o perfil já existe
     const { data: existingProfile } = await supabase
       .from('profiles')
-      .select('*, user_roles(role)')
+      .select('*')
       .eq('id', user.id)
       .maybeSingle();
+    
+    // Fetch user roles separately
+    let userRoles = [];
+    if (existingProfile) {
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+      userRoles = rolesData || [];
+    }
 
     if (existingProfile) {
       console.log('Perfil já existe, atualizando último login');
@@ -55,7 +65,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          profile: existingProfile,
+          profile: { ...existingProfile, user_roles: userRoles },
           message: 'Login registrado' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
