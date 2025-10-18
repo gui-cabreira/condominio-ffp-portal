@@ -78,15 +78,19 @@ const CorporateLogin = () => {
         options: {
           scopes: 'email openid profile',
           redirectTo: `${window.location.origin}/portal/corporativo`,
-          skipBrowserRedirect: false
+          skipBrowserRedirect: true
         }
       });
 
       if (error) throw error;
       
-      // Forçar redirecionamento na janela principal (fora do iframe)
+      // Abrir em nova aba (necessário porque Microsoft bloqueia iframes)
       if (data?.url) {
-        window.top!.location.href = data.url;
+        window.open(data.url, '_blank');
+        toast({
+          title: "Login aberto em nova aba",
+          description: "Complete o login na janela que se abriu",
+        });
       }
     } catch (error: any) {
       console.error('Erro ao fazer login com Microsoft:', error);
@@ -95,6 +99,7 @@ const CorporateLogin = () => {
         description: error.message || "Não foi possível conectar com Microsoft",
         variant: "destructive"
       });
+    } finally {
       setLoading(false);
     }
   };
