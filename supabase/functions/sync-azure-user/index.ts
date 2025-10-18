@@ -52,25 +52,28 @@ serve(async (req) => {
       );
     }
 
-    // Criar novo perfil para usuário Azure
-    console.log('Criando novo perfil para usuário Azure');
+    // Criar ou atualizar perfil para usuário Azure (UPSERT para evitar duplicatas)
+    console.log('Criando/atualizando perfil para usuário Azure');
     
     const { data: newProfile, error: profileError } = await supabase
       .from('profiles')
-      .insert({
+      .upsert({
         id: user.id,
         email: user.email,
         first_name: user.user_metadata?.given_name || user.user_metadata?.name?.split(' ')[0] || '',
         last_name: user.user_metadata?.family_name || user.user_metadata?.name?.split(' ').slice(1).join(' ') || '',
         avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
         approved: true, // Usuários Azure são aprovados automaticamente
-        profile_completed: false // Precisam completar perfil
+        profile_completed: false, // Precisam completar perfil
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id'
       })
       .select()
       .single();
 
     if (profileError) {
-      console.error('Erro ao criar perfil:', profileError);
+      console.error('Erro ao criar/atualizar perfil:', profileError);
       throw profileError;
     }
 
@@ -78,15 +81,24 @@ serve(async (req) => {
     const isDeveloper = user.email === 'guilherme.cabreira@ffpadvogados.com.br';
     const defaultRole = isDeveloper ? 'developer' : 'employee';
 
-    const { error: roleError } = await supabase
+    // Verificar se já tem role
+    const { data: existingRole } = await supabase
       .from('user_roles')
-      .insert({
-        user_id: user.id,
-        role: defaultRole
-      });
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    if (roleError) {
-      console.error('Erro ao atribuir role:', roleError);
+    if (!existingRole) {
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: user.id,
+          role: defaultRole
+        });
+
+      if (roleError && roleError.code !== '23505') {
+        console.error('Erro ao atribuir role:', roleError);
+      }
     }
 
     // Registrar login
