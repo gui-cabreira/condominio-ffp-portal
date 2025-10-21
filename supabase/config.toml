@@ -1,5 +1,8 @@
 project_id = "iugxnhdxbpzauqwkjtao"
 
+[functions.uazapi-webhook]
+verify_jwt = false
+
 [functions.statistics-agent]
 verify_jwt = true
 
