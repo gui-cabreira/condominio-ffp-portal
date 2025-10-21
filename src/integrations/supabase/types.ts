@@ -267,6 +267,50 @@ export type Database = {
           },
         ]
       }
+      charge_payment_links: {
+        Row: {
+          access_count: number | null
+          charge_id: string
+          created_at: string | null
+          expires_at: string
+          full_url: string
+          id: string
+          last_accessed_at: string | null
+          last_accessed_ip: string | null
+          short_code: string
+        }
+        Insert: {
+          access_count?: number | null
+          charge_id: string
+          created_at?: string | null
+          expires_at: string
+          full_url: string
+          id?: string
+          last_accessed_at?: string | null
+          last_accessed_ip?: string | null
+          short_code: string
+        }
+        Update: {
+          access_count?: number | null
+          charge_id?: string
+          created_at?: string | null
+          expires_at?: string
+          full_url?: string
+          id?: string
+          last_accessed_at?: string | null
+          last_accessed_ip?: string | null
+          short_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_payment_links_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       charge_timeline: {
         Row: {
           charge_id: string
@@ -517,6 +561,96 @@ export type Database = {
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "units_limited"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_proofs: {
+        Row: {
+          ai_analysis: Json | null
+          charge_id: string
+          conversation_id: string | null
+          created_at: string | null
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          message_id: string | null
+          notes: string | null
+          rejection_reason: string | null
+          thumbnail_path: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          charge_id: string
+          conversation_id?: string | null
+          created_at?: string | null
+          file_path: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          message_id?: string | null
+          notes?: string | null
+          rejection_reason?: string | null
+          thumbnail_path?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          charge_id?: string
+          conversation_id?: string | null
+          created_at?: string | null
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          message_id?: string | null
+          notes?: string | null
+          rejection_reason?: string | null
+          thumbnail_path?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_proofs_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_proofs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_proofs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_proofs_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "login_statistics"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "payment_proofs_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -825,6 +959,165 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_conversations: {
+        Row: {
+          awaiting_response_type: string | null
+          charge_id: string | null
+          conversation_state: Json | null
+          created_at: string | null
+          id: string
+          last_message_at: string | null
+          last_message_from: string | null
+          phone_number: string
+          status: string | null
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          awaiting_response_type?: string | null
+          charge_id?: string | null
+          conversation_state?: Json | null
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_message_from?: string | null
+          phone_number: string
+          status?: string | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          awaiting_response_type?: string | null
+          charge_id?: string | null
+          conversation_state?: Json | null
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_message_from?: string | null
+          phone_number?: string
+          status?: string | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversations_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversations_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversations_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_limited"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_messages: {
+        Row: {
+          content: string | null
+          conversation_id: string | null
+          created_at: string | null
+          delivered_at: string | null
+          direction: string
+          id: string
+          local_file_path: string | null
+          media_filename: string | null
+          media_mimetype: string | null
+          media_url: string | null
+          message_type: string
+          metadata: Json | null
+          read_at: string | null
+          recipient_phone: string
+          sender_phone: string
+          status: string | null
+          uazapi_message_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          direction: string
+          id?: string
+          local_file_path?: string | null
+          media_filename?: string | null
+          media_mimetype?: string | null
+          media_url?: string | null
+          message_type: string
+          metadata?: Json | null
+          read_at?: string | null
+          recipient_phone: string
+          sender_phone: string
+          status?: string | null
+          uazapi_message_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          direction?: string
+          id?: string
+          local_file_path?: string | null
+          media_filename?: string | null
+          media_mimetype?: string | null
+          media_url?: string | null
+          message_type?: string
+          metadata?: Json | null
+          read_at?: string | null
+          recipient_phone?: string
+          sender_phone?: string
+          status?: string | null
+          uazapi_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_webhooks_log: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          payload: Json
+          processed: boolean | null
+          processing_error: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          payload: Json
+          processed?: boolean | null
+          processing_error?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed?: boolean | null
+          processing_error?: string | null
         }
         Relationships: []
       }
