@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, User, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,8 @@ import Footer from '@/components/Footer';
 
 const ClientLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const { signIn, loading } = useAuth();
+  const { signIn, loading, user, userRoles } = useAuth();
+  const navigate = useNavigate();
   
   const form = useForm({
     defaultValues: {
@@ -22,8 +23,26 @@ const ClientLogin = () => {
     }
   });
 
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    if (user && !loading) {
+      // Se o usuário tem role de admin, redirecionar para dashboard corporativo
+      if (userRoles.includes('admin')) {
+        navigate('/portal/corporativo/dashboard');
+      } else {
+        // Caso contrário, redirecionar para dashboard do cliente
+        navigate('/portal/cliente/dashboard');
+      }
+    }
+  }, [user, loading, userRoles, navigate]);
+
   const onSubmit = async (data: any) => {
-    await signIn(data.email, data.password);
+    const { error } = await signIn(data.email, data.password);
+    
+    if (!error) {
+      // O redirecionamento será feito pelo useEffect acima
+      // após o useAuth atualizar o estado
+    }
   };
 
   return (

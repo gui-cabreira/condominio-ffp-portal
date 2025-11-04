@@ -663,6 +663,7 @@ export type Database = {
           avatar_url: string | null
           birth_date: string | null
           city: string | null
+          complement: string | null
           cpf: string | null
           created_at: string
           email: string
@@ -672,6 +673,7 @@ export type Database = {
           lgpd_consent: boolean | null
           lgpd_consent_date: string | null
           neighborhood: string | null
+          number: string | null
           phone: string | null
           profile_completed: boolean | null
           rg: string | null
@@ -687,6 +689,7 @@ export type Database = {
           avatar_url?: string | null
           birth_date?: string | null
           city?: string | null
+          complement?: string | null
           cpf?: string | null
           created_at?: string
           email: string
@@ -696,6 +699,7 @@ export type Database = {
           lgpd_consent?: boolean | null
           lgpd_consent_date?: string | null
           neighborhood?: string | null
+          number?: string | null
           phone?: string | null
           profile_completed?: boolean | null
           rg?: string | null
@@ -711,6 +715,7 @@ export type Database = {
           avatar_url?: string | null
           birth_date?: string | null
           city?: string | null
+          complement?: string | null
           cpf?: string | null
           created_at?: string
           email?: string
@@ -720,6 +725,7 @@ export type Database = {
           lgpd_consent?: boolean | null
           lgpd_consent_date?: string | null
           neighborhood?: string | null
+          number?: string | null
           phone?: string | null
           profile_completed?: boolean | null
           rg?: string | null
