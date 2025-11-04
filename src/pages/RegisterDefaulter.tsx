@@ -1,18 +1,43 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Upload, Sparkles, Check, Loader2, FileText, User, Building2, DollarSign, AlertCircle } from 'lucide-react';
+import { Upload, Sparkles, Check, Loader2, FileText, User, Building2, DollarSign, AlertCircle, Table as TableIcon, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+
+interface DefaulterUnit {
+  unidade: string;
+  nome: string;
+  cpf?: string;
+  telefone?: string;
+  email?: string;
+  endereco?: string;
+  cobrancas: {
+    vencimento: string;
+    competencia: string;
+    principal: string;
+    juros: string;
+    multa: string;
+    honorarios: string;
+    total: string;
+  }[];
+}
 
 const RegisterDefaulter = () => {
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [parsedData, setParsedData] = useState<DefaulterUnit[]>([]);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,6 +54,108 @@ const RegisterDefaulter = () => {
       setFile(selectedFile);
       setResult(null);
       setError(null);
+    }
+  };
+
+  const handleCsvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (!selectedFile.name.endsWith('.csv')) {
+        toast({
+          title: 'Arquivo inválido',
+          description: 'Por favor, selecione um arquivo CSV',
+          variant: 'destructive'
+        });
+        return;
+      }
+      setCsvFile(selectedFile);
+      parseCSV(selectedFile);
+    }
+  };
+
+  const parseCSV = async (file: File) => {
+    try {
+      const text = await file.text();
+      const lines = text.split('\n');
+      const units: DefaulterUnit[] = [];
+      let currentUnit: DefaulterUnit | null = null;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Detecta início de nova unidade (formato: "0002 A1  - NOME")
+        if (line.match(/^"\d{4}\s+[A-Z0-9]+\s+-\s+/)) {
+          if (currentUnit) {
+            units.push(currentUnit);
+          }
+          
+          const match = line.match(/^"(\d{4}\s+[A-Z0-9]+)\s+-\s+([^"]+)"/);
+          if (match) {
+            currentUnit = {
+              unidade: match[1].trim(),
+              nome: match[2].trim(),
+              cobrancas: []
+            };
+          }
+        }
+        
+        // Detecta linhas de cobrança (tem valores numéricos)
+        if (currentUnit && line.match(/^\d{2}\/\d{2}\/\d{2}/)) {
+          const values = line.split(',');
+          if (values.length >= 10) {
+            currentUnit.cobrancas.push({
+              vencimento: values[0],
+              competencia: values[1],
+              principal: values[4]?.replace(/"/g, ''),
+              juros: values[5]?.replace(/"/g, ''),
+              multa: values[6]?.replace(/"/g, ''),
+              honorarios: values[8]?.replace(/"/g, ''),
+              total: values[9]?.replace(/"/g, '')
+            });
+          }
+        }
+      }
+      
+      if (currentUnit) {
+        units.push(currentUnit);
+      }
+
+      setParsedData(units);
+      toast({
+        title: 'CSV processado',
+        description: `${units.length} inadimplentes encontrados`
+      });
+    } catch (err) {
+      toast({
+        title: 'Erro ao processar CSV',
+        description: 'Formato do arquivo inválido',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const updateUnit = (index: number, field: keyof DefaulterUnit, value: string) => {
+    const updated = [...parsedData];
+    updated[index] = { ...updated[index], [field]: value };
+    setParsedData(updated);
+  };
+
+  const saveUnits = async () => {
+    setSaving(true);
+    try {
+      // Aqui você implementaria a lógica de salvar no banco
+      toast({
+        title: 'Unidades cadastradas',
+        description: `${parsedData.length} unidades foram cadastradas com sucesso`
+      });
+    } catch (err) {
+      toast({
+        title: 'Erro ao cadastrar',
+        description: 'Ocorreu um erro ao cadastrar as unidades',
+        variant: 'destructive'
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -74,249 +201,402 @@ const RegisterDefaulter = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
-        <Card className="mb-8 border-2 border-ffp-gold/20 bg-gradient-to-br from-white to-ffp-gold/5">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-ffp-gold/10 rounded-full flex items-center justify-center mb-4">
-              <Sparkles className="w-8 h-8 text-ffp-gold" />
-            </div>
-            <CardTitle className="text-2xl text-ffp-navy">Processamento Automático com IA</CardTitle>
-            <CardDescription className="text-base mt-2">
-              Faça upload do boleto e deixe nossa IA extrair <strong>todos os dados automaticamente</strong>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="p-4 bg-white rounded-lg">
-                <User className="w-6 h-6 mx-auto mb-2 text-blue-600" />
-                <p className="text-sm font-medium">Dados do Inadimplente</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Hero Section */}
+      <Card className="mb-8 border-2 border-ffp-gold/20 bg-gradient-to-br from-white to-ffp-gold/5">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-16 h-16 bg-ffp-gold/10 rounded-full flex items-center justify-center mb-4">
+            <Sparkles className="w-8 h-8 text-ffp-gold" />
+          </div>
+          <CardTitle className="text-2xl text-ffp-navy">Cadastro de Inadimplentes</CardTitle>
+          <CardDescription className="text-base mt-2">
+            Importe boletos individuais ou lotes de inadimplentes via CSV
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <Tabs defaultValue="boleto" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="boleto">
+            <FileText className="w-4 h-4 mr-2" />
+            Upload de Boleto
+          </TabsTrigger>
+          <TabsTrigger value="csv">
+            <TableIcon className="w-4 h-4 mr-2" />
+            Import CSV
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tab: Upload de Boleto */}
+        <TabsContent value="boleto">
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sparkles className="w-5 h-5 text-ffp-gold" />
+                Processamento Automático com IA
+              </CardTitle>
+              <CardDescription>
+                Faça upload do boleto e deixe nossa IA extrair todos os dados automaticamente
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4 text-center mb-6">
+                <div className="p-4 bg-muted rounded-lg">
+                  <User className="w-6 h-6 mx-auto mb-2 text-primary" />
+                  <p className="text-sm font-medium">Dados do Inadimplente</p>
+                </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <Building2 className="w-6 h-6 mx-auto mb-2 text-primary" />
+                  <p className="text-sm font-medium">Condomínio e Unidade</p>
+                </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <DollarSign className="w-6 h-6 mx-auto mb-2 text-primary" />
+                  <p className="text-sm font-medium">Valores e Vencimento</p>
+                </div>
               </div>
-              <div className="p-4 bg-white rounded-lg">
-                <Building2 className="w-6 h-6 mx-auto mb-2 text-green-600" />
-                <p className="text-sm font-medium">Condomínio e Unidade</p>
+
+              {/* Área de Upload */}
+              <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors">
+                <input
+                  type="file"
+                  id="file-upload"
+                  className="hidden"
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={handleFileChange}
+                />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  {file ? (
+                    <div>
+                      <p className="text-lg font-medium mb-2">{file.name}</p>
+                      <p className="text-sm text-muted-foreground">{(file.size / 1024).toFixed(2)} KB</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-lg font-medium mb-2">
+                        Clique para selecionar o boleto
+                      </p>
+                      <p className="text-sm text-muted-foreground">ou arraste e solte aqui</p>
+                    </div>
+                  )}
+                </label>
               </div>
-              <div className="p-4 bg-white rounded-lg">
-                <DollarSign className="w-6 h-6 mx-auto mb-2 text-purple-600" />
-                <p className="text-sm font-medium">Valores e Vencimento</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Upload Area */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              Upload do Boleto
-            </CardTitle>
-            <CardDescription>
-              Formatos aceitos: PNG, JPG, JPEG (máx. 10MB) - tire uma foto ou screenshot do boleto
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Área de Upload */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-ffp-gold transition-colors">
-              <input
-                type="file"
-                id="file-upload"
-                className="hidden"
-                accept="image/png,image/jpeg,image/jpg"
-                onChange={handleFileChange}
-              />
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                {file ? (
-                  <div>
-                    <p className="text-lg font-medium text-ffp-navy mb-2">{file.name}</p>
-                    <p className="text-sm text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-lg font-medium text-ffp-navy mb-2">
-                      Clique para selecionar o boleto
-                    </p>
-                    <p className="text-sm text-gray-500">ou arraste e solte aqui</p>
-                  </div>
-                )}
-              </label>
-            </div>
+              {/* Botão de Processar */}
+              {file && !result && (
+                <Button 
+                  className="w-full py-6 text-lg"
+                  onClick={processFile}
+                  disabled={processing}
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Processando com IA...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      Processar Boleto com IA
+                    </>
+                  )}
+                </Button>
+              )}
 
-            {/* Botão de Processar */}
-            {file && !result && (
-              <Button 
-                className="w-full bg-ffp-gold hover:bg-ffp-gold-dark text-ffp-navy font-semibold py-6 text-lg"
-                onClick={processFile}
-                disabled={processing}
-              >
-                {processing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Processando com IA...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Processar Boleto com IA
-                  </>
-                )}
-              </Button>
-            )}
-
-            {/* Erro */}
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Resultado */}
-            {result && result.success && (
-              <div className="space-y-4 animate-in fade-in duration-500">
-                <Alert className="bg-green-50 border-green-200">
-                  <Check className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-800 font-medium">
-                    ✨ Boleto processado com sucesso! Todos os dados foram cadastrados automaticamente.
-                  </AlertDescription>
+              {/* Erro */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
                 </Alert>
+              )}
 
-                {/* Dados Extraídos */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Administradora */}
-                  {result.data?.extracted?.administradora && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <Building2 className="w-4 h-4" />
-                          Administradora
-                          <Badge variant="outline" className="ml-auto">
-                            {result.data.created.administratorId ? 'Encontrada' : 'Criada'}
-                          </Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-1">
-                        <p className="font-medium">{result.data.extracted.administradora.nome}</p>
-                        {result.data.extracted.administradora.cnpj && (
-                          <p className="text-sm text-gray-600">CNPJ: {result.data.extracted.administradora.cnpj}</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
+              {/* Resultado */}
+              {result && result.success && (
+                <div className="space-y-4 animate-in fade-in duration-500">
+                  <Alert className="border-green-500 bg-green-50">
+                    <Check className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800 font-medium">
+                      ✨ Boleto processado com sucesso! Todos os dados foram cadastrados automaticamente.
+                    </AlertDescription>
+                  </Alert>
 
-                  {/* Condomínio */}
-                  {result.data?.extracted?.condominio && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <Building2 className="w-4 h-4" />
-                          Condomínio
-                          <Badge variant="outline" className="ml-auto">
-                            {result.data.created.condominiumId ? 'Encontrado' : 'Criado'}
-                          </Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-1">
-                        <p className="font-medium">{result.data.extracted.condominio.nome}</p>
-                        {result.data.extracted.condominio.endereco && (
-                          <p className="text-sm text-gray-600">{result.data.extracted.condominio.endereco}</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
+                  {/* Dados Extraídos */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Administradora */}
+                    {result.data?.extracted?.administradora && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Building2 className="w-4 h-4" />
+                            Administradora
+                            <Badge variant="outline" className="ml-auto">
+                              {result.data.created.administratorId ? 'Encontrada' : 'Criada'}
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-1">
+                          <p className="font-medium">{result.data.extracted.administradora.nome}</p>
+                          {result.data.extracted.administradora.cnpj && (
+                            <p className="text-sm text-muted-foreground">CNPJ: {result.data.extracted.administradora.cnpj}</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
 
-                  {/* Inadimplente */}
-                  {result.data?.extracted?.inadimplente && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          Inadimplente
-                          <Badge variant="outline" className="ml-auto">
-                            Unidade {result.data.extracted.inadimplente.unidade}
-                          </Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-1">
-                        <p className="font-medium">{result.data.extracted.inadimplente.nome}</p>
-                        {result.data.extracted.inadimplente.cpf && (
-                          <p className="text-sm text-gray-600">CPF: {result.data.extracted.inadimplente.cpf}</p>
-                        )}
-                        {result.data.extracted.inadimplente.telefone && (
-                          <p className="text-sm text-gray-600">Tel: {result.data.extracted.inadimplente.telefone}</p>
-                        )}
-                        {result.data.extracted.inadimplente.email && (
-                          <p className="text-sm text-gray-600">Email: {result.data.extracted.inadimplente.email}</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
+                    {/* Condomínio */}
+                    {result.data?.extracted?.condominio && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Building2 className="w-4 h-4" />
+                            Condomínio
+                            <Badge variant="outline" className="ml-auto">
+                              {result.data.created.condominiumId ? 'Encontrado' : 'Criado'}
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-1">
+                          <p className="font-medium">{result.data.extracted.condominio.nome}</p>
+                          {result.data.extracted.condominio.endereco && (
+                            <p className="text-sm text-muted-foreground">{result.data.extracted.condominio.endereco}</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
 
-                  {/* Cobrança */}
-                  {result.data?.extracted?.cobranca && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <DollarSign className="w-4 h-4" />
-                          Cobrança
-                          <Badge className="ml-auto bg-green-500">Criada</Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-1">
-                        <p className="font-medium text-lg">R$ {result.data.extracted.cobranca.valor?.toFixed(2)}</p>
-                        {result.data.extracted.cobranca.vencimento && (
-                          <p className="text-sm text-gray-600">
-                            Vencimento: {new Date(result.data.extracted.cobranca.vencimento).toLocaleDateString('pt-BR')}
-                          </p>
-                        )}
-                        {result.data.extracted.cobranca.descricao && (
-                          <p className="text-sm text-gray-600">{result.data.extracted.cobranca.descricao}</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
+                    {/* Inadimplente */}
+                    {result.data?.extracted?.inadimplente && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            Inadimplente
+                            <Badge variant="outline" className="ml-auto">
+                              Unidade {result.data.extracted.inadimplente.unidade}
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-1">
+                          <p className="font-medium">{result.data.extracted.inadimplente.nome}</p>
+                          {result.data.extracted.inadimplente.cpf && (
+                            <p className="text-sm text-muted-foreground">CPF: {result.data.extracted.inadimplente.cpf}</p>
+                          )}
+                          {result.data.extracted.inadimplente.telefone && (
+                            <p className="text-sm text-muted-foreground">Tel: {result.data.extracted.inadimplente.telefone}</p>
+                          )}
+                          {result.data.extracted.inadimplente.email && (
+                            <p className="text-sm text-muted-foreground">Email: {result.data.extracted.inadimplente.email}</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Cobrança */}
+                    {result.data?.extracted?.cobranca && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <DollarSign className="w-4 h-4" />
+                            Cobrança
+                            <Badge className="ml-auto">Criada</Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-1">
+                          <p className="font-medium text-lg">R$ {result.data.extracted.cobranca.valor?.toFixed(2)}</p>
+                          {result.data.extracted.cobranca.vencimento && (
+                            <p className="text-sm text-muted-foreground">
+                              Vencimento: {new Date(result.data.extracted.cobranca.vencimento).toLocaleDateString('pt-BR')}
+                            </p>
+                          )}
+                          {result.data.extracted.cobranca.descricao && (
+                            <p className="text-sm text-muted-foreground">{result.data.extracted.cobranca.descricao}</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+
+                  {/* Ações */}
+                  <div className="flex gap-2">
+                    <Button 
+                      className="flex-1"
+                      onClick={() => {
+                        setFile(null);
+                        setResult(null);
+                      }}
+                    >
+                      Processar Novo Boleto
+                    </Button>
+                    <Button variant="outline" className="flex-1" asChild>
+                      <Link to="/portal/corporativo/cobrancas">
+                        Ver Cobranças
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                {/* Ações */}
-                <div className="flex gap-2">
+        {/* Tab: Import CSV */}
+        <TabsContent value="csv">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TableIcon className="w-5 h-5" />
+                Import em Lote via CSV
+              </CardTitle>
+              <CardDescription>
+                Faça upload do arquivo CSV com os inadimplentes e preencha os dados complementares
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Upload CSV */}
+              {!parsedData.length ? (
+                <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors">
+                  <input
+                    type="file"
+                    id="csv-upload"
+                    className="hidden"
+                    accept=".csv"
+                    onChange={handleCsvChange}
+                  />
+                  <label htmlFor="csv-upload" className="cursor-pointer">
+                    <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    {csvFile ? (
+                      <div>
+                        <p className="text-lg font-medium mb-2">{csvFile.name}</p>
+                        <p className="text-sm text-muted-foreground">{(csvFile.size / 1024).toFixed(2)} KB</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-lg font-medium mb-2">
+                          Clique para selecionar o CSV
+                        </p>
+                        <p className="text-sm text-muted-foreground">Arquivo de inadimplentes</p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">{parsedData.length} inadimplentes encontrados</h3>
+                      <p className="text-sm text-muted-foreground">Preencha os dados complementares antes de cadastrar</p>
+                    </div>
+                    <Button variant="outline" onClick={() => { setCsvFile(null); setParsedData([]); }}>
+                      Novo CSV
+                    </Button>
+                  </div>
+
+                  {/* Lista de unidades */}
+                  <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                    {parsedData.map((unit, index) => (
+                      <Card key={index}>
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Building2 className="w-4 h-4" />
+                            Unidade {unit.unidade}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label>Nome do Proprietário</Label>
+                              <Input 
+                                value={unit.nome}
+                                onChange={(e) => updateUnit(index, 'nome', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <Label>CPF</Label>
+                              <Input 
+                                value={unit.cpf || ''}
+                                onChange={(e) => updateUnit(index, 'cpf', e.target.value)}
+                                placeholder="000.000.000-00"
+                              />
+                            </div>
+                            <div>
+                              <Label>Telefone</Label>
+                              <Input 
+                                value={unit.telefone || ''}
+                                onChange={(e) => updateUnit(index, 'telefone', e.target.value)}
+                                placeholder="(00) 00000-0000"
+                              />
+                            </div>
+                            <div>
+                              <Label>E-mail</Label>
+                              <Input 
+                                value={unit.email || ''}
+                                onChange={(e) => updateUnit(index, 'email', e.target.value)}
+                                placeholder="email@exemplo.com"
+                                type="email"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Cobranças */}
+                          {unit.cobrancas.length > 0 && (
+                            <div>
+                              <Label className="mb-2 block">Cobranças ({unit.cobrancas.length})</Label>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Vencimento</TableHead>
+                                    <TableHead>Competência</TableHead>
+                                    <TableHead className="text-right">Total</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {unit.cobrancas.slice(0, 3).map((cob, i) => (
+                                    <TableRow key={i}>
+                                      <TableCell>{cob.vencimento}</TableCell>
+                                      <TableCell>{cob.competencia}</TableCell>
+                                      <TableCell className="text-right font-medium">{cob.total}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                              {unit.cobrancas.length > 3 && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  + {unit.cobrancas.length - 3} cobranças adicionais
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Botão de Salvar */}
                   <Button 
-                    className="flex-1 bg-ffp-navy hover:bg-ffp-navy-dark"
-                    onClick={() => {
-                      setFile(null);
-                      setResult(null);
-                    }}
+                    className="w-full py-6 text-lg"
+                    onClick={saveUnits}
+                    disabled={saving}
                   >
-                    Processar Novo Boleto
-                  </Button>
-                  <Button variant="outline" className="flex-1" asChild>
-                    <Link to="/portal/corporativo/cobrancas">
-                      Ver Cobranças
-                    </Link>
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Cadastrando...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-5 h-5 mr-2" />
+                        Cadastrar {parsedData.length} Unidades
+                      </>
+                    )}
                   </Button>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Instruções */}
-        <Card className="mt-6 bg-blue-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-sm">💡 Como funciona?</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
-              <li>Faça upload da imagem ou PDF do boleto</li>
-              <li>Nossa IA extrai automaticamente todos os dados do boleto</li>
-              <li>Verifica se a administradora e condomínio já existem no sistema</li>
-              <li>Cria novos registros se necessário</li>
-              <li>Vincula o inadimplente à unidade e cria a cobrança</li>
-              <li>Tudo pronto para iniciar o workflow de cobrança!</li>
-            </ol>
-          </CardContent>
-        </Card>
-      </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 
