@@ -1,30 +1,102 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { LogOut, FileText, Download, MessageSquare, Bell, User, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { LogOut, FileText, Download, MessageSquare, Bell, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+
+type Charge = {
+  id: string;
+  amount: number;
+  due_date: string;
+  status: string;
+  description: string | null;
+  units?: {
+    unit_number: string;
+    condominiums?: {
+      name: string;
+    };
+  };
+};
+
+type Profile = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+};
 
 const ClientDashboard = () => {
-  const [hasCharges, setHasCharges] = React.useState(true);
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [charges, setCharges] = useState<Charge[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
-  // Dados mockados para demonstração
-  const documents = [
-    { id: 1, name: 'Contrato de Prestação de Serviços', date: '2024-01-10', type: 'PDF' },
-    { id: 2, name: 'Relatório Mensal - Dezembro 2023', date: '2024-01-05', type: 'PDF' },
-    { id: 3, name: 'Documento de Cobrança', date: '2023-12-28', type: 'PDF' },
-  ];
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user]);
 
-  const messages = [
-    { id: 1, subject: 'Atualização sobre seu processo', date: '2024-01-12', unread: true },
-    { id: 2, subject: 'Documentos disponíveis para download', date: '2024-01-10', unread: false },
-    { id: 3, subject: 'Reunião agendada para próxima semana', date: '2024-01-08', unread: false },
-  ];
+  const loadData = async () => {
+    try {
+      // Carregar perfil
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
 
-  const processes = [
-    { id: 1, number: '2024.001.0123', description: 'Cobrança de Taxa Condominial', status: 'Em andamento' },
-    { id: 2, number: '2023.012.0456', description: 'Regularização Documental', status: 'Concluído' },
-  ];
+      setProfile(profileData);
+
+      // Carregar cobranças do cliente - ajustado para a estrutura real
+      const { data: chargesData, error } = await supabase
+        .from('charges')
+        .select(`
+          *,
+          units:unit_id (
+            unit_number,
+            condominiums:condominium_id (
+              name
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao carregar cobranças:', error);
+        setCharges([]);
+      } else {
+        setCharges(chargesData || []);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar seus dados.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/portal');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-ffp-navy" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -42,10 +114,12 @@ const ClientDashboard = () => {
             </div>
             <div className="flex items-center space-x-4">
               <Bell className="w-5 h-5 text-gray-600" />
-              <span className="text-sm text-gray-600">Olá, Cliente</span>
-              <Link to="/portal" className="text-ffp-navy hover:text-ffp-gold">
+              <span className="text-sm text-gray-600">
+                Olá, {profile?.first_name || user?.email}
+              </span>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
                 <LogOut className="w-5 h-5" />
-              </Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -59,122 +133,70 @@ const ClientDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Documentos */}
-          <Card className="lg:col-span-2">
+          {/* Cobranças */}
+          <Card className="lg:col-span-3">
             <CardHeader>
               <CardTitle className="flex items-center text-ffp-navy">
                 <FileText className="w-5 h-5 mr-2" />
-                Meus Documentos
+                Minhas Cobranças
               </CardTitle>
               <CardDescription>
-                Documentos disponíveis para download
+                Visualize e pague suas cobranças pendentes
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {documents.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                    <div className="flex items-center space-x-3">
-                      <FileText className="w-5 h-5 text-ffp-gold" />
-                      <div>
-                        <p className="font-medium text-sm">{doc.name}</p>
-                        <p className="text-xs text-gray-500">{new Date(doc.date).toLocaleDateString('pt-BR')}</p>
+              {charges.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Nenhuma cobrança encontrada</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {charges.map((charge) => (
+                    <div key={charge.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="flex items-center space-x-4">
+                        <FileText className="w-6 h-6 text-ffp-gold" />
+                        <div>
+                          <p className="font-medium">
+                            {charge.units?.condominiums?.name || 'Condomínio'}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Unidade: {charge.units?.unit_number || 'N/A'} | Vencimento: {new Date(charge.due_date).toLocaleDateString('pt-BR')}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Valor: R$ {Number(charge.amount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs mt-1">
+                            <span className={`px-2 py-1 rounded-full ${
+                              charge.status === 'paid' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {charge.status === 'paid' ? 'Pago' : 'Pendente'}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => toast({
+                            title: 'Em breve',
+                            description: 'Link de pagamento será enviado por email.',
+                          })}
+                        >
+                          Ver Detalhes
+                        </Button>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm">
-                      <Download className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Messages */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center text-ffp-navy">
-                <MessageSquare className="w-5 h-5 mr-2" />
-                Mensagens
-              </CardTitle>
-              <CardDescription>
-                Comunicações da FFP
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {messages.map((message) => (
-                  <div key={message.id} className={`p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${message.unread ? 'bg-blue-50 border-blue-200' : ''}`}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className={`text-sm ${message.unread ? 'font-semibold' : ''}`}>
-                          {message.subject}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {new Date(message.date).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-                      {message.unread && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Button className="w-full mt-4 bg-ffp-gold hover:bg-ffp-gold-dark text-ffp-navy">
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Nova Mensagem
-              </Button>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Processos */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center text-ffp-navy">
-              <Calendar className="w-5 h-5 mr-2" />
-              Meus Processos
-            </CardTitle>
-            <CardDescription>
-              Acompanhe o andamento dos seus processos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Número</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Descrição</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {processes.map((process) => (
-                    <tr key={process.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 font-mono text-sm">{process.number}</td>
-                      <td className="py-3 px-4">{process.description}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          process.status === 'Concluído' 
-                            ? 'text-green-600 bg-green-100' 
-                            : 'text-blue-600 bg-blue-100'
-                        }`}>
-                          {process.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Button variant="outline" size="sm">Ver Detalhes</Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Contact Section */}
         <Card className="mt-6">

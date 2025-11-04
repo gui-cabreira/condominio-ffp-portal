@@ -28,6 +28,7 @@ import AutomationPage from "./pages/AutomationPage";
 import ReportsPage from "./pages/ReportsPage";
 import AdministratorsPage from "./pages/AdministratorsPage";
 import SystemAdminPage from "./pages/SystemAdminPage";
+import ApproveUsers from "./pages/ApproveUsers";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -155,6 +156,11 @@ const App = () => {
                 <CorporateLayout>
                   <SystemAdminPage />
                 </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/aprovar-usuarios" element={
+              <AuthGuard requiredRole="admin">
+                <ApproveUsers />
               </AuthGuard>
             } />
             <Route path="/aceitar-convite" element={<AcceptInvitation />} />
