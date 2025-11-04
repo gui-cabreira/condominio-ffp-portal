@@ -86,7 +86,7 @@ export function AppSidebar() {
         <div className="flex items-center justify-between">
           {!collapsed && (
             <img 
-              src="/ffp-logo.png"
+              src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
               alt="FFP Advogados"
               className="h-8 w-auto"
             />

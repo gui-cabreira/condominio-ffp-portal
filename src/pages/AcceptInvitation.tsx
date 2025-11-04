@@ -215,8 +215,8 @@ const AcceptInvitation = () => {
           <CardHeader className="text-center space-y-4">
             <div className="flex justify-center">
               <img 
-                src="/ffp-logo.png" 
-                alt="FFP Advogados"
+                src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
+                alt="FFP Advogados" 
                 className="h-16 w-auto"
               />
             </div>
@@ -242,8 +242,8 @@ const AcceptInvitation = () => {
         <CardHeader className="text-center space-y-4 pb-6">
           <div className="flex justify-center">
             <img 
-              src="/ffp-logo.png" 
-              alt="FFP Advogados"
+              src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
+              alt="FFP Advogados" 
               className="h-20 w-auto"
             />
           </div>

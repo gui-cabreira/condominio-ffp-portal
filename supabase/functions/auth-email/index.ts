@@ -29,7 +29,7 @@ const getEmailTemplate = (type: string, data: AuthEmailData) => {
   const customDomain = "https://srv.ffpadvogados.com.br";
   const confirmationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${customDomain}`;
   
-  const logoUrl = "https://srv.ffpadvogados.com.br/ffp-logo.png";
+  const logoUrl = "https://srv.ffpadvogados.com.br/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png";
 
   switch (type) {
     case "recovery":

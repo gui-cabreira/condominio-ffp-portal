@@ -11,8 +11,8 @@ const Footer = () => {
           <div className="lg:col-span-2">
             <div className="flex items-center space-x-4 mb-6">
               <img 
-                src="/ffp-logo.png" 
-                alt="FFP Advogados"
+                src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
+                alt="FFP Advogados" 
                 className="h-12 w-auto"
               />
               <div>

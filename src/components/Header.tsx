@@ -43,8 +43,8 @@ const Header = () => {
               <div className="absolute inset-0 bg-ffp-gold/10 rounded-full blur-md group-hover:bg-ffp-gold/15 transition-all duration-1000 animate-pulse" style={{ animationDuration: '4s' }} />
               <div className="absolute -inset-1 bg-gradient-to-r from-ffp-gold/5 via-ffp-gold/10 to-ffp-gold/5 rounded-full blur-lg group-hover:from-ffp-gold/8 group-hover:via-ffp-gold/15 group-hover:to-ffp-gold/8 transition-all duration-1200" />
               <img 
-                src="/ffp-logo.png" 
-                alt="FFP Advogados"
+                src="/lovable-uploads/33cfb7d4-6c60-414d-8f2b-599c21ac2ff4.png" 
+                alt="FFP Advogados" 
                 className="h-8 w-auto relative z-10 group-hover:scale-102 transition-transform duration-500"
               />
             </div>

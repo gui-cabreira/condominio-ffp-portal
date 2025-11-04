@@ -77,7 +77,7 @@ const Hero = () => {
               <div className="absolute -inset-4 bg-gradient-to-r from-ffp-gold/10 via-ffp-gold/20 to-ffp-gold/10 rounded-full blur-3xl group-hover:from-ffp-gold/15 group-hover:via-ffp-gold/30 group-hover:to-ffp-gold/15 transition-all duration-1200" />
               <div className="absolute -inset-8 bg-gradient-to-br from-ffp-navy/5 via-transparent to-ffp-gold/8 rounded-full blur-3xl group-hover:from-ffp-navy/8 group-hover:to-ffp-gold/12 transition-all duration-1500" />
               <img 
-                src="/ffp-logo.png" 
+                src="/lovable-uploads/1b1a978c-89e0-4816-b68e-de6446f18cd1.png" 
                 alt="FFP Advogados"
                 className="relative z-10 w-full max-w-sm mx-auto drop-shadow-2xl transform transition-all duration-700 ease-out group-hover:scale-105"
               />
