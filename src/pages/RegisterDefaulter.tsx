@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Upload, Sparkles, Check, Loader2, FileText, User, Building2, DollarSign, AlertCircle, Table as TableIcon, Edit } from 'lucide-react';
+import { Upload, Sparkles, Check, Loader2, FileText, User, Building2, DollarSign, AlertCircle, Table as TableIcon, Edit, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -9,8 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 interface DefaulterUnit {
   unidade: string;
@@ -30,6 +32,24 @@ interface DefaulterUnit {
   }[];
 }
 
+type Administrator = {
+  id: string;
+  name: string;
+  management_system_id: string | null;
+};
+
+type ManagementSystem = {
+  id: string;
+  name: string;
+  csv_format: any;
+};
+
+type Condominium = {
+  id: string;
+  name: string;
+  administrator_id: string;
+};
+
 const RegisterDefaulter = () => {
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
@@ -38,7 +58,68 @@ const RegisterDefaulter = () => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<DefaulterUnit[]>([]);
   const [saving, setSaving] = useState(false);
+  const [selectedAdministrator, setSelectedAdministrator] = useState<string>('');
+  const [selectedCondominium, setSelectedCondominium] = useState<string>('');
+  const [adminSearch, setAdminSearch] = useState('');
   const { toast } = useToast();
+
+  // Buscar administradoras
+  const { data: administrators } = useQuery({
+    queryKey: ['administrators-for-import'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('administrators')
+        .select('id, name, management_system_id')
+        .eq('active', true)
+        .order('name');
+      
+      if (error) throw error;
+      return data as Administrator[];
+    },
+  });
+
+  // Buscar condomínios da administradora selecionada
+  const { data: condominiums } = useQuery({
+    queryKey: ['condominiums-for-administrator', selectedAdministrator],
+    queryFn: async () => {
+      if (!selectedAdministrator) return [];
+      
+      const { data, error } = await supabase
+        .from('condominiums')
+        .select('id, name, administrator_id')
+        .eq('administrator_id', selectedAdministrator)
+        .order('name');
+      
+      if (error) throw error;
+      return data as Condominium[];
+    },
+    enabled: !!selectedAdministrator,
+  });
+
+  // Buscar sistema de gestão
+  const { data: managementSystem } = useQuery({
+    queryKey: ['management-system', selectedAdministrator],
+    queryFn: async () => {
+      if (!selectedAdministrator) return null;
+      
+      const admin = administrators?.find(a => a.id === selectedAdministrator);
+      if (!admin?.management_system_id) return null;
+      
+      const { data, error } = await supabase
+        .from('management_systems')
+        .select('*')
+        .eq('id', admin.management_system_id)
+        .single();
+      
+      if (error) throw error;
+      return data as ManagementSystem;
+    },
+    enabled: !!selectedAdministrator && !!administrators,
+  });
+
+  const filteredAdministrators = administrators?.filter(admin =>
+    admin.name.toLowerCase().includes(adminSearch.toLowerCase())
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -449,12 +530,78 @@ const RegisterDefaulter = () => {
                 Import em Lote via CSV
               </CardTitle>
               <CardDescription>
-                Faça upload do arquivo CSV com os inadimplentes e preencha os dados complementares
+                Selecione a administradora e o condomínio, depois faça upload do CSV de inadimplentes
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Seleção de Administradora e Condomínio */}
+              {!parsedData.length && (
+                <div className="space-y-4">
+                  {/* Administradora */}
+                  <div className="space-y-2">
+                    <Label>Administradora *</Label>
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar administradora..."
+                          value={adminSearch}
+                          onChange={(e) => setAdminSearch(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
+                      <Select
+                        value={selectedAdministrator}
+                        onValueChange={(value) => {
+                          setSelectedAdministrator(value);
+                          setSelectedCondominium('');
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a administradora" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredAdministrators?.map((admin) => (
+                            <SelectItem key={admin.id} value={admin.id}>
+                              {admin.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {selectedAdministrator && managementSystem && (
+                      <Badge variant="outline" className="mt-2">
+                        Sistema: {managementSystem.name}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Condomínio */}
+                  {selectedAdministrator && (
+                    <div className="space-y-2">
+                      <Label>Condomínio *</Label>
+                      <Select
+                        value={selectedCondominium}
+                        onValueChange={setSelectedCondominium}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o condomínio" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {condominiums?.map((condo) => (
+                            <SelectItem key={condo.id} value={condo.id}>
+                              {condo.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Upload CSV */}
-              {!parsedData.length ? (
+              {selectedAdministrator && selectedCondominium && !parsedData.length && (
                 <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors">
                   <input
                     type="file"
@@ -475,17 +622,23 @@ const RegisterDefaulter = () => {
                         <p className="text-lg font-medium mb-2">
                           Clique para selecionar o CSV
                         </p>
-                        <p className="text-sm text-muted-foreground">Arquivo de inadimplentes</p>
+                        <p className="text-sm text-muted-foreground">
+                          Formato: {managementSystem?.name || 'Selecione uma administradora'}
+                        </p>
                       </div>
                     )}
                   </label>
                 </div>
-              ) : (
+              )}
+
+              {parsedData.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-semibold">{parsedData.length} inadimplentes encontrados</h3>
-                      <p className="text-sm text-muted-foreground">Preencha os dados complementares antes de cadastrar</p>
+                      <p className="text-sm text-muted-foreground">
+                        Condomínio: {condominiums?.find(c => c.id === selectedCondominium)?.name}
+                      </p>
                     </div>
                     <Button variant="outline" onClick={() => { setCsvFile(null); setParsedData([]); }}>
                       Novo CSV

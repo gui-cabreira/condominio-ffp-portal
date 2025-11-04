@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CNPJLookup } from '@/components/forms/CNPJLookup';
@@ -43,6 +44,13 @@ type Administrator = {
   portal_url: string | null;
   portal_username: string | null;
   portal_password: string | null;
+  management_system_id: string | null;
+};
+
+type ManagementSystem = {
+  id: string;
+  name: string;
+  description: string | null;
 };
 
 const AdministratorsPage = () => {
@@ -76,7 +84,23 @@ const AdministratorsPage = () => {
     zip_code: '',
     portal_url: '',
     portal_username: '',
-    portal_password: ''
+    portal_password: '',
+    management_system_id: ''
+  });
+
+  // Buscar sistemas de gestão
+  const { data: managementSystems } = useQuery({
+    queryKey: ['management-systems'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('management_systems')
+        .select('id, name, description')
+        .eq('active', true)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      return data as ManagementSystem[];
+    },
   });
 
   // Buscar administradoras
@@ -157,7 +181,8 @@ const AdministratorsPage = () => {
         zip_code: '',
         portal_url: '',
         portal_username: '',
-        portal_password: ''
+        portal_password: '',
+        management_system_id: ''
       });
       refetch();
     } catch (error: any) {
@@ -195,7 +220,8 @@ const AdministratorsPage = () => {
       zip_code: admin.zip_code || '',
       portal_url: admin.portal_url || '',
       portal_username: admin.portal_username || '',
-      portal_password: admin.portal_password || ''
+      portal_password: admin.portal_password || '',
+      management_system_id: admin.management_system_id || ''
     });
     setIsDialogOpen(true);
   };
@@ -251,7 +277,8 @@ const AdministratorsPage = () => {
       zip_code: '',
       portal_url: '',
       portal_username: '',
-      portal_password: ''
+      portal_password: '',
+      management_system_id: ''
     });
     setIsDialogOpen(true);
   };
@@ -351,6 +378,30 @@ const AdministratorsPage = () => {
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="(11) 99999-9999"
                   />
+                </div>
+
+                <div className="col-span-2">
+                  <Label htmlFor="management_system">Sistema de Gestão *</Label>
+                  <Select
+                    value={formData.management_system_id}
+                    onValueChange={(value) => setFormData({ ...formData, management_system_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o sistema usado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {managementSystems?.map((system) => (
+                        <SelectItem key={system.id} value={system.id}>
+                          {system.name}
+                          {system.description && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              - {system.description}
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="col-span-2">

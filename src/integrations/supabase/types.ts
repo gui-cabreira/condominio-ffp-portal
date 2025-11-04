@@ -81,6 +81,7 @@ export type Database = {
           legal_name: string | null
           legal_nature: string | null
           main_activity: string | null
+          management_system_id: string | null
           name: string
           neighborhood: string | null
           number: string | null
@@ -112,6 +113,7 @@ export type Database = {
           legal_name?: string | null
           legal_nature?: string | null
           main_activity?: string | null
+          management_system_id?: string | null
           name: string
           neighborhood?: string | null
           number?: string | null
@@ -143,6 +145,7 @@ export type Database = {
           legal_name?: string | null
           legal_nature?: string | null
           main_activity?: string | null
+          management_system_id?: string | null
           name?: string
           neighborhood?: string | null
           number?: string | null
@@ -158,7 +161,15 @@ export type Database = {
           updated_at?: string
           zip_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "administrators_management_system_id_fkey"
+            columns: ["management_system_id"]
+            isOneToOne: false
+            referencedRelation: "management_systems"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       boleto_requests: {
         Row: {
@@ -513,6 +524,36 @@ export type Database = {
           success?: boolean
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      management_systems: {
+        Row: {
+          active: boolean
+          created_at: string
+          csv_format: Json | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          csv_format?: Json | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          csv_format?: Json | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
