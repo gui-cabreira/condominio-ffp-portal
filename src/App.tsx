@@ -29,6 +29,7 @@ import ReportsPage from "./pages/ReportsPage";
 import AdministratorsPage from "./pages/AdministratorsPage";
 import SystemAdminPage from "./pages/SystemAdminPage";
 import ApproveUsers from "./pages/ApproveUsers";
+import AguardandoAprovacao from "./pages/AguardandoAprovacao";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -165,6 +166,7 @@ const App = () => {
             } />
             <Route path="/aceitar-convite" element={<AcceptInvitation />} />
             <Route path="/completar-perfil" element={<ProfileCompletion />} />
+            <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
             <Route path="/cadastro" element={<Signup />} />
             <Route path="/esqueci-senha" element={<ForgotPassword />} />
             <Route path="/redefinir-senha" element={<ResetPassword />} />

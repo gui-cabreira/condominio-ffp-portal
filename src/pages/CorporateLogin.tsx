@@ -39,6 +39,12 @@ const CorporateLogin = () => {
 
           // Usar o perfil retornado pela edge function
           if (data?.profile) {
+            // Verificar se usuário está aprovado
+            if (!data.profile.approved) {
+              navigate('/aguardando-aprovacao');
+              return;
+            }
+
             // Se perfil não está completo, redirecionar
             if (!data.profile.profile_completed) {
               navigate('/completar-perfil?force=true');
