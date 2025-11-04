@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NewChargeDialog } from '@/components/NewChargeDialog';
+import { NegotiationDialog } from '@/components/NegotiationDialog';
 
 interface Charge {
   id: string;
@@ -107,7 +107,7 @@ export default function ChargesPage() {
       console.error('Error loading data:', error);
       toast({
         title: 'Erro',
-        description: 'Erro ao carregar cobranças',
+        description: 'Erro ao carregar negociações',
         variant: 'destructive',
       });
     } finally {
@@ -160,7 +160,7 @@ export default function ChargesPage() {
 
       toast({
         title: 'Sucesso',
-        description: 'Cobrança excluída com sucesso',
+        description: 'Negociação excluída com sucesso',
       });
 
       loadData();
@@ -168,7 +168,7 @@ export default function ChargesPage() {
       console.error('Error deleting charge:', error);
       toast({
         title: 'Erro',
-        description: 'Erro ao excluir cobrança',
+        description: 'Erro ao excluir negociação',
         variant: 'destructive',
       });
     }
@@ -240,17 +240,17 @@ export default function ChargesPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <FileText className="h-8 w-8" />
-            Cobranças
+            Negociações
           </h1>
-          <p className="text-muted-foreground">Gerencie todas as cobranças e boletos</p>
+          <p className="text-muted-foreground">Gerencie todas as negociações e acordos</p>
         </div>
 
         <Button onClick={() => setNewChargeDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Nova Cobrança
+          Nova Negociação
         </Button>
 
-        <NewChargeDialog
+        <NegotiationDialog
           open={newChargeDialogOpen}
           onOpenChange={setNewChargeDialogOpen}
           administrators={administrators}
@@ -318,7 +318,7 @@ export default function ChargesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Cobranças</CardTitle>
+          <CardTitle>Lista de Negociações</CardTitle>
           <CardDescription>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
               <div className="flex items-center gap-2">
@@ -438,7 +438,7 @@ function ChargesTable({ charges, getStatusColor, getStatusText, handleDelete, se
         {charges.length === 0 ? (
           <TableRow>
             <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-              Nenhuma cobrança encontrada
+              Nenhuma negociação encontrada
             </TableCell>
           </TableRow>
         ) : (

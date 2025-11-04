@@ -356,11 +356,15 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string
+          fees_rate: number | null
           id: string
           import_id: string | null
+          interest_rate: number | null
           payment_date: string | null
+          principal_amount: number | null
           reference_month: string | null
           status: string
+          total_with_fees: number | null
           unit_id: string
           updated_at: string
           workflow_id: string | null
@@ -371,11 +375,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date: string
+          fees_rate?: number | null
           id?: string
           import_id?: string | null
+          interest_rate?: number | null
           payment_date?: string | null
+          principal_amount?: number | null
           reference_month?: string | null
           status?: string
+          total_with_fees?: number | null
           unit_id: string
           updated_at?: string
           workflow_id?: string | null
@@ -386,11 +394,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string
+          fees_rate?: number | null
           id?: string
           import_id?: string | null
+          interest_rate?: number | null
           payment_date?: string | null
+          principal_amount?: number | null
           reference_month?: string | null
           status?: string
+          total_with_fees?: number | null
           unit_id?: string
           updated_at?: string
           workflow_id?: string | null
@@ -564,6 +576,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      negotiation_parameters: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          parameter_key: string
+          parameter_value: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          parameter_key: string
+          parameter_value: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          parameter_key?: string
+          parameter_value?: number
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       payment_proofs: {
         Row: {
@@ -813,6 +852,7 @@ export type Database = {
       }
       units: {
         Row: {
+          block: string | null
           condominium_id: string
           created_at: string
           id: string
@@ -827,10 +867,12 @@ export type Database = {
           owner_state: string | null
           owner_street: string | null
           owner_zip_code: string | null
+          tower: string | null
           unit_number: string
           updated_at: string
         }
         Insert: {
+          block?: string | null
           condominium_id: string
           created_at?: string
           id?: string
@@ -845,10 +887,12 @@ export type Database = {
           owner_state?: string | null
           owner_street?: string | null
           owner_zip_code?: string | null
+          tower?: string | null
           unit_number: string
           updated_at?: string
         }
         Update: {
+          block?: string | null
           condominium_id?: string
           created_at?: string
           id?: string
@@ -863,6 +907,7 @@ export type Database = {
           owner_state?: string | null
           owner_street?: string | null
           owner_zip_code?: string | null
+          tower?: string | null
           unit_number?: string
           updated_at?: string
         }

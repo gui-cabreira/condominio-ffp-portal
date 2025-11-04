@@ -23,6 +23,7 @@ import RegisterDefaulter from "./pages/RegisterDefaulter";
 import BackofficeManagement from "./pages/BackofficeManagement";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import UserManagement from "./pages/UserManagement";
+import NegotiationParameters from "./pages/NegotiationParameters";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AutomationPage from "./pages/AutomationPage";
 import ReportsPage from "./pages/ReportsPage";
@@ -128,6 +129,13 @@ const App = () => {
               <AuthGuard requiredRole="admin">
                 <CorporateLayout>
                   <UserManagement />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/parametros" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <NegotiationParameters />
                 </CorporateLayout>
               </AuthGuard>
             } />
