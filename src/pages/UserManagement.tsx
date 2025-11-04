@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calendar, Copy, Edit, Trash2, Eye, MousePointer, TrendingUp, AlertCircle } from 'lucide-react';
@@ -794,66 +795,70 @@ const UserManagement = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Perfil</TableHead>
-                    <TableHead>Data de Cadastro</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        {user.first_name || user.last_name 
-                          ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
-                          : 'Nome não informado'
-                        }
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {user.user_roles.map((roleObj, index) => (
-                            <Badge key={index} className={getRoleColor(roleObj.role)}>
-                              {getRoleName(roleObj.role)}
-                            </Badge>
-                          ))}
-                          {user.user_roles.length === 0 && (
-                            <Badge variant="outline">Sem perfil</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleEditUser(user)}
-                          >
-                            <Edit className="h-3 w-3 mr-1" />
-                            Editar
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Excluir
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <ScrollArea className="h-[calc(100vh-32rem)] w-full">
+                <div className="pr-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Perfil</TableHead>
+                        <TableHead>Data de Cadastro</TableHead>
+                        <TableHead>Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            {user.first_name || user.last_name 
+                              ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                              : 'Nome não informado'
+                            }
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {user.user_roles.map((roleObj, index) => (
+                                <Badge key={index} className={getRoleColor(roleObj.role)}>
+                                  {getRoleName(roleObj.role)}
+                                </Badge>
+                              ))}
+                              {user.user_roles.length === 0 && (
+                                <Badge variant="outline">Sem perfil</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleEditUser(user)}
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Editar
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                Excluir
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -867,82 +872,86 @@ const UserManagement = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Perfil</TableHead>
-                    <TableHead>Perfil Completo</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {azureLoading && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center">
-                        Carregando usuários do Azure AD...
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!azureLoading && azureGraphData?.users?.map((azureUser: any) => {
-                    const localUser = users.find(u => u.email === azureUser.mail || u.email === azureUser.userPrincipalName);
-                    return (
-                    <TableRow key={azureUser.id}>
-                      <TableCell className="font-medium">
-                        {azureUser.displayName}
-                      </TableCell>
-                      <TableCell>{azureUser.mail || azureUser.userPrincipalName}</TableCell>
-                      <TableCell>
-                        {localUser ? (
-                          <select
-                            value={localUser.user_roles?.[0]?.role || 'employee'}
-                            onChange={async (e) => {
-                              const newRole = e.target.value;
-                              await supabase.from('user_roles').delete().eq('user_id', localUser.id);
-                              const { error } = await supabase.from('user_roles').insert([{ user_id: localUser.id, role: newRole as any }]);
-                              if (!error) {
-                                toast({ title: "Role atualizada com sucesso!" });
-                                loadData();
-                              }
-                            }}
-                            className="p-1 border rounded text-sm"
-                          >
-                            <option value="developer">Developer</option>
-                            <option value="admin">Admin</option>
-                            <option value="supervisor">Supervisor</option>
-                            <option value="employee">Employee</option>
-                            <option value="assistant">Assistant</option>
-                          </select>
-                        ) : (
-                          <Badge variant="outline">Não sincronizado</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {localUser ? (
-                          <Badge variant={localUser.cpf ? "default" : "secondary"}>
-                            {localUser.cpf ? "✓ Completo" : "Pendente"}
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">-</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {localUser && (
-                          <Button size="sm" variant="outline" onClick={() => {
-                            setEditingUser(localUser);
-                            setEditDialogOpen(true);
-                          }}>
-                            <Edit className="h-3 w-3 mr-1" />
-                            Editar
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                  })}
-                </TableBody>
-              </Table>
+              <ScrollArea className="h-[calc(100vh-32rem)] w-full">
+                <div className="pr-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Perfil</TableHead>
+                        <TableHead>Perfil Completo</TableHead>
+                        <TableHead>Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {azureLoading && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center">
+                            Carregando usuários do Azure AD...
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {!azureLoading && azureGraphData?.users?.map((azureUser: any) => {
+                        const localUser = users.find(u => u.email === azureUser.mail || u.email === azureUser.userPrincipalName);
+                        return (
+                        <TableRow key={azureUser.id}>
+                          <TableCell className="font-medium">
+                            {azureUser.displayName}
+                          </TableCell>
+                          <TableCell>{azureUser.mail || azureUser.userPrincipalName}</TableCell>
+                          <TableCell>
+                            {localUser ? (
+                              <select
+                                value={localUser.user_roles?.[0]?.role || 'employee'}
+                                onChange={async (e) => {
+                                  const newRole = e.target.value;
+                                  await supabase.from('user_roles').delete().eq('user_id', localUser.id);
+                                  const { error } = await supabase.from('user_roles').insert([{ user_id: localUser.id, role: newRole as any }]);
+                                  if (!error) {
+                                    toast({ title: "Role atualizada com sucesso!" });
+                                    loadData();
+                                  }
+                                }}
+                                className="p-1 border rounded text-sm"
+                              >
+                                <option value="developer">Developer</option>
+                                <option value="admin">Admin</option>
+                                <option value="supervisor">Supervisor</option>
+                                <option value="employee">Employee</option>
+                                <option value="assistant">Assistant</option>
+                              </select>
+                            ) : (
+                              <Badge variant="outline">Não sincronizado</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {localUser ? (
+                              <Badge variant={localUser.cpf ? "default" : "secondary"}>
+                                {localUser.cpf ? "✓ Completo" : "Pendente"}
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">-</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {localUser && (
+                              <Button size="sm" variant="outline" onClick={() => {
+                                setEditingUser(localUser);
+                                setEditDialogOpen(true);
+                              }}>
+                                <Edit className="h-3 w-3 mr-1" />
+                                Editar
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -956,121 +965,125 @@ const UserManagement = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Perfil</TableHead>
-                    <TableHead>Status do Email</TableHead>
-                    <TableHead>Status do Convite</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invitations.map((invitation) => {
-                    const status = getInvitationStatus(invitation);
-                    const StatusIcon = status.icon;
-                    
-                    return (
-                      <TableRow key={invitation.id}>
-                        <TableCell className="font-medium">{invitation.email}</TableCell>
-                        <TableCell>
-                          <Badge className={getRoleColor(invitation.role)}>
-                            {getRoleName(invitation.role)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            {invitation.email_id ? (
-                              <>
-                                <Badge variant="outline" className="gap-1 w-fit">
-                                  <Mail className="h-3 w-3" />
-                                  Enviado
-                                </Badge>
-                                {invitation.delivered_at && (
-                                  <Badge variant="outline" className="gap-1 w-fit bg-green-50">
-                                    <CheckCircle className="h-3 w-3 text-green-600" />
-                                    Entregue
-                                  </Badge>
-                                )}
-                                {invitation.opened_at && (
-                                  <Badge className="gap-1 w-fit bg-blue-500">
-                                    <Eye className="h-3 w-3" />
-                                    Aberto
-                                  </Badge>
-                                )}
-                                {invitation.clicked_at && (
-                                  <Badge className="gap-1 w-fit bg-green-500">
-                                    <MousePointer className="h-3 w-3" />
-                                    Clicado
-                                  </Badge>
-                                )}
-                                {invitation.bounced_at && (
-                                  <Badge variant="destructive" className="gap-1 w-fit">
-                                    <AlertCircle className="h-3 w-3" />
-                                    Bounce
-                                  </Badge>
-                                )}
-                              </>
-                            ) : (
-                              <Badge variant="outline">Não enviado</Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={status.color}>
-                            <StatusIcon className="h-3 w-3 mr-1" />
-                            {status.text}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            {new Date(invitation.created_at).toLocaleDateString('pt-BR')}
-                            <div className="text-xs text-muted-foreground">
-                              {new Date(invitation.created_at).toLocaleTimeString('pt-BR', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedInvitation(invitation);
-                                setDetailsDialogOpen(true);
-                              }}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              Detalhes
-                            </Button>
-                            {!invitation.accepted_at && new Date(invitation.expires_at) > new Date() && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => copyInvitationLink(invitation.invitation_token)}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDeleteInvitation(invitation.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <ScrollArea className="h-[calc(100vh-32rem)] w-full">
+                <div className="pr-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Perfil</TableHead>
+                        <TableHead>Status do Email</TableHead>
+                        <TableHead>Status do Convite</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Ações</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {invitations.map((invitation) => {
+                        const status = getInvitationStatus(invitation);
+                        const StatusIcon = status.icon;
+                        
+                        return (
+                          <TableRow key={invitation.id}>
+                            <TableCell className="font-medium">{invitation.email}</TableCell>
+                            <TableCell>
+                              <Badge className={getRoleColor(invitation.role)}>
+                                {getRoleName(invitation.role)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                {invitation.email_id ? (
+                                  <>
+                                    <Badge variant="outline" className="gap-1 w-fit">
+                                      <Mail className="h-3 w-3" />
+                                      Enviado
+                                    </Badge>
+                                    {invitation.delivered_at && (
+                                      <Badge variant="outline" className="gap-1 w-fit bg-green-50">
+                                        <CheckCircle className="h-3 w-3 text-green-600" />
+                                        Entregue
+                                      </Badge>
+                                    )}
+                                    {invitation.opened_at && (
+                                      <Badge className="gap-1 w-fit bg-blue-500">
+                                        <Eye className="h-3 w-3" />
+                                        Aberto
+                                      </Badge>
+                                    )}
+                                    {invitation.clicked_at && (
+                                      <Badge className="gap-1 w-fit bg-green-500">
+                                        <MousePointer className="h-3 w-3" />
+                                        Clicado
+                                      </Badge>
+                                    )}
+                                    {invitation.bounced_at && (
+                                      <Badge variant="destructive" className="gap-1 w-fit">
+                                        <AlertCircle className="h-3 w-3" />
+                                        Bounce
+                                      </Badge>
+                                    )}
+                                  </>
+                                ) : (
+                                  <Badge variant="outline">Não enviado</Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={status.color}>
+                                <StatusIcon className="h-3 w-3 mr-1" />
+                                {status.text}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {new Date(invitation.created_at).toLocaleDateString('pt-BR')}
+                                <div className="text-xs text-muted-foreground">
+                                  {new Date(invitation.created_at).toLocaleTimeString('pt-BR', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedInvitation(invitation);
+                                    setDetailsDialogOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  Detalhes
+                                </Button>
+                                {!invitation.accepted_at && new Date(invitation.expires_at) > new Date() && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => copyInvitationLink(invitation.invitation_token)}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDeleteInvitation(invitation.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
