@@ -42,7 +42,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     <div className="fixed inset-0 bg-ffp-navy z-50 flex flex-col items-center justify-center">
       <div className="relative p-8 mb-8">
         <img 
-          src="/lovable-uploads/c5515a32-7de1-46ce-b62d-8d29f4750130.png" 
+          src="/ffp-logo.png" 
           alt="FFP Advogados"
           className="w-80 h-auto animate-fade-in"
         />

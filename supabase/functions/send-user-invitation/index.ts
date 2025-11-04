@@ -281,7 +281,7 @@ serve(async (req) => {
 <body>
     <div class="container">
         <div class="header">
-            <img src="${customDomain}/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" alt="FFP Advogados" class="logo" />
+            <img src="${customDomain}/ffp-logo.png" alt="FFP Advogados" class="logo" />
             <h1>Convite para o Portal Corporativo</h1>
         </div>
         <div class="content">

@@ -132,8 +132,8 @@ const Signup = () => {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <img 
-              src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
-              alt="FFP Advogados" 
+              src="/ffp-logo.png" 
+              alt="FFP Advogados"
               className="h-12 w-auto"
             />
           </div>

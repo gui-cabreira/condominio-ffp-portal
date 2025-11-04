@@ -76,7 +76,7 @@ export function CorporateHeader() {
       <header className="h-16 border-b bg-white px-6 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <img 
-            src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
+            src="/ffp-logo.png"
             alt="FFP Advogados"
             className="h-8 w-auto"
           />

@@ -106,8 +106,8 @@ const ClientDashboard = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <img 
-                src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
-                alt="FFP Advogados" 
+                src="/ffp-logo.png" 
+                alt="FFP Advogados"
                 className="h-8 w-auto mr-3"
               />
               <h1 className="text-xl font-semibold text-ffp-navy">Área do Cliente</h1>

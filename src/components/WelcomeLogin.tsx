@@ -145,7 +145,7 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
           }`}
         >
           <img
-            src="/lovable-uploads/33cfb7d4-6c60-414d-8f2b-599c21ac2ff4.png"
+            src="/ffp-logo.png"
             alt="FFP Advogados"
             className="h-16 w-auto drop-shadow-2xl"
           />
