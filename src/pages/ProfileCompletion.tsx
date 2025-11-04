@@ -37,6 +37,8 @@ export default function ProfileCompletion() {
     avatar_url: '',
     zip_code: '',
     street: '',
+    number: '',
+    complement: '',
     neighborhood: '',
     city: '',
     state: ''
@@ -84,6 +86,8 @@ export default function ProfileCompletion() {
         birth_date: profile.birth_date || '',
         zip_code: profile.zip_code || '',
         street: profile.street || '',
+        number: profile.number || '',
+        complement: profile.complement || '',
         neighborhood: profile.neighborhood || '',
         city: profile.city || '',
         state: profile.state || ''
@@ -150,11 +154,13 @@ export default function ProfileCompletion() {
   }) => {
     setFormData(prev => ({
       ...prev,
-      zip_code: data.cep || prev.zip_code,
-      street: data.street || prev.street,
-      neighborhood: data.neighborhood || prev.neighborhood,
-      city: data.city || prev.city,
-      state: data.state || prev.state
+      zip_code: data.cep,
+      street: data.street,
+      number: data.number,
+      complement: data.complement,
+      neighborhood: data.neighborhood,
+      city: data.city,
+      state: data.state
     }));
   };
 
@@ -373,8 +379,8 @@ export default function ProfileCompletion() {
                     neighborhood: formData.neighborhood,
                     city: formData.city,
                     state: formData.state,
-                    number: '',
-                    complement: ''
+                    number: formData.number,
+                    complement: formData.complement
                   }}
                   onChange={handleAddressChange}
                 />
