@@ -11,9 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    const AZURE_CLIENT_ID = Deno.env.get('AZURE_CLIENT_ID');
-    const AZURE_CLIENT_SECRET = Deno.env.get('AZURE_CLIENT_SECRET');
-    const AZURE_TENANT_ID = Deno.env.get('AZURE_TENANT_ID');
+    const AZURE_CLIENT_ID = Deno.env.get('AZURE_APP_APPLICATION_ID');
+    const AZURE_CLIENT_SECRET = Deno.env.get('AZURE_APP_SECRET_ID');
+    const AZURE_TENANT_ID = Deno.env.get('AZURE_APP_TENANT_ID');
 
     if (!AZURE_CLIENT_ID || !AZURE_CLIENT_SECRET || !AZURE_TENANT_ID) {
       throw new Error('Azure AD credentials not configured');
