@@ -38,3 +38,12 @@ verify_jwt = false
 
 [functions.azure-graph-users]
 verify_jwt = true
+
+[functions.sync-administrator-data]
+verify_jwt = true
+
+[functions.process-administrator-syncs]
+verify_jwt = false
+
+[functions.langgraph-agent]
+verify_jwt = false
