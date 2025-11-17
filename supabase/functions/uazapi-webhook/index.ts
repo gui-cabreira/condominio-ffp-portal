@@ -207,15 +207,23 @@ async function handleIncomingMessage(supabase: any, payload: any) {
 
     console.log('✅ Mensagem salva no banco de dados');
 
-    // TODO: Invocar LangGraph agent para processar mensagem
-    // await supabase.functions.invoke('langgraph-agent', {
-    //   body: {
-    //     conversationId: conversation.id,
-    //     phone: phoneNumber,
-    //     message: messageContent,
-    //     messageType: messageType
-    //   }
-    // });
+    // Invocar LangGraph agent para processar mensagem
+    console.log('🤖 Invocando LangGraph Agent...');
+    const { data: agentResponse, error: agentError } = await supabase.functions.invoke('langgraph-agent', {
+      body: {
+        conversationId: conversation.id,
+        phone: phoneNumber,
+        message: messageContent,
+        messageType: messageType
+      }
+    });
+
+    if (agentError) {
+      console.error('❌ Erro ao invocar agent:', agentError);
+      // Não bloquear o webhook por erro do agent
+    } else {
+      console.log('✅ Agent processou mensagem:', agentResponse);
+    }
 
   } catch (error) {
     console.error('❌ Erro ao processar mensagem:', error);

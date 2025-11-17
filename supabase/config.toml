@@ -12,6 +12,12 @@ verify_jwt = true
 [functions.send-report]
 verify_jwt = true
 
+[functions.send-charge-notification]
+verify_jwt = true
+
+[functions.send-whatsapp-message]
+verify_jwt = true
+
 [functions.process-charges-ai]
 verify_jwt = true
 
@@ -37,4 +43,31 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.azure-graph-users]
+verify_jwt = true
+
+[functions.sync-administrator-data]
+verify_jwt = true
+
+[functions.process-administrator-syncs]
+verify_jwt = false
+
+[functions.langgraph-agent]
+verify_jwt = false
+
+[functions.browser-automation]
+verify_jwt = true
+
+[functions.process-automated-notifications]
+verify_jwt = false
+
+[functions.generate-payment]
+verify_jwt = true
+
+[functions.payment-webhook]
+verify_jwt = false
+
+[functions.analyze-sentiment-and-insights]
+verify_jwt = true
+
+[functions.generate-legal-document]
 verify_jwt = true

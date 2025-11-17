@@ -28,6 +28,8 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import AutomationPage from "./pages/AutomationPage";
 import ReportsPage from "./pages/ReportsPage";
 import AdministratorsPage from "./pages/AdministratorsPage";
+import AdministratorSync from "./pages/AdministratorSync";
+import AutomationWorkflows from "./pages/AutomationWorkflows";
 import SystemAdminPage from "./pages/SystemAdminPage";
 import ApproveUsers from "./pages/ApproveUsers";
 import AguardandoAprovacao from "./pages/AguardandoAprovacao";
@@ -108,6 +110,20 @@ const App = () => {
               <AuthGuard requiredRole="admin">
                 <CorporateLayout>
                   <AdministratorsPage />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/sincronizacao" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <AdministratorSync />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/workflows" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <AutomationWorkflows />
                 </CorporateLayout>
               </AuthGuard>
             } />
