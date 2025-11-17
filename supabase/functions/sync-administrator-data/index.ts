@@ -116,19 +116,39 @@ Deno.serve(async (req) => {
     console.log(`📝 Log de sincronização criado: ${syncLog.id}`);
 
     try {
-      // Executar sincronização baseado no tipo de autenticação
-      const authType = syncConfig?.auth_type || 'credentials';
+      // **NOVO: Verificar se existe workflow de automação disponível**
+      let automationWorkflow = null;
+      if (administrator.management_system_id) {
+        const { data: workflowData } = await supabase
+          .from('automation_workflows')
+          .select('*')
+          .eq('management_system_id', administrator.management_system_id)
+          .eq('active', true)
+          .order('success_rate', { ascending: false })
+          .limit(1)
+          .single();
+
+        automationWorkflow = workflowData;
+      }
+
       let syncResult;
 
-      switch (authType) {
-        case 'api_key':
-          syncResult = await syncViaAPI(administrator, syncConfig, template);
-          break;
-        case 'scraping':
-        case 'credentials':
-        default:
-          syncResult = await syncViaScraping(administrator, syncConfig, template, supabase);
-          break;
+      // Se existe workflow de automação, tentar usar primeiro
+      if (automationWorkflow) {
+        console.log(`🤖 Workflow de automação encontrado: ${automationWorkflow.name}`);
+        try {
+          syncResult = await syncViaAutomation(supabase, administrator, automationWorkflow, syncLog.id);
+          console.log('✅ Sincronização via automação bem-sucedida');
+        } catch (autoError) {
+          console.error('⚠️ Automação falhou, tentando método tradicional:', autoError);
+          // Fallback para métodos tradicionais
+          const authType = syncConfig?.auth_type || 'credentials';
+          syncResult = await syncViaTraditionalMethod(authType, administrator, syncConfig, template, supabase);
+        }
+      } else {
+        // Método tradicional
+        const authType = syncConfig?.auth_type || 'credentials';
+        syncResult = await syncViaTraditionalMethod(authType, administrator, syncConfig, template, supabase);
       }
 
       // Processar dados obtidos
@@ -227,6 +247,83 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// **NOVO: Sincronização via automação de navegador**
+async function syncViaAutomation(
+  supabase: any,
+  administrator: any,
+  workflow: any,
+  syncLogId: string
+) {
+  console.log('🤖 Usando automação de navegador...');
+
+  // Invocar Edge Function de automação
+  const { data, error } = await supabase.functions.invoke('browser-automation', {
+    body: {
+      workflowId: workflow.id,
+      administratorId: administrator.id,
+      credentials: {
+        username: administrator.portal_username,
+        password: administrator.portal_password,
+      },
+    },
+  });
+
+  if (error) {
+    throw new Error(`Automação falhou: ${error.message}`);
+  }
+
+  if (!data.success) {
+    throw new Error('Automação retornou falha');
+  }
+
+  console.log(`✅ Dados extraídos via automação: ${data.recordsExtracted} registros`);
+
+  // Aplicar mapeamento de dados do workflow
+  const mappedData = applyDataMapping(data.data, workflow.data_mapping);
+
+  return {
+    rawData: data.data,
+    data: mappedData,
+    screenshots: data.screenshots,
+    method: 'automation',
+  };
+}
+
+// Aplicar mapeamento de dados
+function applyDataMapping(data: any[], mapping: any): any[] {
+  if (!mapping) return data;
+
+  return data.map((record: any) => {
+    const mapped: any = {};
+
+    Object.entries(mapping).forEach(([sourceKey, targetKey]) => {
+      if (record[sourceKey] !== undefined) {
+        mapped[targetKey as string] = record[sourceKey];
+      }
+    });
+
+    return mapped;
+  });
+}
+
+// **NOVO: Método unificado tradicional**
+async function syncViaTraditionalMethod(
+  authType: string,
+  administrator: any,
+  syncConfig: any,
+  template: any,
+  supabase: any
+) {
+  switch (authType) {
+    case 'api_key':
+      return await syncViaAPI(administrator, syncConfig, template);
+    case 'scraping':
+    case 'credentials':
+    default:
+      return await syncViaScraping(administrator, syncConfig, template, supabase);
+  }
+}
 
 // Sincronização via API
 async function syncViaAPI(administrator: any, syncConfig: any, template: any) {

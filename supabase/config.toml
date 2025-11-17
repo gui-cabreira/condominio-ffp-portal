@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.langgraph-agent]
 verify_jwt = false
+
+[functions.browser-automation]
+verify_jwt = true
