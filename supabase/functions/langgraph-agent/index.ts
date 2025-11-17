@@ -593,22 +593,41 @@ async function sendWhatsAppMessage(
 ) {
   console.log('📤 Enviando mensagem via WhatsApp...');
 
-  // Salvar mensagem de saída no banco
-  await supabase
-    .from('whatsapp_messages')
-    .insert({
-      conversation_id: conversationId,
-      direction: 'outbound',
-      sender_phone: 'system',
-      recipient_phone: phone,
-      message_type: 'text',
-      content: message,
-      status: 'sent',
+  try {
+    // Invocar Edge Function de envio de WhatsApp
+    const { data, error } = await supabase.functions.invoke('send-whatsapp-message', {
+      body: {
+        phone,
+        message,
+        conversationId,
+      },
     });
 
-  // TODO: Integrar com UAZAPI para enviar mensagem de fato
-  // Por ora, apenas salvamos no banco
-  console.log('✅ Mensagem salva no banco (integração UAZAPI pendente)');
+    if (error) {
+      console.error('❌ Erro ao enviar via UAZAPI:', error);
+      // Fallback: salvar no banco mesmo se falhou
+      await supabase
+        .from('whatsapp_messages')
+        .insert({
+          conversation_id: conversationId,
+          direction: 'outbound',
+          sender_phone: 'system',
+          recipient_phone: phone,
+          message_type: 'text',
+          content: message,
+          status: 'failed',
+        });
+
+      throw error;
+    }
+
+    console.log('✅ Mensagem enviada via UAZAPI:', data.messageId);
+    return data;
+  } catch (error) {
+    console.error('❌ Erro crítico ao enviar mensagem:', error);
+    // Não bloquear o fluxo mesmo se envio falhar
+    return null;
+  }
 }
 
 // Atualizar estado da conversa

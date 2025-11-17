@@ -12,6 +12,12 @@ verify_jwt = true
 [functions.send-report]
 verify_jwt = true
 
+[functions.send-charge-notification]
+verify_jwt = true
+
+[functions.send-whatsapp-message]
+verify_jwt = true
+
 [functions.process-charges-ai]
 verify_jwt = true
 
