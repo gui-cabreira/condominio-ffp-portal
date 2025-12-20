@@ -27,6 +27,8 @@ import NegotiationParameters from "./pages/NegotiationParameters";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AutomationPage from "./pages/AutomationPage";
 import CoachAgentsPage from "./pages/CoachAgentsPage";
+import EmployeeCoachPage from "./pages/EmployeeCoachPage";
+import WorkflowSettings from "./pages/WorkflowSettings";
 import ReportsPage from "./pages/ReportsPage";
 import AdministratorsPage from "./pages/AdministratorsPage";
 import AdministratorSync from "./pages/AdministratorSync";
@@ -173,7 +175,23 @@ const App = () => {
             } />
             <Route path="/portal/corporativo/coach" element={
               <AuthGuard requiredRole="admin">
-                <CoachAgentsPage />
+                <CorporateLayout>
+                  <CoachAgentsPage />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/coach-painel" element={
+              <AuthGuard>
+                <CorporateLayout>
+                  <EmployeeCoachPage />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/configuracoes" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <WorkflowSettings />
+                </CorporateLayout>
               </AuthGuard>
             } />
             <Route path="/portal/corporativo/relatorios" element={
