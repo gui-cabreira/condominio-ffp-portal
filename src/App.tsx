@@ -26,6 +26,7 @@ import UserManagement from "./pages/UserManagement";
 import NegotiationParameters from "./pages/NegotiationParameters";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AutomationPage from "./pages/AutomationPage";
+import CoachAgentsPage from "./pages/CoachAgentsPage";
 import ReportsPage from "./pages/ReportsPage";
 import AdministratorsPage from "./pages/AdministratorsPage";
 import AdministratorSync from "./pages/AdministratorSync";
@@ -168,6 +169,11 @@ const App = () => {
                 <CorporateLayout>
                   <AutomationPage />
                 </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/coach" element={
+              <AuthGuard requiredRole="admin">
+                <CoachAgentsPage />
               </AuthGuard>
             } />
             <Route path="/portal/corporativo/relatorios" element={
