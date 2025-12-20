@@ -270,12 +270,14 @@ const UserManagement = () => {
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!editingUser) return;
 
     try {
-      // Atualizar perfil
-      const { error: profileError } = await supabase
+      const userId = editingUser.user_id || editingUser.id;
+
+      // Atualizar perfil (usar user_id para compatibilidade com RLS)
+      const { data: updatedProfiles, error: profileError } = await supabase
         .from('profiles')
         .update({
           first_name: editForm.first_name,
@@ -291,14 +293,17 @@ const UserManagement = () => {
           neighborhood: editForm.neighborhood,
           city: editForm.city,
           state: editForm.state,
-          property_type: editForm.property_type
+          property_type: editForm.property_type,
         } as any)
-        .eq('id', editingUser.id);
+        .eq('user_id', userId)
+        .select('id');
 
       if (profileError) throw profileError;
+      if (!updatedProfiles || updatedProfiles.length === 0) {
+        throw new Error('Não foi possível atualizar o perfil (sem permissão ou registro não encontrado).');
+      }
 
-      // Atualizar role (UPDATE ao invés de DELETE + INSERT) - usar user_id do profile
-      const userId = editingUser.user_id || editingUser.id;
+      // Atualizar role (UPDATE ao invés de DELETE + INSERT)
       const { error: roleError } = await supabase
         .from('user_roles')
         .update({ role: editForm.role as any })
@@ -308,7 +313,7 @@ const UserManagement = () => {
 
       toast({
         title: 'Sucesso',
-        description: 'Usuário atualizado com sucesso'
+        description: 'Usuário atualizado com sucesso',
       });
 
       setEditDialogOpen(false);
@@ -318,8 +323,8 @@ const UserManagement = () => {
       console.error('Error updating user:', error);
       toast({
         title: 'Erro',
-        description: 'Erro ao atualizar usuário',
-        variant: 'destructive'
+        description: error instanceof Error ? error.message : 'Erro ao atualizar usuário',
+        variant: 'destructive',
       });
     }
   };
