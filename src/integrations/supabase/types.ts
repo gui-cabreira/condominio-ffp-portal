@@ -1502,7 +1502,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_any_role: {
+        Args: {
+          _roles: Database["public"]["Enums"]["user_role"][]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       charge_status: "pending" | "paid" | "overdue" | "cancelled"
