@@ -22,9 +22,9 @@ export const AuthGuard = ({ children, requiredRole, redirectTo = '/portal' }: Au
           return;
         }
 
-        // Developer tem acesso total a tudo
-        const isDeveloper = await hasRole('developer');
-        if (isDeveloper) {
+        // Admin tem acesso total a tudo
+        const isAdmin = await hasRole('admin');
+        if (isAdmin) {
           return;
         }
 

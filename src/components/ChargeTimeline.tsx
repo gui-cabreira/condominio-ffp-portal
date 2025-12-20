@@ -18,10 +18,10 @@ import { Badge } from '@/components/ui/badge';
 interface TimelineEvent {
   id: string;
   event_type: string;
-  description: string;
-  metadata: any;
+  event_data: any;
   created_at: string;
   created_by: string | null;
+  charge_id: string;
 }
 
 interface ChargeTimelineProps {
@@ -136,7 +136,7 @@ export const ChargeTimeline = ({ chargeId }: ChargeTimelineProps) => {
                         {getEventTitle(event.event_type)}
                       </h4>
                       <p className="text-sm text-gray-600 mt-1">
-                        {event.description}
+                        {event.event_data?.description || ''}
                       </p>
                     </div>
                     <Badge variant="outline" className="text-xs">
@@ -145,9 +145,9 @@ export const ChargeTimeline = ({ chargeId }: ChargeTimelineProps) => {
                   </div>
 
                   {/* Metadata adicional */}
-                  {event.metadata && Object.keys(event.metadata).length > 0 && (
+                  {event.event_data && Object.keys(event.event_data).length > 0 && (
                     <div className="mt-2 p-2 bg-white/50 rounded text-xs">
-                      {Object.entries(event.metadata).map(([key, value]) => (
+                      {Object.entries(event.event_data).filter(([key]) => key !== 'description').map(([key, value]) => (
                         <div key={key} className="flex gap-2">
                           <span className="font-medium">{key}:</span>
                           <span>{String(value)}</span>

@@ -71,10 +71,10 @@ export const useWorkflow = () => {
       const nodesToInsert = nodes.map(node => ({
         workflow_id: finalWorkflowId!,
         node_id: node.id,
-        node_type: node.type || 'default',
+        type: node.type || 'default',
         position_x: node.position.x,
         position_y: node.position.y,
-        config: (node.data || {}) as any
+        data: (node.data || {}) as any
       }));
 
       if (nodesToInsert.length > 0) {
@@ -91,10 +91,12 @@ export const useWorkflow = () => {
       // Salvar edges
       console.log('Salvando', edges.length, 'edges');
       const edgesToInsert = edges.map(edge => ({
-        workflow_id: finalWorkflowId,
-        source_node_id: edge.source,
-        target_node_id: edge.target,
-        edge_type: edge.type || 'default'
+        workflow_id: finalWorkflowId!,
+        edge_id: edge.id || `${edge.source}-${edge.target}`,
+        source: edge.source,
+        target: edge.target,
+        source_handle: edge.sourceHandle || null,
+        target_handle: edge.targetHandle || null
       }));
 
       if (edgesToInsert.length > 0) {
@@ -189,11 +191,11 @@ export const useWorkflow = () => {
       // Converter para formato do React Flow
       const flowNodes: Node[] = nodes.map(node => {
         const loopData = loops?.find(l => l.node_id === node.node_id);
-        const baseData = (node.config as Record<string, unknown>) || {};
+        const baseData = (node.data as Record<string, unknown>) || {};
         
         return {
           id: node.node_id,
-          type: node.node_type,
+          type: node.type,
           position: { x: Number(node.position_x), y: Number(node.position_y) },
           data: loopData ? {
             ...baseData,
@@ -204,10 +206,10 @@ export const useWorkflow = () => {
       });
 
       const flowEdges: Edge[] = edges.map(edge => ({
-        id: `${edge.source_node_id}-${edge.target_node_id}`,
-        source: edge.source_node_id,
-        target: edge.target_node_id,
-        type: edge.edge_type
+        id: edge.edge_id || `${edge.source}-${edge.target}`,
+        source: edge.source,
+        target: edge.target,
+        type: 'default'
       }));
 
       return {
