@@ -15,6 +15,7 @@ import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calen
 
 interface User {
   id: string;
+  user_id?: string;
   email: string;
   first_name?: string;
   last_name?: string;
@@ -24,9 +25,12 @@ interface User {
   cpf?: string;
   zip_code?: string;
   street?: string;
+  number?: string;
+  complement?: string;
   neighborhood?: string;
   city?: string;
   state?: string;
+  property_type?: string;
   created_at: string;
   user_roles: { role: string }[];
 }
@@ -102,6 +106,7 @@ const UserManagement = () => {
         .from('profiles')
         .select(`
           id,
+          user_id,
           email,
           first_name,
           last_name,
@@ -111,9 +116,12 @@ const UserManagement = () => {
           cpf,
           zip_code,
           street,
+          number,
+          complement,
           neighborhood,
           city,
           state,
+          property_type,
           created_at,
           updated_at
         `)
@@ -128,10 +136,10 @@ const UserManagement = () => {
 
       if (rolesError) throw rolesError;
 
-      // Combinar dados dos usuários com seus roles
+      // Combinar dados dos usuários com seus roles (usar user_id para matching)
       const usersWithRoles = (usersData || []).map(user => ({
         ...user,
-        user_roles: (rolesData || []).filter(role => role.user_id === user.id).map(role => ({ role: role.role }))
+        user_roles: (rolesData || []).filter(role => role.user_id === user.user_id).map(role => ({ role: role.role }))
       }));
 
       // Carregar convites
@@ -216,12 +224,12 @@ const UserManagement = () => {
       cpf: user.cpf || '',
       zip_code: user.zip_code || '',
       street: user.street || '',
-      number: (user as any).number || '',
-      complement: (user as any).complement || '',
+      number: user.number || '',
+      complement: user.complement || '',
       neighborhood: user.neighborhood || '',
       city: user.city || '',
       state: user.state || '',
-      property_type: (user as any).property_type || '',
+      property_type: user.property_type || '',
       role: user.user_roles[0]?.role || 'employee'
     });
     setEditDialogOpen(true);
@@ -289,11 +297,12 @@ const UserManagement = () => {
 
       if (profileError) throw profileError;
 
-      // Atualizar role (UPDATE ao invés de DELETE + INSERT)
+      // Atualizar role (UPDATE ao invés de DELETE + INSERT) - usar user_id do profile
+      const userId = editingUser.user_id || editingUser.id;
       const { error: roleError } = await supabase
         .from('user_roles')
         .update({ role: editForm.role as any })
-        .eq('user_id', editingUser.id);
+        .eq('user_id', userId);
 
       if (roleError) throw roleError;
 
