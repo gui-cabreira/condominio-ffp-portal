@@ -146,20 +146,27 @@ const AcceptInvitation = () => {
       // Aguardar um pouco para o usuário ser criado
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Aceitar o convite usando a função do banco
-      const { data: acceptData, error: acceptError } = await supabase
-        .rpc('accept_invitation', {
-          p_invitation_token: token,
-          p_user_id: authData.user.id
-        });
+      // Aceitar o convite atualizando diretamente a tabela
+      const { error: acceptError } = await supabase
+        .from('user_invitations')
+        .update({ accepted_at: new Date().toISOString() })
+        .eq('invitation_token', token);
 
       if (acceptError) {
         console.error('Accept invitation error:', acceptError);
         throw acceptError;
       }
 
-      if (!acceptData) {
-        throw new Error('Não foi possível aceitar o convite');
+      // Criar role para o usuário
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: authData.user.id,
+          role: invitation!.role as 'admin' | 'assistant' | 'employee' | 'supervisor'
+        });
+
+      if (roleError) {
+        console.error('Role creation error:', roleError);
       }
 
       toast({
