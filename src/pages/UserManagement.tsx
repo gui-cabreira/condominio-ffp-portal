@@ -11,7 +11,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calendar, Copy, Edit, Trash2, Eye, MousePointer, TrendingUp, AlertCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 
 interface User {
   id: string;
@@ -61,28 +60,7 @@ const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
 
-  // Query para buscar usuários Azure via Microsoft Graph API
-  const { data: azureGraphData, isLoading: azureLoading, error: azureError } = useQuery({
-    queryKey: ['azure-graph-users'],
-    retry: 0,
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('azure-graph-users');
-      if (error) throw new Error(error.message || 'Falha ao chamar função azure-graph-users');
-      if ((data as any)?.error) throw new Error((data as any).error);
-      return data;
-    }
-  });
-
-  // Mostrar toast quando houver erro
-  React.useEffect(() => {
-    if (azureError) {
-      toast({
-        title: 'Erro ao buscar usuários do Azure',
-        description: (azureError as Error)?.message || 'Verifique credenciais e permissões no Azure AD',
-        variant: 'destructive'
-      });
-    }
-  }, [azureError]);
+  // Removed Azure integration - using only email/password authentication
 
   // Form states
   const [inviteForm, setInviteForm] = useState({
@@ -771,14 +749,10 @@ const UserManagement = () => {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Usuários
-          </TabsTrigger>
-          <TabsTrigger value="azure" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Usuários Azure
           </TabsTrigger>
           <TabsTrigger value="invitations" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
@@ -855,99 +829,6 @@ const UserManagement = () => {
                           </TableCell>
                         </TableRow>
                       ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="azure" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Usuários Microsoft 365</CardTitle>
-              <CardDescription>
-                Colaboradores FFP que acessam via Azure AD
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[calc(100vh-32rem)] w-full">
-                <div className="pr-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Perfil</TableHead>
-                        <TableHead>Perfil Completo</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {azureLoading && (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center">
-                            Carregando usuários do Azure AD...
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {!azureLoading && azureGraphData?.users?.map((azureUser: any) => {
-                        const localUser = users.find(u => u.email === azureUser.mail || u.email === azureUser.userPrincipalName);
-                        return (
-                        <TableRow key={azureUser.id}>
-                          <TableCell className="font-medium">
-                            {azureUser.displayName}
-                          </TableCell>
-                          <TableCell>{azureUser.mail || azureUser.userPrincipalName}</TableCell>
-                          <TableCell>
-                            {localUser ? (
-                              <select
-                                value={localUser.user_roles?.[0]?.role || 'employee'}
-                                onChange={async (e) => {
-                                  const newRole = e.target.value;
-                                  await supabase.from('user_roles').delete().eq('user_id', localUser.id);
-                                  const { error } = await supabase.from('user_roles').insert([{ user_id: localUser.id, role: newRole as any }]);
-                                  if (!error) {
-                                    toast({ title: "Role atualizada com sucesso!" });
-                                    loadData();
-                                  }
-                                }}
-                                className="p-1 border rounded text-sm"
-                              >
-                                <option value="developer">Developer</option>
-                                <option value="admin">Admin</option>
-                                <option value="supervisor">Supervisor</option>
-                                <option value="employee">Employee</option>
-                                <option value="assistant">Assistant</option>
-                              </select>
-                            ) : (
-                              <Badge variant="outline">Não sincronizado</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {localUser ? (
-                              <Badge variant={localUser.cpf ? "default" : "secondary"}>
-                                {localUser.cpf ? "✓ Completo" : "Pendente"}
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary">-</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {localUser && (
-                              <Button size="sm" variant="outline" onClick={() => {
-                                setEditingUser(localUser);
-                                setEditDialogOpen(true);
-                              }}>
-                                <Edit className="h-3 w-3 mr-1" />
-                                Editar
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                      })}
                     </TableBody>
                   </Table>
                 </div>
