@@ -1,48 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Plus, Trash2, RefreshCw, CheckCircle, XCircle, Smartphone, Wifi, WifiOff } from 'lucide-react';
+import { Settings, Key, Save, Eye, EyeOff, CheckCircle, Server, Smartphone, RefreshCw, Plus, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface UazapiInstance {
+interface WhatsAppInstance {
   id: string;
   name: string;
   instance_id: string;
-  api_key: string;
-  base_url: string;
   status: string;
   phone_number: string | null;
-  is_default: boolean;
   instance_type: string;
   created_at: string;
 }
 
 const WorkflowSettings = () => {
-  const [instances, setInstances] = useState<UazapiInstance[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [serverUrl, setServerUrl] = useState('');
+  const [adminToken, setAdminToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [checkingStatus, setCheckingStatus] = useState<string | null>(null);
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    instance_id: '',
-    api_key: '',
-    base_url: 'https://api.uazapi.com',
-    instance_type: 'general',
-    is_default: false
-  });
+  const [loading, setLoading] = useState(true);
+  const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
+  const [loadingInstances, setLoadingInstances] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newInstanceName, setNewInstanceName] = useState('');
+  const [newInstanceType, setNewInstanceType] = useState('general');
+  const [creatingInstance, setCreatingInstance] = useState(false);
 
   useEffect(() => {
+    loadSettings();
     fetchInstances();
   }, []);
+
+  const loadSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('negotiation_parameters')
+        .select('*')
+        .in('parameter_key', ['whatsapp_server_url', 'whatsapp_admin_token']);
+
+      if (error) throw error;
+
+      data?.forEach((param) => {
+        if (param.parameter_key === 'whatsapp_server_url') {
+          setServerUrl(param.parameter_value);
+        } else if (param.parameter_key === 'whatsapp_admin_token') {
+          setAdminToken(param.parameter_value);
+        }
+      });
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchInstances = async () => {
     try {
@@ -55,124 +73,186 @@ const WorkflowSettings = () => {
       setInstances(data || []);
     } catch (error) {
       console.error('Error fetching instances:', error);
-      toast.error('Erro ao carregar instâncias');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveSettings = async () => {
     setSaving(true);
-
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      
-      const { error } = await supabase
-        .from('uazapi_instances')
-        .insert({
-          ...formData,
-          created_by: userData.user?.id
-        });
+      // Upsert server URL
+      await supabase
+        .from('negotiation_parameters')
+        .upsert({
+          parameter_key: 'whatsapp_server_url',
+          parameter_value: serverUrl,
+          description: 'URL do servidor WhatsApp'
+        }, { onConflict: 'parameter_key' });
 
-      if (error) throw error;
+      // Upsert admin token
+      await supabase
+        .from('negotiation_parameters')
+        .upsert({
+          parameter_key: 'whatsapp_admin_token',
+          parameter_value: adminToken,
+          description: 'Token de administrador do servidor WhatsApp'
+        }, { onConflict: 'parameter_key' });
 
-      toast.success('Instância criada com sucesso');
-      setDialogOpen(false);
-      setFormData({
-        name: '',
-        instance_id: '',
-        api_key: '',
-        base_url: 'https://api.uazapi.com',
-        instance_type: 'general',
-        is_default: false
-      });
-      fetchInstances();
+      toast.success('Configurações salvas com sucesso');
     } catch (error: any) {
-      console.error('Error creating instance:', error);
-      toast.error(error.message || 'Erro ao criar instância');
+      console.error('Error saving settings:', error);
+      toast.error('Erro ao salvar configurações');
     } finally {
       setSaving(false);
     }
   };
 
-  const checkInstanceStatus = async (instance: UazapiInstance) => {
-    setCheckingStatus(instance.id);
+  const syncInstances = async () => {
+    if (!serverUrl || !adminToken) {
+      toast.error('Configure o servidor e token primeiro');
+      return;
+    }
+
+    setLoadingInstances(true);
     try {
-      const response = await fetch(`${instance.base_url}/instance/${instance.instance_id}/status`, {
+      const response = await fetch(`${serverUrl}/instance/list`, {
         headers: {
-          'Authorization': `Bearer ${instance.api_key}`
+          'Authorization': `Bearer ${adminToken}`
         }
       });
 
+      if (!response.ok) throw new Error('Erro ao buscar instâncias');
+
       const data = await response.json();
       
-      const newStatus = data.connected ? 'connected' : 'disconnected';
-      
-      await supabase
-        .from('uazapi_instances')
-        .update({ 
-          status: newStatus,
-          phone_number: data.phone || null 
-        })
-        .eq('id', instance.id);
+      // Sync instances to database
+      for (const inst of data.instances || data) {
+        await supabase
+          .from('uazapi_instances')
+          .upsert({
+            instance_id: inst.instance || inst.id,
+            name: inst.name || inst.instance || inst.id,
+            api_key: adminToken,
+            base_url: serverUrl,
+            status: inst.state === 'open' ? 'connected' : 'disconnected',
+            phone_number: inst.phone || null
+          }, { onConflict: 'instance_id' });
+      }
 
-      toast.success(`Status: ${newStatus === 'connected' ? 'Conectado' : 'Desconectado'}`);
-      fetchInstances();
-    } catch (error) {
-      console.error('Error checking status:', error);
-      toast.error('Erro ao verificar status da instância');
+      await fetchInstances();
+      toast.success('Instâncias sincronizadas');
+    } catch (error: any) {
+      console.error('Error syncing instances:', error);
+      toast.error('Erro ao sincronizar instâncias');
     } finally {
-      setCheckingStatus(null);
+      setLoadingInstances(false);
     }
   };
 
-  const deleteInstance = async (id: string) => {
+  const createInstance = async () => {
+    if (!serverUrl || !adminToken || !newInstanceName) {
+      toast.error('Preencha todos os campos');
+      return;
+    }
+
+    setCreatingInstance(true);
+    try {
+      const instanceId = newInstanceName.toLowerCase().replace(/\s+/g, '_');
+      
+      const response = await fetch(`${serverUrl}/instance/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          instanceName: instanceId,
+          webhook: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/coach-webhook`,
+          webhookByEvents: true,
+          events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE']
+        })
+      });
+
+      if (!response.ok) throw new Error('Erro ao criar instância');
+
+      const data = await response.json();
+
+      // Save to database
+      const { data: userData } = await supabase.auth.getUser();
+      
+      await supabase
+        .from('uazapi_instances')
+        .insert({
+          instance_id: instanceId,
+          name: newInstanceName,
+          api_key: data.hash || adminToken,
+          base_url: serverUrl,
+          instance_type: newInstanceType,
+          status: 'disconnected',
+          created_by: userData.user?.id
+        });
+
+      toast.success('Instância criada! Escaneie o QR Code para conectar.');
+      setDialogOpen(false);
+      setNewInstanceName('');
+      setNewInstanceType('general');
+      await fetchInstances();
+    } catch (error: any) {
+      console.error('Error creating instance:', error);
+      toast.error(error.message || 'Erro ao criar instância');
+    } finally {
+      setCreatingInstance(false);
+    }
+  };
+
+  const deleteInstance = async (instance: WhatsAppInstance) => {
     if (!confirm('Tem certeza que deseja excluir esta instância?')) return;
 
     try {
-      const { error } = await supabase
+      // Delete from server
+      if (serverUrl && adminToken) {
+        await fetch(`${serverUrl}/instance/delete/${instance.instance_id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${adminToken}`
+          }
+        });
+      }
+
+      // Delete from database
+      await supabase
         .from('uazapi_instances')
         .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+        .eq('id', instance.id);
 
       toast.success('Instância excluída');
-      fetchInstances();
+      await fetchInstances();
     } catch (error) {
       console.error('Error deleting instance:', error);
       toast.error('Erro ao excluir instância');
     }
   };
 
-  const setAsDefault = async (id: string) => {
+  const getQRCode = async (instance: WhatsAppInstance) => {
     try {
-      // Remove default de todas
-      await supabase
-        .from('uazapi_instances')
-        .update({ is_default: false })
-        .neq('id', '00000000-0000-0000-0000-000000000000');
+      const response = await fetch(`${serverUrl}/instance/qrcode/${instance.instance_id}`, {
+        headers: {
+          'Authorization': `Bearer ${adminToken}`
+        }
+      });
 
-      // Define a nova como padrão
-      await supabase
-        .from('uazapi_instances')
-        .update({ is_default: true })
-        .eq('id', id);
+      if (!response.ok) throw new Error('Erro ao obter QR Code');
 
-      toast.success('Instância definida como padrão');
-      fetchInstances();
+      const data = await response.json();
+      
+      if (data.qrcode || data.base64) {
+        window.open(data.qrcode || data.base64, '_blank');
+      } else {
+        toast.info('Instância já conectada ou aguardando');
+      }
     } catch (error) {
-      console.error('Error setting default:', error);
-      toast.error('Erro ao definir instância padrão');
+      console.error('Error getting QR code:', error);
+      toast.error('Erro ao obter QR Code');
     }
-  };
-
-  const getStatusBadge = (status: string) => {
-    if (status === 'connected') {
-      return <Badge className="bg-green-500"><Wifi className="w-3 h-3 mr-1" /> Conectado</Badge>;
-    }
-    return <Badge variant="secondary"><WifiOff className="w-3 h-3 mr-1" /> Desconectado</Badge>;
   };
 
   const getTypeBadge = (type: string) => {
@@ -185,215 +265,226 @@ const WorkflowSettings = () => {
     return <Badge variant={t.variant}>{t.label}</Badge>;
   };
 
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Settings className="w-8 h-8" />
-            Configurações do Workflow
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure as instâncias UAZAPI e integrações
-          </p>
-        </div>
-        
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Instância
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Nova Instância UAZAPI</DialogTitle>
-              <DialogDescription>
-                Configure uma nova instância para envio de mensagens
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome da Instância</Label>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+          <Settings className="w-8 h-8" />
+          Configurações
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Configure o servidor de mensagens e gerencie instâncias
+        </p>
+      </div>
+
+      {/* Server Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Server className="w-5 h-5" />
+            Servidor de Mensagens
+          </CardTitle>
+          <CardDescription>
+            Configure a conexão com o servidor WhatsApp
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="serverUrl">URL do Servidor</Label>
+              <Input
+                id="serverUrl"
+                value={serverUrl}
+                onChange={(e) => setServerUrl(e.target.value)}
+                placeholder="https://seu-servidor.com"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="adminToken">Admin Token</Label>
+              <div className="relative">
                 <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ex: WhatsApp Principal"
-                  required
+                  id="adminToken"
+                  type={showToken ? 'text' : 'password'}
+                  value={adminToken}
+                  onChange={(e) => setAdminToken(e.target.value)}
+                  placeholder="Token de administrador"
+                  className="pr-10"
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="instance_id">Instance ID</Label>
-                <Input
-                  id="instance_id"
-                  value={formData.instance_id}
-                  onChange={(e) => setFormData({ ...formData, instance_id: e.target.value })}
-                  placeholder="ID da instância no UAZAPI"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="api_key">API Key</Label>
-                <Input
-                  id="api_key"
-                  type="password"
-                  value={formData.api_key}
-                  onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                  placeholder="Chave de API"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="base_url">URL Base</Label>
-                <Input
-                  id="base_url"
-                  value={formData.base_url}
-                  onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                  placeholder="https://api.uazapi.com"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="instance_type">Tipo de Instância</Label>
-                <Select
-                  value={formData.instance_type}
-                  onValueChange={(value) => setFormData({ ...formData, instance_type: value })}
+                <button
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">Geral</SelectItem>
-                    <SelectItem value="coach">Coach IA</SelectItem>
-                    <SelectItem value="notification">Notificações</SelectItem>
-                  </SelectContent>
-                </Select>
+                  {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={saveSettings} disabled={saving}>
+              {saving ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Salvar Configurações
+            </Button>
+            
+            {serverUrl && adminToken && (
+              <Button variant="outline" onClick={syncInstances} disabled={loadingInstances}>
+                {loadingInstances ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Sincronizar Instâncias
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      {/* Instances */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Instâncias WhatsApp</h2>
+          
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button disabled={!serverUrl || !adminToken}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Instância
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Nova Instância</DialogTitle>
+                <DialogDescription>
+                  Uma nova instância WhatsApp será criada com webhook configurado automaticamente
+                </DialogDescription>
+              </DialogHeader>
               
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_default"
-                  checked={formData.is_default}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_default: checked })}
-                />
-                <Label htmlFor="is_default">Definir como padrão</Label>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="instanceName">Nome da Instância</Label>
+                  <Input
+                    id="instanceName"
+                    value={newInstanceName}
+                    onChange={(e) => setNewInstanceName(e.target.value)}
+                    placeholder="Ex: Coach Vendas"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="instanceType">Tipo</Label>
+                  <Select value={newInstanceType} onValueChange={setNewInstanceType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="general">Geral</SelectItem>
+                      <SelectItem value="coach">Coach IA</SelectItem>
+                      <SelectItem value="notification">Notificações</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? 'Salvando...' : 'Criar Instância'}
+                <Button onClick={createInstance} disabled={creatingInstance || !newInstanceName}>
+                  {creatingInstance ? 'Criando...' : 'Criar Instância'}
                 </Button>
               </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-      ) : instances.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Smartphone className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Nenhuma instância configurada</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Crie sua primeira instância UAZAPI para começar a enviar mensagens
-            </p>
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Instância
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {instances.map((instance) => (
-            <Card key={instance.id} className={instance.is_default ? 'ring-2 ring-primary' : ''}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      {instance.name}
-                      {instance.is_default && (
-                        <Badge variant="outline" className="text-xs">Padrão</Badge>
+        {instances.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Smartphone className="w-12 h-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">Nenhuma instância</h3>
+              <p className="text-muted-foreground text-center mb-4">
+                {serverUrl && adminToken 
+                  ? 'Crie uma nova instância ou sincronize do servidor'
+                  : 'Configure o servidor primeiro para gerenciar instâncias'
+                }
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {instances.map((instance) => (
+              <Card key={instance.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{instance.name}</CardTitle>
+                      <CardDescription>
+                        {instance.phone_number || instance.instance_id}
+                      </CardDescription>
+                    </div>
+                    <Badge variant={instance.status === 'connected' ? 'default' : 'secondary'}>
+                      {instance.status === 'connected' ? (
+                        <><CheckCircle className="w-3 h-3 mr-1" /> Conectado</>
+                      ) : (
+                        'Desconectado'
                       )}
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                      {instance.phone_number || instance.instance_id}
-                    </CardDescription>
+                    </Badge>
                   </div>
-                  {getStatusBadge(instance.status)}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-2">
-                  {getTypeBadge(instance.instance_type)}
-                </div>
-                
-                <div className="text-xs text-muted-foreground">
-                  <p>URL: {instance.base_url}</p>
-                  <p>API Key: ••••••••{instance.api_key.slice(-4)}</p>
-                </div>
-                
-                <div className="flex items-center gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => checkInstanceStatus(instance)}
-                    disabled={checkingStatus === instance.id}
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-1 ${checkingStatus === instance.id ? 'animate-spin' : ''}`} />
-                    Status
-                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    {getTypeBadge(instance.instance_type)}
+                  </div>
                   
-                  {!instance.is_default && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAsDefault(instance.id)}
+                  <div className="flex items-center gap-2">
+                    {instance.status !== 'connected' && (
+                      <Button size="sm" variant="outline" onClick={() => getQRCode(instance)}>
+                        QR Code
+                      </Button>
+                    )}
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="text-destructive"
+                      onClick={() => deleteInstance(instance)}
                     >
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      Padrão
+                      <Trash2 className="w-4 h-4" />
                     </Button>
-                  )}
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => deleteInstance(instance.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
 
       <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
         <CardHeader>
           <CardTitle className="text-sm flex items-center gap-2">
             <Key className="w-4 h-4" />
-            Configuração do Webhook
+            Webhook Automático
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>Configure o webhook da UAZAPI para receber mensagens:</p>
-          <code className="block bg-muted p-2 rounded text-xs break-all">
-            {`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/coach-webhook`}
-          </code>
-          <p className="text-xs">Eventos: <code>message.received</code>, <code>message.status</code></p>
+          <p>Todas as instâncias criadas são configuradas automaticamente para receber mensagens.</p>
+          <p className="text-xs">Os webhooks são direcionados para o sistema de Coach IA.</p>
         </CardContent>
       </Card>
     </div>
