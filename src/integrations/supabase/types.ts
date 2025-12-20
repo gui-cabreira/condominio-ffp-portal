@@ -688,6 +688,342 @@ export type Database = {
           },
         ]
       }
+      coach_agents: {
+        Row: {
+          active: boolean | null
+          administrator_id: string | null
+          condominium_id: string | null
+          created_at: string
+          description: string | null
+          focus_areas: Json | null
+          id: string
+          name: string
+          personality: string
+          updated_at: string
+          welcome_message: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          administrator_id?: string | null
+          condominium_id?: string | null
+          created_at?: string
+          description?: string | null
+          focus_areas?: Json | null
+          id?: string
+          name: string
+          personality?: string
+          updated_at?: string
+          welcome_message?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          administrator_id?: string | null
+          condominium_id?: string | null
+          created_at?: string
+          description?: string | null
+          focus_areas?: Json | null
+          id?: string
+          name?: string
+          personality?: string
+          updated_at?: string
+          welcome_message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_agents_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_agents_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "condominiums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coaching_checkins: {
+        Row: {
+          checkin_type: string
+          created_at: string
+          id: string
+          message_template: string | null
+          phone_number: string
+          responded_at: string | null
+          response: string | null
+          scheduled_at: string
+          sent_at: string | null
+          session_id: string
+          status: string | null
+        }
+        Insert: {
+          checkin_type?: string
+          created_at?: string
+          id?: string
+          message_template?: string | null
+          phone_number: string
+          responded_at?: string | null
+          response?: string | null
+          scheduled_at: string
+          sent_at?: string | null
+          session_id: string
+          status?: string | null
+        }
+        Update: {
+          checkin_type?: string
+          created_at?: string
+          id?: string
+          message_template?: string | null
+          phone_number?: string
+          responded_at?: string | null
+          response?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          session_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_checkins_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "coaching_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coaching_content: {
+        Row: {
+          active: boolean | null
+          category: string | null
+          coach_agent_id: string | null
+          content_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          file_url: string | null
+          id: string
+          metadata: Json | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          category?: string | null
+          coach_agent_id?: string | null
+          content_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          metadata?: Json | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          category?: string | null
+          coach_agent_id?: string | null
+          content_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          metadata?: Json | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_content_coach_agent_id_fkey"
+            columns: ["coach_agent_id"]
+            isOneToOne: false
+            referencedRelation: "coach_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coaching_messages: {
+        Row: {
+          confidence: number | null
+          content: string | null
+          created_at: string
+          direction: string
+          id: string
+          intent: string | null
+          media_url: string | null
+          message_type: string | null
+          sentiment: string | null
+          session_id: string
+          status: string | null
+          uazapi_message_id: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          content?: string | null
+          created_at?: string
+          direction?: string
+          id?: string
+          intent?: string | null
+          media_url?: string | null
+          message_type?: string | null
+          sentiment?: string | null
+          session_id: string
+          status?: string | null
+          uazapi_message_id?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          content?: string | null
+          created_at?: string
+          direction?: string
+          id?: string
+          intent?: string | null
+          media_url?: string | null
+          message_type?: string | null
+          sentiment?: string | null
+          session_id?: string
+          status?: string | null
+          uazapi_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "coaching_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coaching_progress: {
+        Row: {
+          created_at: string
+          id: string
+          metric_data: Json | null
+          metric_type: string
+          metric_value: number | null
+          notes: string | null
+          phone_number: string
+          recorded_at: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metric_data?: Json | null
+          metric_type: string
+          metric_value?: number | null
+          notes?: string | null
+          phone_number: string
+          recorded_at?: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metric_data?: Json | null
+          metric_type?: string
+          metric_value?: number | null
+          notes?: string | null
+          phone_number?: string
+          recorded_at?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_progress_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "coaching_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coaching_sessions: {
+        Row: {
+          coach_agent_id: string | null
+          completed_at: string | null
+          condominium_id: string | null
+          created_at: string
+          current_step: number | null
+          goals: Json | null
+          id: string
+          last_interaction_at: string
+          phone_number: string
+          session_data: Json | null
+          session_status: string | null
+          session_type: string | null
+          started_at: string
+          total_steps: number | null
+          unit_id: string | null
+        }
+        Insert: {
+          coach_agent_id?: string | null
+          completed_at?: string | null
+          condominium_id?: string | null
+          created_at?: string
+          current_step?: number | null
+          goals?: Json | null
+          id?: string
+          last_interaction_at?: string
+          phone_number: string
+          session_data?: Json | null
+          session_status?: string | null
+          session_type?: string | null
+          started_at?: string
+          total_steps?: number | null
+          unit_id?: string | null
+        }
+        Update: {
+          coach_agent_id?: string | null
+          completed_at?: string | null
+          condominium_id?: string | null
+          created_at?: string
+          current_step?: number | null
+          goals?: Json | null
+          id?: string
+          last_interaction_at?: string
+          phone_number?: string
+          session_data?: Json | null
+          session_status?: string | null
+          session_type?: string | null
+          started_at?: string
+          total_steps?: number | null
+          unit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_sessions_coach_agent_id_fkey"
+            columns: ["coach_agent_id"]
+            isOneToOne: false
+            referencedRelation: "coach_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coaching_sessions_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "condominiums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coaching_sessions_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       condominiums: {
         Row: {
           address: string | null
