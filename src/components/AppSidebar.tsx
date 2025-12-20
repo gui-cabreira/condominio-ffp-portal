@@ -1,4 +1,4 @@
-import { Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, Upload, UserPlus, Building, Server } from 'lucide-react';
+import { Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, Upload, UserPlus, Building, Server, MessageSquare, Cog } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
@@ -61,6 +61,16 @@ const menuItems = [
     title: 'Workflow',
     url: '/portal/corporativo/workflow',
     icon: Settings,
+  },
+  {
+    title: 'Coach IA',
+    url: '/portal/corporativo/coach-painel',
+    icon: MessageSquare,
+  },
+  {
+    title: 'Configurações',
+    url: '/portal/corporativo/configuracoes',
+    icon: Cog,
   },
   {
     title: 'Sistema',

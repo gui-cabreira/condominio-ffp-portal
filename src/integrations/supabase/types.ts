@@ -745,6 +745,57 @@ export type Database = {
           },
         ]
       }
+      coach_image_analyses: {
+        Row: {
+          ai_response: string | null
+          analysis_result: Json | null
+          confidence: number | null
+          created_at: string
+          id: string
+          image_url: string
+          message_id: string | null
+          session_id: string | null
+          status: string | null
+        }
+        Insert: {
+          ai_response?: string | null
+          analysis_result?: Json | null
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          image_url: string
+          message_id?: string | null
+          session_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          ai_response?: string | null
+          analysis_result?: Json | null
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          message_id?: string | null
+          session_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_image_analyses_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "coaching_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_image_analyses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "coaching_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coaching_checkins: {
         Row: {
           checkin_type: string
@@ -1098,6 +1149,60 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_coach_instances: {
+        Row: {
+          coach_agent_id: string | null
+          created_at: string
+          id: string
+          instance_id: string | null
+          last_activity_at: string | null
+          status: string | null
+          total_conversations: number | null
+          total_images_analyzed: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coach_agent_id?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          last_activity_at?: string | null
+          status?: string | null
+          total_conversations?: number | null
+          total_images_analyzed?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coach_agent_id?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          last_activity_at?: string | null
+          status?: string | null
+          total_conversations?: number | null
+          total_images_analyzed?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_coach_instances_coach_agent_id_fkey"
+            columns: ["coach_agent_id"]
+            isOneToOne: false
+            referencedRelation: "coach_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_coach_instances_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "uazapi_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_logs: {
         Row: {
           created_at: string
@@ -1398,6 +1503,54 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           zip_code?: string | null
+        }
+        Relationships: []
+      }
+      uazapi_instances: {
+        Row: {
+          api_key: string
+          base_url: string
+          created_at: string
+          created_by: string | null
+          id: string
+          instance_id: string
+          instance_type: string | null
+          is_default: boolean | null
+          name: string
+          phone_number: string | null
+          qr_code: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          base_url?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instance_id: string
+          instance_type?: string | null
+          is_default?: boolean | null
+          name: string
+          phone_number?: string | null
+          qr_code?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          base_url?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instance_id?: string
+          instance_type?: string | null
+          is_default?: boolean | null
+          name?: string
+          phone_number?: string | null
+          qr_code?: string | null
+          status?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
