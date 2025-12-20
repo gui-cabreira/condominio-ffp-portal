@@ -38,6 +38,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import ProfileCompletion from "./pages/ProfileCompletion";
+import SetupAdmin from "./pages/SetupAdmin";
 import { CorporateLayout } from "./components/CorporateLayout";
 
 const queryClient = new QueryClient({
@@ -194,6 +195,7 @@ const App = () => {
             <Route path="/cadastro" element={<Signup />} />
             <Route path="/esqueci-senha" element={<ForgotPassword />} />
             <Route path="/redefinir-senha" element={<ResetPassword />} />
+            <Route path="/setup-admin" element={<SetupAdmin />} />
             <Route path="/portal/cliente/dashboard" element={
               <AuthGuard>
                 <ClientDashboard />
