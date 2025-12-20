@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calendar, Copy, Edit, Trash2, Eye, MousePointer, TrendingUp, AlertCircle } from 'lucide-react';
+import { useAddress } from '@/hooks/useAddress';
+import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calendar, Copy, Edit, Trash2, Eye, MousePointer, TrendingUp, AlertCircle, Search, Loader2 } from 'lucide-react';
 
 interface User {
   id: string;
@@ -77,11 +78,16 @@ const UserManagement = () => {
     cpf: '',
     zip_code: '',
     street: '',
+    number: '',
+    complement: '',
     neighborhood: '',
     city: '',
     state: '',
+    property_type: '',
     role: 'employee'
   });
+
+  const { fetchAddress, loading: addressLoading } = useAddress();
 
   useEffect(() => {
     loadData();
@@ -210,12 +216,30 @@ const UserManagement = () => {
       cpf: user.cpf || '',
       zip_code: user.zip_code || '',
       street: user.street || '',
+      number: (user as any).number || '',
+      complement: (user as any).complement || '',
       neighborhood: user.neighborhood || '',
       city: user.city || '',
       state: user.state || '',
+      property_type: (user as any).property_type || '',
       role: user.user_roles[0]?.role || 'employee'
     });
     setEditDialogOpen(true);
+  };
+
+  const handleCepSearch = async () => {
+    if (editForm.zip_code.replace(/\D/g, '').length === 8) {
+      const data = await fetchAddress(editForm.zip_code);
+      if (data) {
+        setEditForm(prev => ({
+          ...prev,
+          street: data.logradouro,
+          neighborhood: data.bairro,
+          city: data.localidade,
+          state: data.uf
+        }));
+      }
+    }
   };
 
   const formatPhone = (value: string) => {
@@ -254,10 +278,13 @@ const UserManagement = () => {
           cpf: editForm.cpf,
           zip_code: editForm.zip_code,
           street: editForm.street,
+          number: editForm.number,
+          complement: editForm.complement,
           neighborhood: editForm.neighborhood,
           city: editForm.city,
-          state: editForm.state
-        })
+          state: editForm.state,
+          property_type: editForm.property_type
+        } as any)
         .eq('id', editingUser.id);
 
       if (profileError) throw profileError;
@@ -563,27 +590,92 @@ const UserManagement = () => {
                 </div>
               </div>
 
+              {/* Tipo de Imóvel */}
               <div>
-                <Label htmlFor="edit_zip_code">CEP</Label>
-                <Input
-                  id="edit_zip_code"
-                  value={editForm.zip_code}
-                  onChange={(e) => setEditForm({ ...editForm, zip_code: formatCEP(e.target.value) })}
-                  placeholder="00000-000"
-                  maxLength={9}
-                />
+                <Label htmlFor="edit_property_type">Tipo de Imóvel</Label>
+                <select
+                  id="edit_property_type"
+                  className="w-full p-2 border rounded-md bg-background"
+                  value={editForm.property_type}
+                  onChange={(e) => setEditForm({ ...editForm, property_type: e.target.value })}
+                >
+                  <option value="">Selecione...</option>
+                  <option value="casa">Casa</option>
+                  <option value="apartamento">Apartamento</option>
+                  <option value="sala_comercial">Sala Comercial</option>
+                  <option value="loja">Loja</option>
+                  <option value="galpao">Galpão</option>
+                  <option value="terreno">Terreno</option>
+                  <option value="sitio">Sítio/Fazenda</option>
+                  <option value="outro">Outro</option>
+                </select>
               </div>
 
+              {/* CEP com busca automática */}
               <div>
-                <Label htmlFor="edit_street">Rua</Label>
+                <Label htmlFor="edit_zip_code">CEP</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="edit_zip_code"
+                    value={editForm.zip_code}
+                    onChange={(e) => setEditForm({ ...editForm, zip_code: formatCEP(e.target.value) })}
+                    placeholder="00000-000"
+                    maxLength={9}
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleCepSearch}
+                    disabled={addressLoading || editForm.zip_code.replace(/\D/g, '').length !== 8}
+                  >
+                    {addressLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Digite o CEP e clique na lupa para buscar o endereço
+                </p>
+              </div>
+
+              {/* Rua */}
+              <div>
+                <Label htmlFor="edit_street">Rua/Logradouro</Label>
                 <Input
                   id="edit_street"
                   value={editForm.street}
                   onChange={(e) => setEditForm({ ...editForm, street: e.target.value })}
-                  placeholder="Nome da rua, número"
+                  placeholder="Nome da rua"
                 />
               </div>
 
+              {/* Número e Complemento */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_number">Número *</Label>
+                  <Input
+                    id="edit_number"
+                    value={editForm.number}
+                    onChange={(e) => setEditForm({ ...editForm, number: e.target.value })}
+                    placeholder="123"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit_complement">Complemento</Label>
+                  <Input
+                    id="edit_complement"
+                    value={editForm.complement}
+                    onChange={(e) => setEditForm({ ...editForm, complement: e.target.value })}
+                    placeholder="Apto 101, Bloco A (opcional)"
+                  />
+                </div>
+              </div>
+
+              {/* Bairro e Cidade */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit_neighborhood">Bairro</Label>
