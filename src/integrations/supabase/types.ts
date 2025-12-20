@@ -1003,7 +1003,9 @@ export type Database = {
           id: string
           last_name: string | null
           neighborhood: string | null
+          number: string | null
           phone: string | null
+          property_type: string | null
           rg: string | null
           state: string | null
           street: string | null
@@ -1026,7 +1028,9 @@ export type Database = {
           id?: string
           last_name?: string | null
           neighborhood?: string | null
+          number?: string | null
           phone?: string | null
+          property_type?: string | null
           rg?: string | null
           state?: string | null
           street?: string | null
@@ -1049,7 +1053,9 @@ export type Database = {
           id?: string
           last_name?: string | null
           neighborhood?: string | null
+          number?: string | null
           phone?: string | null
+          property_type?: string | null
           rg?: string | null
           state?: string | null
           street?: string | null
