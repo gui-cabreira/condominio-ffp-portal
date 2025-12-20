@@ -66,11 +66,10 @@ interface SystemBug {
 
 interface LoginLog {
   id: string;
-  user_id: string;
-  login_at: string;
-  ip_address?: string;
-  user_agent?: string;
+  user_id: string | null;
+  created_at: string;
   success: boolean;
+  metadata?: Record<string, any>;
 }
 
 interface SystemLog {
@@ -83,11 +82,12 @@ interface SystemLog {
 }
 
 interface LoginStats {
-  user_id: string;
-  email: string;
-  total_logins: number;
-  last_login: string;
-  failed_attempts: number;
+  id: string;
+  period: string | null;
+  total_logins: number | null;
+  successful_logins: number | null;
+  failed_logins: number | null;
+  created_at: string;
 }
 
 export default function SystemAdminPage() {
@@ -204,59 +204,15 @@ export default function SystemAdminPage() {
   };
 
   const loadBugs = async () => {
-    const { data, error } = await supabase
-      .from('system_bugs')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      toast({
-        title: 'Erro ao carregar bugs',
-        description: error.message,
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    // Buscar perfis dos usuários mencionados nos bugs
-    const userIds = new Set<string>();
-    (data || []).forEach(bug => {
-      if (bug.reported_by) userIds.add(bug.reported_by);
-      if (bug.assigned_to) userIds.add(bug.assigned_to);
-    });
-
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, first_name, last_name, email')
-      .in('id', Array.from(userIds));
-
-    const profilesMap = new Map(
-      (profiles || []).map(p => [p.id, p])
-    );
-
-    const bugsWithNames = (data || []).map(bug => {
-      const reporter = bug.reported_by ? profilesMap.get(bug.reported_by) : null;
-      const assignee = bug.assigned_to ? profilesMap.get(bug.assigned_to) : null;
-      
-      return {
-        ...bug,
-        reporter_name: reporter 
-          ? `${reporter.first_name || ''} ${reporter.last_name || ''}`.trim() || reporter.email 
-          : 'Desconhecido',
-        assigned_name: assignee 
-          ? `${assignee.first_name || ''} ${assignee.last_name || ''}`.trim() || assignee.email 
-          : undefined
-      };
-    });
-
-    setBugs(bugsWithNames as SystemBug[]);
+    // system_bugs table doesn't exist yet - using empty array
+    setBugs([]);
   };
 
   const loadLoginLogs = async () => {
     const { data, error } = await supabase
       .from('login_logs')
       .select('*')
-      .order('login_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(50);
 
     if (error) {
@@ -271,108 +227,37 @@ export default function SystemAdminPage() {
   };
 
   const loadSystemLogs = async () => {
-    const { data, error } = await supabase
-      .from('system_logs')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    if (error) {
-      toast({
-        title: 'Erro ao carregar logs do sistema',
-        description: error.message,
-        variant: 'destructive'
-      });
-    } else {
-      setSystemLogs((data || []) as SystemLog[]);
-    }
+    // system_logs table doesn't exist yet - using empty array
+    setSystemLogs([]);
   };
 
   const loadLoginStats = async () => {
     const { data, error } = await supabase
       .from('login_statistics')
       .select('*')
-      .order('total_logins', { ascending: false });
+      .order('period', { ascending: false });
 
     if (error) {
-      toast({
-        title: 'Erro ao carregar estatísticas',
-        description: error.message,
-        variant: 'destructive'
-      });
+      console.error('Erro ao carregar estatísticas:', error);
     } else {
-      console.log('Login stats reloaded at:', new Date().toISOString());
-      console.log('Stats data:', data);
       setLoginStats((data || []) as LoginStats[]);
-      toast({
-        title: 'Estatísticas atualizadas',
-        description: `${data?.length || 0} usuário(s) encontrado(s)`,
-      });
     }
   };
 
   const handleCreateBug = async () => {
-    if (!newBugTitle || !newBugDescription) {
-      toast({
-        title: 'Campos obrigatórios',
-        description: 'Preencha título e descrição',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { error } = await supabase
-      .from('system_bugs')
-      .insert({
-        title: newBugTitle,
-        description: newBugDescription,
-        severity: newBugSeverity,
-        reported_by: user.id
-      });
-
-    if (error) {
-      toast({
-        title: 'Erro ao criar bug',
-        description: error.message,
-        variant: 'destructive'
-      });
-    } else {
-      toast({
-        title: 'Bug registrado',
-        description: 'Bug criado com sucesso'
-      });
-      setNewBugTitle('');
-      setNewBugDescription('');
-      setNewBugSeverity('medium');
-      loadBugs();
-    }
+    toast({
+      title: 'Funcionalidade indisponível',
+      description: 'Sistema de bugs ainda não implementado',
+      variant: 'destructive'
+    });
   };
 
   const updateBugStatus = async (bugId: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('system_bugs')
-      .update({ 
-        status: newStatus,
-        resolved_at: newStatus === 'resolved' ? new Date().toISOString() : null
-      })
-      .eq('id', bugId);
-
-    if (error) {
-      toast({
-        title: 'Erro ao atualizar',
-        description: error.message,
-        variant: 'destructive'
-      });
-    } else {
-      toast({
-        title: 'Status atualizado',
-        description: 'Bug atualizado com sucesso'
-      });
-      loadBugs();
-    }
+    toast({
+      title: 'Funcionalidade indisponível',
+      description: 'Sistema de bugs ainda não implementado',
+      variant: 'destructive'
+    });
   };
 
   const handleSaveEmailConfig = () => {
@@ -1306,26 +1191,21 @@ export default function SystemAdminPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Email</TableHead>
+                          <TableHead>Período</TableHead>
                           <TableHead>Total de Logins</TableHead>
-                          <TableHead>Último Login</TableHead>
-                          <TableHead>Tentativas Falhas</TableHead>
+                          <TableHead>Logins com Sucesso</TableHead>
+                          <TableHead>Logins com Falha</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {loginStats.map((stat) => (
-                          <TableRow key={stat.user_id}>
-                            <TableCell className="font-medium">{stat.email}</TableCell>
-                            <TableCell>{stat.total_logins}</TableCell>
+                          <TableRow key={stat.id}>
+                            <TableCell className="font-medium">{stat.period || 'N/A'}</TableCell>
+                            <TableCell>{stat.total_logins || 0}</TableCell>
+                            <TableCell>{stat.successful_logins || 0}</TableCell>
                             <TableCell>
-                              {stat.last_login 
-                                ? format(new Date(stat.last_login), 'dd/MM/yyyy HH:mm', { locale: ptBR })
-                                : 'Nunca'
-                              }
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={stat.failed_attempts > 0 ? 'destructive' : 'default'}>
-                                {stat.failed_attempts}
+                              <Badge variant={(stat.failed_logins || 0) > 0 ? 'destructive' : 'default'}>
+                                {stat.failed_logins || 0}
                               </Badge>
                             </TableCell>
                           </TableRow>
@@ -1355,8 +1235,7 @@ export default function SystemAdminPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Data/Hora</TableHead>
-                          <TableHead>IP</TableHead>
-                          <TableHead>User Agent</TableHead>
+                          <TableHead>Usuário ID</TableHead>
                           <TableHead>Status</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1364,12 +1243,9 @@ export default function SystemAdminPage() {
                         {loginLogs.map((log) => (
                           <TableRow key={log.id}>
                             <TableCell>
-                              {format(new Date(log.login_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}
+                              {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}
                             </TableCell>
-                            <TableCell className="font-mono text-sm">{log.ip_address || 'N/A'}</TableCell>
-                            <TableCell className="truncate max-w-xs text-sm">
-                              {log.user_agent || 'N/A'}
-                            </TableCell>
+                            <TableCell className="font-mono text-sm truncate max-w-xs">{log.user_id || 'N/A'}</TableCell>
                             <TableCell>
                               <Badge variant={log.success ? 'default' : 'destructive'}>
                                 {log.success ? 'Sucesso' : 'Falha'}
@@ -1493,59 +1369,10 @@ export default function SystemAdminPage() {
                     </div>
                   )}
 
-                  <div>
-                    <Label className="text-sm font-semibold">Resposta / Notas de Resolução</Label>
-                    <Textarea
-                      value={resolutionNotes}
-                      onChange={(e) => setResolutionNotes(e.target.value)}
-                      placeholder="Adicione comentários sobre a resolução do bug..."
-                      rows={4}
-                      className="mt-1"
-                    />
-                    <Button 
-                      onClick={async () => {
-                        const { error } = await supabase
-                          .from('system_bugs')
-                          .update({ resolution_notes: resolutionNotes })
-                          .eq('id', selectedBug.id);
-                        
-                        if (error) {
-                          toast({
-                            title: 'Erro ao salvar',
-                            description: error.message,
-                            variant: 'destructive'
-                          });
-                        } else {
-                          toast({
-                            title: 'Resposta salva',
-                            description: 'Notas de resolução atualizadas com sucesso'
-                          });
-                          loadBugs();
-                          setBugDialogOpen(false);
-                        }
-                      }}
-                      className="mt-2"
-                    >
-                      Salvar Resposta
-                    </Button>
-                  </div>
-
-                  {selectedBug.resolution_notes && (
-                    <div>
-                      <Label className="text-sm font-semibold">Resposta Anterior</Label>
-                      <p className="mt-1 p-3 bg-muted rounded-md whitespace-pre-wrap">{selectedBug.resolution_notes}</p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
-                    <div>
-                      <Label className="text-xs">Criado em</Label>
-                      <p>{format(new Date(selectedBug.created_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs">Última atualização</Label>
-                      <p>{format(new Date(selectedBug.updated_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}</p>
-                    </div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Sistema de bugs não disponível.</p>
+                    <p className="text-sm mt-2">Esta funcionalidade será implementada em breve.</p>
                   </div>
                 </div>
               )}

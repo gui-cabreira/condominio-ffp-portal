@@ -57,7 +57,7 @@ export default function NegotiationParameters() {
       // Atualizar taxa de honorários
       const { error: feesError } = await supabase
         .from('negotiation_parameters')
-        .update({ parameter_value: parameters.default_fees_rate })
+        .update({ parameter_value: String(parameters.default_fees_rate) })
         .eq('parameter_key', 'default_fees_rate');
 
       if (feesError) throw feesError;
@@ -65,7 +65,7 @@ export default function NegotiationParameters() {
       // Atualizar taxa de juros
       const { error: interestError } = await supabase
         .from('negotiation_parameters')
-        .update({ parameter_value: parameters.default_interest_rate })
+        .update({ parameter_value: String(parameters.default_interest_rate) })
         .eq('parameter_key', 'default_interest_rate');
 
       if (interestError) throw interestError;

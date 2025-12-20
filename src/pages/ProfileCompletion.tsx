@@ -86,7 +86,7 @@ export default function ProfileCompletion() {
         birth_date: profile.birth_date || '',
         zip_code: profile.zip_code || '',
         street: profile.street || '',
-        number: profile.number || '',
+        number: '',
         complement: profile.complement || '',
         neighborhood: profile.neighborhood || '',
         city: profile.city || '',
