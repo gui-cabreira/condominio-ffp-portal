@@ -104,14 +104,24 @@ serve(async (req) => {
     
     console.log('✅ [DB] Nenhum convite pendente');
 
-    // ========== LOG 6: CRIAR CONVITE NO BANCO ==========
+    // ========== LOG 6: GERAR TOKEN E CRIAR CONVITE ==========
+    // Gerar token único para o convite
+    const invitationToken = crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // Expira em 7 dias
+    
+    console.log('🔑 [TOKEN] Token gerado:', invitationToken);
+    console.log('📅 [TOKEN] Expira em:', expiresAt.toISOString());
+    
     console.log('💾 [DB] Criando convite no banco de dados...');
     const { data: invitation, error: createError } = await supabase
       .from('user_invitations')
       .insert({
         email,
         role,
-        invited_by: invitedBy
+        invited_by: invitedBy,
+        invitation_token: invitationToken,
+        expires_at: expiresAt.toISOString()
       })
       .select()
       .single();
