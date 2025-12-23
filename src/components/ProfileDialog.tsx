@@ -211,9 +211,27 @@ export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: 
 
     try {
       setSaving(true);
+      
+      // Converter strings vazias para null para campos opcionais
+      const cleanedData = {
+        first_name: formData.first_name || null,
+        last_name: formData.last_name || null,
+        cpf: formData.cpf || null,
+        rg: formData.rg || null,
+        phone: formData.phone || null,
+        birth_date: formData.birth_date || null,
+        zip_code: formData.zip_code || null,
+        street: formData.street || null,
+        number: formData.number || null,
+        complement: formData.complement || null,
+        neighborhood: formData.neighborhood || null,
+        city: formData.city || null,
+        state: formData.state || null,
+      };
+      
       const { error } = await supabase
         .from('profiles')
-        .update(formData)
+        .update(cleanedData)
         .eq('user_id', userId);
 
       if (error) throw error;
