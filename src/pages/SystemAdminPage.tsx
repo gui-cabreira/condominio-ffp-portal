@@ -408,7 +408,15 @@ export default function SystemAdminPage() {
   return (
     <div className="p-4 md:p-6 w-full">
       <div className="max-w-7xl mx-auto space-y-6">
-          {/* Statistics Cards */}
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+            <Bug className="h-7 w-7 md:h-8 md:w-8" />
+            Administração do Sistema
+          </h1>
+          <p className="text-muted-foreground mt-1">Gerencie bugs, logs e configurações do sistema</p>
+        </div>
+
+        {/* Statistics Cards */}
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -1379,7 +1387,6 @@ export default function SystemAdminPage() {
               )}
             </DialogContent>
           </Dialog>
-        </div>
       </div>
     </div>
   );
