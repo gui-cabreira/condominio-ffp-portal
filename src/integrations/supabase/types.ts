@@ -1401,6 +1401,84 @@ export type Database = {
           },
         ]
       }
+      negotiation_history: {
+        Row: {
+          ai_analysis: Json | null
+          ai_recommendation: string | null
+          ai_score: number | null
+          charge_id: string
+          created_at: string | null
+          discount_percentage: number | null
+          id: string
+          installments: number | null
+          notes: string | null
+          original_amount: number
+          proposed_amount: number
+          proposed_at: string | null
+          proposed_by: string | null
+          responded_at: string | null
+          responded_by: string | null
+          status: string | null
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          ai_recommendation?: string | null
+          ai_score?: number | null
+          charge_id: string
+          created_at?: string | null
+          discount_percentage?: number | null
+          id?: string
+          installments?: number | null
+          notes?: string | null
+          original_amount: number
+          proposed_amount: number
+          proposed_at?: string | null
+          proposed_by?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          ai_recommendation?: string | null
+          ai_score?: number | null
+          charge_id?: string
+          created_at?: string | null
+          discount_percentage?: number | null
+          id?: string
+          installments?: number | null
+          notes?: string | null
+          original_amount?: number
+          proposed_amount?: number
+          proposed_at?: string | null
+          proposed_by?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "negotiation_history_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negotiation_history_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       negotiation_parameters: {
         Row: {
           created_at: string

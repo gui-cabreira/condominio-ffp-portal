@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.coach-webhook]
 verify_jwt = false
+
+[functions.negotiate-ai]
+verify_jwt = false
