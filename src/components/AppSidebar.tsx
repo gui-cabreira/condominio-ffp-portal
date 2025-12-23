@@ -1,5 +1,10 @@
-import { Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, Upload, UserPlus, Building, Server, MessageSquare, Cog } from 'lucide-react';
+import { 
+  Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, 
+  Upload, UserPlus, Building, Server, MessageSquare, Cog, Headphones, 
+  Workflow, TrendingUp, Shield, ChevronDown
+} from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -14,68 +19,66 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
 
-const menuItems = [
+interface MenuCategory {
+  label: string;
+  icon: React.ElementType;
+  items: {
+    title: string;
+    url: string;
+    icon: React.ElementType;
+  }[];
+}
+
+const menuCategories: MenuCategory[] = [
   {
-    title: 'Dashboard',
-    url: '/portal/corporativo/dashboard',
-    icon: Home,
-  },
-  {
-    title: 'Condomínios',
-    url: '/portal/corporativo/condominios',
+    label: 'Operacional',
     icon: Building2,
+    items: [
+      { title: 'Dashboard', url: '/portal/corporativo/dashboard', icon: Home },
+      { title: 'Condomínios', url: '/portal/corporativo/condominios', icon: Building2 },
+      { title: 'Administradoras', url: '/portal/corporativo/administradoras', icon: Building },
+      { title: 'Cobranças', url: '/portal/corporativo/cobrancas', icon: FileText },
+      { title: 'Importar', url: '/portal/corporativo/importar', icon: Upload },
+      { title: 'Cadastrar Inadimplente', url: '/portal/corporativo/cadastrar-inadimplente', icon: UserPlus },
+    ]
   },
   {
-    title: 'Administradoras',
-    url: '/portal/corporativo/administradoras',
-    icon: Building,
+    label: 'Atendimento',
+    icon: Headphones,
+    items: [
+      { title: 'CRM Atendimento', url: '/portal/corporativo/atendimento', icon: MessageSquare },
+      { title: 'Coach IA', url: '/portal/corporativo/coach-painel', icon: MessageSquare },
+    ]
   },
   {
-    title: 'Cobranças',
-    url: '/portal/corporativo/cobrancas',
-    icon: FileText,
+    label: 'Relatórios',
+    icon: TrendingUp,
+    items: [
+      { title: 'Backoffice', url: '/portal/corporativo/backoffice', icon: BarChart3 },
+      { title: 'Analytics', url: '/portal/corporativo/analytics', icon: TrendingUp },
+      { title: 'Relatórios', url: '/portal/corporativo/relatorios', icon: FileText },
+    ]
   },
   {
-    title: 'Backoffice',
-    url: '/portal/corporativo/backoffice',
-    icon: BarChart3,
-  },
-  {
-    title: 'Usuários',
-    url: '/portal/corporativo/usuarios',
-    icon: Users,
-  },
-  {
-    title: 'Importar',
-    url: '/portal/corporativo/importar',
-    icon: Upload,
-  },
-  {
-    title: 'Cadastrar Inadimplente',
-    url: '/portal/corporativo/cadastrar-inadimplente',
-    icon: UserPlus,
-  },
-  {
-    title: 'Workflow',
-    url: '/portal/corporativo/workflow',
-    icon: Settings,
-  },
-  {
-    title: 'Coach IA',
-    url: '/portal/corporativo/coach-painel',
-    icon: MessageSquare,
-  },
-  {
-    title: 'Configurações',
-    url: '/portal/corporativo/configuracoes',
+    label: 'Configurações',
     icon: Cog,
+    items: [
+      { title: 'Workflow', url: '/portal/corporativo/workflow', icon: Workflow },
+      { title: 'Parâmetros', url: '/portal/corporativo/parametros', icon: Settings },
+      { title: 'Automação', url: '/portal/corporativo/automacao', icon: Server },
+    ]
   },
   {
-    title: 'Sistema',
-    url: '/portal/corporativo/sistema',
-    icon: Server,
+    label: 'Administração',
+    icon: Shield,
+    items: [
+      { title: 'Usuários', url: '/portal/corporativo/usuarios', icon: Users },
+      { title: 'Aprovar Usuários', url: '/portal/corporativo/aprovar-usuarios', icon: UserPlus },
+      { title: 'Sistema', url: '/portal/corporativo/sistema', icon: Server },
+    ]
   },
 ];
 
@@ -84,10 +87,19 @@ export function AppSidebar() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const collapsed = state === 'collapsed';
+  const [openCategories, setOpenCategories] = useState<string[]>(['Operacional']);
 
   const handleLogout = async () => {
     await signOut();
     navigate('/portal');
+  };
+
+  const toggleCategory = (label: string) => {
+    setOpenCategories(prev => 
+      prev.includes(label) 
+        ? prev.filter(c => c !== label) 
+        : [...prev, label]
+    );
   };
 
   return (
@@ -112,33 +124,80 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
-                          isActive
-                            ? 'bg-ffp-navy text-white'
-                            : 'hover:bg-accent'
-                        }`
-                      }
-                    >
-                      <item.icon className="h-5 w-5 flex-shrink-0" />
-                      {!collapsed && <span className="font-medium">{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="overflow-y-auto">
+        {menuCategories.map((category) => (
+          <SidebarGroup key={category.label}>
+            {collapsed ? (
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {category.items.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to={item.url}
+                          className={({ isActive }) =>
+                            `flex items-center justify-center p-2 rounded-lg transition-all duration-200 ${
+                              isActive ? 'bg-ffp-navy text-white' : 'hover:bg-accent'
+                            }`
+                          }
+                          title={item.title}
+                        >
+                          <item.icon className="h-5 w-5" />
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            ) : (
+              <Collapsible
+                open={openCategories.includes(category.label)}
+                onOpenChange={() => toggleCategory(category.label)}
+              >
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-accent rounded-lg mx-2 my-1">
+                    <div className="flex items-center gap-2">
+                      <category.icon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                        {category.label}
+                      </span>
+                    </div>
+                    <ChevronDown 
+                      className={`h-4 w-4 text-muted-foreground transition-transform ${
+                        openCategories.includes(category.label) ? 'rotate-180' : ''
+                      }`} 
+                    />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {category.items.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild>
+                            <NavLink
+                              to={item.url}
+                              className={({ isActive }) =>
+                                `flex items-center gap-3 px-3 py-2 ml-4 rounded-lg transition-all duration-200 ${
+                                  isActive
+                                    ? 'bg-ffp-navy text-white'
+                                    : 'hover:bg-accent'
+                                }`
+                              }
+                            >
+                              <item.icon className="h-4 w-4 flex-shrink-0" />
+                              <span className="text-sm">{item.title}</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">

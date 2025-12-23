@@ -43,6 +43,7 @@ import NotFound from "./pages/NotFound";
 import ProfileCompletion from "./pages/ProfileCompletion";
 import SetupAdmin from "./pages/SetupAdmin";
 import { CorporateLayout } from "./components/CorporateLayout";
+import AtendimentoPage from "./pages/AtendimentoPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -212,6 +213,13 @@ const App = () => {
               <AuthGuard requiredRole="admin">
                 <CorporateLayout>
                   <ApproveUsers />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/atendimento" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <AtendimentoPage />
                 </CorporateLayout>
               </AuthGuard>
             } />
