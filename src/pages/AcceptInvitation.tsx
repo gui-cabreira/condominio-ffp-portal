@@ -209,8 +209,8 @@ const AcceptInvitation = () => {
         description: `Bem-vindo ao sistema! Você foi cadastrado como ${getRoleName(invitation!.role)}`
       });
 
-      // Redirecionar para o dashboard
-      navigate('/portal/corporativo/dashboard');
+      // Redirecionar para completar perfil
+      navigate('/portal/corporativo/completar-perfil?force=true');
 
     } catch (error: any) {
       console.error('Error accepting invitation:', error);

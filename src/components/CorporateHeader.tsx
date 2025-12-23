@@ -33,8 +33,8 @@ export function CorporateHeader() {
     const { data } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
-      .single();
+      .eq('user_id', user.id)
+      .maybeSingle();
 
     setProfile(data);
   };
