@@ -52,6 +52,8 @@ serve(async (req) => {
 
     // ========== LOG 4: VERIFICAR USUÁRIO EXISTENTE ==========
     console.log('🔍 [DB] Verificando se usuário já existe...');
+
+    // 1) Verifica na tabela de perfis (caminho comum)
     const { data: existingUser, error: userError } = await supabase
       .from('profiles')
       .select('id, email')
@@ -59,12 +61,12 @@ serve(async (req) => {
       .maybeSingle();
 
     if (userError) {
-      console.error('❌ [DB] Erro ao verificar usuário existente:', userError);
+      console.error('❌ [DB] Erro ao verificar usuário existente (profiles):', userError);
       throw userError;
     }
 
     if (existingUser) {
-      console.log('⚠️ [VALIDAÇÃO] Usuário já existe:', existingUser.email);
+      console.log('⚠️ [VALIDAÇÃO] Usuário já existe em profiles:', existingUser.email);
       return new Response(JSON.stringify({
         error: 'Usuário já cadastrado no sistema',
         success: false
@@ -73,8 +75,34 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    
-    console.log('✅ [DB] Usuário não existe, prosseguindo...');
+
+    // 2) Verifica também no sistema de autenticação (pode existir sem profile por falhas antigas)
+    console.log('🔍 [AUTH] Verificando se usuário já existe no auth...');
+    const { data: usersPage, error: listUsersError } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+
+    if (listUsersError) {
+      console.error('❌ [AUTH] Erro ao listar usuários:', listUsersError);
+      throw listUsersError;
+    }
+
+    const emailLower = String(email).toLowerCase().trim();
+    const authUserExists = (usersPage?.users || []).some((u) => (u.email || '').toLowerCase() === emailLower);
+
+    if (authUserExists) {
+      console.log('⚠️ [VALIDAÇÃO] Usuário já existe no auth:', emailLower);
+      return new Response(JSON.stringify({
+        error: 'Usuário já cadastrado no sistema',
+        success: false
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('✅ [DB/AUTH] Usuário não existe, prosseguindo...');
 
     // ========== LOG 5: VERIFICAR CONVITE PENDENTE ==========
     console.log('🔍 [DB] Verificando convites pendentes...');

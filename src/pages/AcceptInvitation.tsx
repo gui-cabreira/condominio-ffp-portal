@@ -135,6 +135,20 @@ const AcceptInvitation = () => {
       });
 
       if (authError) {
+        // Caso comum: convite enviado para email que já possui conta (ou conta criada anteriormente)
+        const message = authError.message || '';
+        const status = (authError as any).status;
+
+        if (status === 422 || message.toLowerCase().includes('already registered')) {
+          toast({
+            title: "Este email já tem conta",
+            description: "Esse usuário já está cadastrado. Faça login e solicite ao administrador ajustar as permissões, se necessário.",
+            variant: "destructive",
+          });
+          navigate('/portal/corporativo');
+          return;
+        }
+
         console.error('Auth error:', authError);
         throw authError;
       }
