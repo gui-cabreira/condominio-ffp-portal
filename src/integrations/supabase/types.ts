@@ -660,8 +660,12 @@ export type Database = {
           id: string
           interest_amount: number | null
           interest_rate: number | null
+          last_contact_at: string | null
           metadata: Json | null
+          next_action_at: string | null
+          next_action_description: string | null
           payment_date: string | null
+          pipeline_stage: string | null
           pix_code: string | null
           principal_amount: number | null
           reference_month: string | null
@@ -687,8 +691,12 @@ export type Database = {
           id?: string
           interest_amount?: number | null
           interest_rate?: number | null
+          last_contact_at?: string | null
           metadata?: Json | null
+          next_action_at?: string | null
+          next_action_description?: string | null
           payment_date?: string | null
+          pipeline_stage?: string | null
           pix_code?: string | null
           principal_amount?: number | null
           reference_month?: string | null
@@ -714,8 +722,12 @@ export type Database = {
           id?: string
           interest_amount?: number | null
           interest_rate?: number | null
+          last_contact_at?: string | null
           metadata?: Json | null
+          next_action_at?: string | null
+          next_action_description?: string | null
           payment_date?: string | null
+          pipeline_stage?: string | null
           pix_code?: string | null
           principal_amount?: number | null
           reference_month?: string | null
@@ -1169,6 +1181,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_pipeline_stages: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          display_name: string
+          id: string
+          is_final: boolean
+          name: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          display_name: string
+          id?: string
+          is_final?: boolean
+          name: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_final?: boolean
+          name?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       defaulter_statistics: {
         Row: {
