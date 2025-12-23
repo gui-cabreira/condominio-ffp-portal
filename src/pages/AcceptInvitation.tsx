@@ -143,10 +143,55 @@ const AcceptInvitation = () => {
         throw new Error('Erro ao criar usuário');
       }
 
-      // Aguardar um pouco para o usuário ser criado
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Usuário criado:', authData.user.id);
 
-      // Aceitar o convite atualizando diretamente a tabela
+      // Aguardar o trigger criar o perfil
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Atualizar o perfil com nome e aprovar o usuário
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          approved: true,
+          approved_at: new Date().toISOString()
+        })
+        .eq('user_id', authData.user.id);
+
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        // Não é crítico, continua
+      } else {
+        console.log('Perfil atualizado com sucesso');
+      }
+
+      // Atualizar a role para a role do convite
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .update({
+          role: invitation!.role as 'admin' | 'assistant' | 'employee' | 'supervisor'
+        })
+        .eq('user_id', authData.user.id);
+
+      if (roleError) {
+        console.error('Role update error:', roleError);
+        // Tentar inserir se não existir
+        const { error: roleInsertError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: authData.user.id,
+            role: invitation!.role as 'admin' | 'assistant' | 'employee' | 'supervisor'
+          });
+        
+        if (roleInsertError) {
+          console.error('Role insert error:', roleInsertError);
+        }
+      } else {
+        console.log('Role atualizada para:', invitation!.role);
+      }
+
+      // Aceitar o convite
       const { error: acceptError } = await supabase
         .from('user_invitations')
         .update({ accepted_at: new Date().toISOString() })
@@ -154,19 +199,9 @@ const AcceptInvitation = () => {
 
       if (acceptError) {
         console.error('Accept invitation error:', acceptError);
-        throw acceptError;
-      }
-
-      // Criar role para o usuário
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: authData.user.id,
-          role: invitation!.role as 'admin' | 'assistant' | 'employee' | 'supervisor'
-        });
-
-      if (roleError) {
-        console.error('Role creation error:', roleError);
+        // Não é crítico, continua
+      } else {
+        console.log('Convite aceito com sucesso');
       }
 
       toast({
@@ -177,7 +212,7 @@ const AcceptInvitation = () => {
       // Redirecionar para o dashboard
       navigate('/portal/corporativo/dashboard');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accepting invitation:', error);
       toast({
         title: "Erro",
