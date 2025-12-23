@@ -1,12 +1,11 @@
-
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, FileText, Download, MessageSquare, Bell, Calendar, Loader2 } from 'lucide-react';
+import { FileText, MessageSquare, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { ClientLayout } from '@/components/ClientLayout';
 
 type Charge = {
   id: string;
@@ -29,9 +28,8 @@ type Profile = {
 };
 
 const ClientDashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [charges, setCharges] = useState<Charge[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -53,7 +51,7 @@ const ClientDashboard = () => {
 
       setProfile(profileData);
 
-      // Carregar cobranças do cliente - ajustado para a estrutura real
+      // Carregar cobranças do cliente
       const { data: chargesData, error } = await supabase
         .from('charges')
         .select(`
@@ -85,50 +83,24 @@ const ClientDashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/portal');
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-ffp-navy" />
-      </div>
+      <ClientLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-ffp-navy" />
+        </div>
+      </ClientLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <img 
-                src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
-                alt="FFP Advogados" 
-                className="h-8 w-auto mr-3"
-              />
-              <h1 className="text-xl font-semibold text-ffp-navy">Área do Cliente</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Bell className="w-5 h-5 text-gray-600" />
-              <span className="text-sm text-gray-600">
-                Olá, {profile?.first_name || user?.email}
-              </span>
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="w-5 h-5" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <ClientLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-ffp-navy mb-2">Bem-vindo à sua área exclusiva</h2>
+          <h2 className="text-2xl font-bold text-ffp-navy mb-2">
+            Bem-vindo, {profile?.first_name || user?.email}
+          </h2>
           <p className="text-gray-600">Acesse seus documentos, mensagens e acompanhe seus processos.</p>
         </div>
 
@@ -197,7 +169,6 @@ const ClientDashboard = () => {
           </Card>
         </div>
 
-
         {/* Contact Section */}
         <Card className="mt-6">
           <CardHeader>
@@ -226,7 +197,7 @@ const ClientDashboard = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </ClientLayout>
   );
 };
 

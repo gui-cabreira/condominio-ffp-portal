@@ -210,7 +210,9 @@ const App = () => {
             } />
             <Route path="/portal/corporativo/aprovar-usuarios" element={
               <AuthGuard requiredRole="admin">
-                <ApproveUsers />
+                <CorporateLayout>
+                  <ApproveUsers />
+                </CorporateLayout>
               </AuthGuard>
             } />
             <Route path="/aceitar-convite" element={<AcceptInvitation />} />

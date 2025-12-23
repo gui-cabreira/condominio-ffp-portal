@@ -134,8 +134,8 @@ serve(async (req) => {
     console.log('✅ [DB] Convite criado com sucesso:', invitation.id);
 
     // ========== LOG 7: PREPARAR EMAIL ==========
-    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://ffpadvogados.com.br';
-    const customDomain = 'https://srv.ffpadvogados.com.br';
+    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://www.ffpadvogados.com.br';
+    const logoUrl = 'https://www.ffpadvogados.com.br/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png';
     const invitationUrl = `${frontendUrl}/aceitar-convite?token=${invitation.invitation_token}`;
 
     console.log('📧 [EMAIL] Preparando envio via Resend...');
@@ -291,7 +291,7 @@ serve(async (req) => {
 <body>
     <div class="container">
         <div class="header">
-            <img src="${customDomain}/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" alt="FFP Advogados" class="logo" />
+            <img src="${logoUrl}" alt="FFP Advogados" class="logo" />
             <h1>Convite para o Portal Corporativo</h1>
         </div>
         <div class="content">
