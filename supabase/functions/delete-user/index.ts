@@ -64,7 +64,7 @@ serve(async (req) => {
     // Buscar o profile para obter o user_id correto (referência ao auth.users)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id, user_id')
+      .select('id, user_id, email')
       .eq('id', targetProfileId)
       .maybeSingle();
 
@@ -74,11 +74,25 @@ serve(async (req) => {
     }
 
     const authUserId = profile.user_id;
+    const profileEmail = profile.email;
     console.log('Auth user ID encontrado:', authUserId);
 
     // Verificar se não está tentando deletar a si mesmo
     if (authUserId === user.id) {
       throw new Error('Você não pode deletar seu próprio usuário');
+    }
+
+    // Remover convites vinculados ao email (para permitir re-convidar e evitar inconsistências)
+    if (profileEmail) {
+      const { error: deleteInvitesError } = await supabaseAdmin
+        .from('user_invitations')
+        .delete()
+        .eq('email', profileEmail);
+
+      if (deleteInvitesError) {
+        console.error('Erro ao deletar convites do usuário:', deleteInvitesError);
+        throw new Error('Erro ao deletar convites do usuário');
+      }
     }
 
     // Primeiro deletar roles usando o user_id correto
