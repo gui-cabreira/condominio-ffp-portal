@@ -13,13 +13,16 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await req.json();
+    const { userId, profileId } = await req.json();
 
-    if (!userId) {
-      throw new Error('User ID é obrigatório');
+    // Aceita tanto profileId quanto userId para compatibilidade
+    const targetProfileId = profileId || userId;
+
+    if (!targetProfileId) {
+      throw new Error('Profile ID é obrigatório');
     }
 
-    console.log('Deletando usuário:', userId);
+    console.log('Deletando usuário com profile ID:', targetProfileId);
 
     // Criar cliente Supabase com service role
     const supabaseAdmin = createClient(
@@ -58,35 +61,50 @@ serve(async (req) => {
       throw new Error('Sem permissão para deletar usuários');
     }
 
+    // Buscar o profile para obter o user_id correto (referência ao auth.users)
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, user_id')
+      .eq('id', targetProfileId)
+      .maybeSingle();
+
+    if (profileError || !profile) {
+      console.error('Erro ao buscar perfil:', profileError);
+      throw new Error('Usuário não encontrado');
+    }
+
+    const authUserId = profile.user_id;
+    console.log('Auth user ID encontrado:', authUserId);
+
     // Verificar se não está tentando deletar a si mesmo
-    if (userId === user.id) {
+    if (authUserId === user.id) {
       throw new Error('Você não pode deletar seu próprio usuário');
     }
 
-    // Primeiro deletar roles
+    // Primeiro deletar roles usando o user_id correto
     const { error: deleteRolesError } = await supabaseAdmin
       .from('user_roles')
       .delete()
-      .eq('user_id', userId);
+      .eq('user_id', authUserId);
 
     if (deleteRolesError) {
       console.error('Erro ao deletar roles:', deleteRolesError);
       throw new Error('Erro ao deletar roles do usuário');
     }
 
-    // Deletar perfil
+    // Deletar perfil usando o id do profile
     const { error: deleteProfileError } = await supabaseAdmin
       .from('profiles')
       .delete()
-      .eq('id', userId);
+      .eq('id', targetProfileId);
 
     if (deleteProfileError) {
       console.error('Erro ao deletar perfil:', deleteProfileError);
       throw new Error('Erro ao deletar perfil do usuário');
     }
 
-    // Deletar do auth.users usando Admin API
-    const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    // Deletar do auth.users usando o user_id correto
+    const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(authUserId);
 
     if (deleteAuthError) {
       console.error('Erro ao deletar do auth.users:', deleteAuthError);
