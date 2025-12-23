@@ -6,7 +6,6 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -14,12 +13,10 @@ Deno.serve(async (req) => {
   try {
     console.log('🔔 UAZAPI Webhook recebido');
 
-    // Inicializar Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Parse payload
     const payload = await req.json();
     console.log('📦 Payload:', JSON.stringify(payload, null, 2));
 
@@ -28,6 +25,8 @@ Deno.serve(async (req) => {
       .from('whatsapp_webhooks_log')
       .insert({
         event_type: payload.event || 'unknown',
+        instance_id: payload.instanceId,
+        phone_number: payload.data?.key?.remoteJid?.replace('@s.whatsapp.net', ''),
         payload: payload,
         processed: false
       });
@@ -36,22 +35,24 @@ Deno.serve(async (req) => {
       console.error('❌ Erro ao logar webhook:', logError);
     }
 
-    // Identificar tipo de evento
     const eventType = payload.event;
     
     switch (eventType) {
       case 'message.received':
+      case 'messages.upsert':
         console.log('💬 Nova mensagem recebida');
         await handleIncomingMessage(supabase, payload);
         break;
       
       case 'message.status':
+      case 'messages.update':
         console.log('✅ Status de mensagem atualizado');
         await handleMessageStatus(supabase, payload);
         break;
       
       case 'connection.update':
         console.log('🔌 Status de conexão atualizado');
+        await handleConnectionUpdate(supabase, payload);
         break;
       
       default:
@@ -61,8 +62,11 @@ Deno.serve(async (req) => {
     // Marcar como processado
     await supabase
       .from('whatsapp_webhooks_log')
-      .update({ processed: true })
-      .eq('payload->event', eventType)
+      .update({ 
+        processed: true,
+        processed_at: new Date().toISOString()
+      })
+      .eq('event_type', eventType)
       .eq('processed', false)
       .order('created_at', { ascending: false })
       .limit(1);
@@ -87,12 +91,13 @@ async function handleIncomingMessage(supabase: any, payload: any) {
     const remoteJid = data.key?.remoteJid;
     const messageId = data.key?.id;
     const fromMe = data.key?.fromMe;
+    const pushName = data.pushName;
 
-    // Extrair número de telefone (remover @s.whatsapp.net)
-    const phoneNumber = remoteJid?.replace('@s.whatsapp.net', '');
+    const phoneNumber = remoteJid?.replace('@s.whatsapp.net', '').replace('@g.us', '');
 
-    if (fromMe) {
-      console.log('↩️ Mensagem enviada por nós, ignorando');
+    // Ignorar mensagens de grupos e mensagens enviadas por nós
+    if (remoteJid?.includes('@g.us') || fromMe) {
+      console.log('↩️ Mensagem ignorada (grupo ou enviada por nós)');
       return;
     }
 
@@ -113,29 +118,39 @@ async function handleIncomingMessage(supabase: any, payload: any) {
       messageType = 'text';
     } else if (message?.imageMessage) {
       messageType = 'image';
-      mediaUrl = message.imageMessage.url;
+      mediaUrl = message.imageMessage.url || payload.mediaUrl;
       mimetype = message.imageMessage.mimetype;
       caption = message.imageMessage.caption || '';
       messageContent = caption;
     } else if (message?.documentMessage) {
       messageType = 'document';
-      mediaUrl = message.documentMessage.url;
+      mediaUrl = message.documentMessage.url || payload.mediaUrl;
       mimetype = message.documentMessage.mimetype;
-      caption = message.documentMessage.caption || '';
+      caption = message.documentMessage.caption || message.documentMessage.fileName || '';
       messageContent = caption;
     } else if (message?.audioMessage) {
       messageType = 'audio';
-      mediaUrl = message.audioMessage.url;
+      mediaUrl = message.audioMessage.url || payload.mediaUrl;
       mimetype = message.audioMessage.mimetype;
+      messageContent = '[Áudio]';
     } else if (message?.videoMessage) {
       messageType = 'video';
-      mediaUrl = message.videoMessage.url;
+      mediaUrl = message.videoMessage.url || payload.mediaUrl;
       mimetype = message.videoMessage.mimetype;
       caption = message.videoMessage.caption || '';
-      messageContent = caption;
+      messageContent = caption || '[Vídeo]';
+    } else if (message?.stickerMessage) {
+      messageType = 'sticker';
+      messageContent = '[Figurinha]';
+    } else if (message?.locationMessage) {
+      messageType = 'location';
+      messageContent = `[Localização: ${message.locationMessage.degreesLatitude}, ${message.locationMessage.degreesLongitude}]`;
+    } else if (message?.contactMessage) {
+      messageType = 'contact';
+      messageContent = `[Contato: ${message.contactMessage.displayName}]`;
     }
 
-    console.log(`📱 De: ${phoneNumber}`);
+    console.log(`📱 De: ${phoneNumber} (${pushName})`);
     console.log(`💬 Tipo: ${messageType}`);
     console.log(`📝 Conteúdo: ${messageContent}`);
 
@@ -144,12 +159,12 @@ async function handleIncomingMessage(supabase: any, payload: any) {
       .from('whatsapp_conversations')
       .select('*')
       .eq('phone_number', phoneNumber)
-      .eq('status', 'active')
+      .neq('status', 'closed')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (convError && convError.code !== 'PGRST116') {
+    if (convError) {
       console.error('❌ Erro ao buscar conversa:', convError);
     }
 
@@ -159,9 +174,12 @@ async function handleIncomingMessage(supabase: any, payload: any) {
         .from('whatsapp_conversations')
         .insert({
           phone_number: phoneNumber,
+          contact_name: pushName,
           status: 'active',
           last_message_at: new Date().toISOString(),
-          last_message_from: 'customer'
+          last_message_from: 'customer',
+          last_message_preview: messageContent.substring(0, 100),
+          unread_count: 1
         })
         .select()
         .single();
@@ -178,14 +196,18 @@ async function handleIncomingMessage(supabase: any, payload: any) {
       await supabase
         .from('whatsapp_conversations')
         .update({
+          contact_name: pushName || conversation.contact_name,
           last_message_at: new Date().toISOString(),
-          last_message_from: 'customer'
+          last_message_from: 'customer',
+          last_message_preview: messageContent.substring(0, 100),
+          unread_count: (conversation.unread_count || 0) + 1,
+          updated_at: new Date().toISOString()
         })
         .eq('id', conversation.id);
     }
 
     // Salvar mensagem
-    const { error: msgError } = await supabase
+    const { data: savedMessage, error: msgError } = await supabase
       .from('whatsapp_messages')
       .insert({
         conversation_id: conversation.id,
@@ -197,15 +219,55 @@ async function handleIncomingMessage(supabase: any, payload: any) {
         content: messageContent,
         media_url: mediaUrl,
         media_mimetype: mimetype,
-        status: 'received'
-      });
+        caption: caption,
+        status: 'received',
+        metadata: {
+          pushName,
+          rawMessage: message
+        }
+      })
+      .select()
+      .single();
 
     if (msgError) {
       console.error('❌ Erro ao salvar mensagem:', msgError);
       return;
     }
 
-    console.log('✅ Mensagem salva no banco de dados');
+    console.log('✅ Mensagem salva:', savedMessage.id);
+
+    // Verificar se é comprovante de pagamento (imagem ou documento)
+    if (['image', 'document'].includes(messageType) && mediaUrl) {
+      console.log('📎 Possível comprovante detectado');
+      
+      // Se a conversa está aguardando comprovante, criar registro
+      if (conversation.awaiting_response_type === 'proof' || conversation.status === 'waiting_proof') {
+        // Buscar cobrança associada
+        const { data: charge } = await supabase
+          .from('charges')
+          .select('id')
+          .eq('unit_id', conversation.unit_id)
+          .in('status', ['pending', 'overdue'])
+          .order('due_date', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (charge) {
+          await supabase
+            .from('payment_proofs')
+            .insert({
+              charge_id: charge.id,
+              conversation_id: conversation.id,
+              message_id: savedMessage.id,
+              file_url: mediaUrl,
+              file_type: mimetype,
+              status: 'pending'
+            });
+
+          console.log('✅ Comprovante registrado para análise');
+        }
+      }
+    }
 
     // Invocar LangGraph agent para processar mensagem
     console.log('🤖 Invocando LangGraph Agent...');
@@ -220,7 +282,6 @@ async function handleIncomingMessage(supabase: any, payload: any) {
 
     if (agentError) {
       console.error('❌ Erro ao invocar agent:', agentError);
-      // Não bloquear o webhook por erro do agent
     } else {
       console.log('✅ Agent processou mensagem:', agentResponse);
     }
@@ -233,37 +294,43 @@ async function handleIncomingMessage(supabase: any, payload: any) {
 async function handleMessageStatus(supabase: any, payload: any) {
   try {
     const data = payload.data;
-    const messageId = data.key?.id;
-    const status = data.status; // 'SENT', 'DELIVERED', 'READ', 'FAILED'
+    const messageId = data.key?.id || data.id;
+    const status = data.status || data.update?.status;
 
     console.log(`📊 Status da mensagem ${messageId}: ${status}`);
 
-    // Mapear status do UAZAPI para nosso formato
     let ourStatus = 'sent';
-    let updateField: any = {};
+    let updateFields: any = {};
 
     switch (status) {
+      case 'DELIVERY_ACK':
       case 'DELIVERED':
+      case 2:
         ourStatus = 'delivered';
-        updateField.delivered_at = new Date().toISOString();
+        updateFields.delivered_at = new Date().toISOString();
         break;
       case 'READ':
+      case 'PLAYED':
+      case 3:
+      case 4:
         ourStatus = 'read';
-        updateField.read_at = new Date().toISOString();
+        updateFields.read_at = new Date().toISOString();
         break;
+      case 'ERROR':
       case 'FAILED':
+      case 5:
         ourStatus = 'failed';
+        updateFields.error_message = data.error || 'Falha no envio';
         break;
       default:
         ourStatus = 'sent';
     }
 
-    // Atualizar status da mensagem
     const { error } = await supabase
       .from('whatsapp_messages')
       .update({
         status: ourStatus,
-        ...updateField
+        ...updateFields
       })
       .eq('uazapi_message_id', messageId);
 
@@ -276,5 +343,34 @@ async function handleMessageStatus(supabase: any, payload: any) {
 
   } catch (error) {
     console.error('❌ Erro ao processar status:', error);
+  }
+}
+
+async function handleConnectionUpdate(supabase: any, payload: any) {
+  try {
+    const instanceId = payload.instanceId;
+    const state = payload.data?.state || payload.state;
+    const qrCode = payload.data?.qr || payload.qr;
+
+    console.log(`🔌 Instância ${instanceId}: ${state}`);
+
+    const updateData: any = {
+      status: state === 'open' ? 'connected' : 'disconnected',
+      updated_at: new Date().toISOString()
+    };
+
+    if (qrCode) {
+      updateData.qr_code = qrCode;
+    }
+
+    await supabase
+      .from('uazapi_instances')
+      .update(updateData)
+      .eq('instance_id', instanceId);
+
+    console.log('✅ Status da instância atualizado');
+
+  } catch (error) {
+    console.error('❌ Erro ao atualizar conexão:', error);
   }
 }

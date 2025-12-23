@@ -20,7 +20,6 @@ interface ConversationContext {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -28,12 +27,10 @@ Deno.serve(async (req) => {
   try {
     console.log('🤖 LangGraph Agent iniciado');
 
-    // Inicializar Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Parse request
     const { conversationId, phone, message, messageType }: AgentRequest = await req.json();
 
     console.log(`📱 Processando mensagem de ${phone}`);
@@ -42,7 +39,7 @@ Deno.serve(async (req) => {
     // 1. Buscar contexto da conversa
     const context = await gatherContext(supabase, conversationId, phone);
 
-    // 2. Identificar intenção usando IA
+    // 2. Identificar intenção usando Lovable AI
     const intent = await identifyIntent(message, context);
 
     console.log(`🎯 Intenção identificada: ${intent.type}`);
@@ -53,34 +50,28 @@ Deno.serve(async (req) => {
       case 'request_boleto':
         actionResult = await handleRequestBoleto(supabase, context, intent);
         break;
-
       case 'request_negotiation':
         actionResult = await handleRequestNegotiation(supabase, context, intent);
         break;
-
       case 'confirm_payment':
         actionResult = await handleConfirmPayment(supabase, context, intent);
         break;
-
       case 'ask_question':
         actionResult = await handleQuestion(supabase, context, intent);
         break;
-
       case 'upload_proof':
-        actionResult = await handleUploadProof(supabase, context, intent);
+        actionResult = await handleUploadProof(supabase, context, intent, conversationId);
         break;
-
       case 'dispute':
         actionResult = await handleDispute(supabase, context, intent);
         break;
-
       case 'general':
       default:
         actionResult = await handleGeneral(supabase, context, intent);
         break;
     }
 
-    // 4. Gerar resposta usando IA
+    // 4. Gerar resposta usando Lovable AI
     const response = await generateResponse(context, intent, actionResult);
 
     console.log(`💬 Resposta: ${response.text}`);
@@ -95,7 +86,7 @@ Deno.serve(async (req) => {
       awaiting: response.awaiting || null,
     });
 
-    // 7. Registrar interação no timeline da cobrança (se aplicável)
+    // 7. Registrar interação no timeline da cobrança
     if (context.charges.length > 0) {
       await logChargeTimeline(supabase, context.charges[0].id, intent, actionResult);
     }
@@ -127,7 +118,6 @@ async function gatherContext(
 ): Promise<ConversationContext> {
   console.log('📚 Buscando contexto da conversa...');
 
-  // Buscar conversa
   const { data: conversation } = await supabase
     .from('whatsapp_conversations')
     .select('*')
@@ -138,7 +128,6 @@ async function gatherContext(
     throw new Error('Conversa não encontrada');
   }
 
-  // Buscar últimas mensagens da conversa
   const { data: lastMessages } = await supabase
     .from('whatsapp_messages')
     .select('*')
@@ -146,11 +135,10 @@ async function gatherContext(
     .order('created_at', { ascending: false })
     .limit(10);
 
-  // Buscar unidade associada ao telefone
   let unit = null;
   let charges: any[] = [];
 
-  // Tentar buscar unidade pelo telefone do proprietário
+  // Buscar unidade pelo telefone
   const cleanPhone = phone.replace(/\D/g, '');
   const { data: units } = await supabase
     .from('units')
@@ -167,7 +155,16 @@ async function gatherContext(
   if (units && units.length > 0) {
     unit = units[0];
 
-    // Buscar cobranças pendentes da unidade
+    // Atualizar conversa com unit_id
+    await supabase
+      .from('whatsapp_conversations')
+      .update({ 
+        unit_id: unit.id,
+        condominium_id: unit.condominium_id,
+        contact_name: unit.owner_name
+      })
+      .eq('id', conversationId);
+
     const { data: pendingCharges } = await supabase
       .from('charges')
       .select('*')
@@ -179,7 +176,6 @@ async function gatherContext(
     charges = pendingCharges || [];
   }
 
-  // Se tem charge_id associado na conversa
   if (conversation.charge_id) {
     const { data: charge } = await supabase
       .from('charges')
@@ -187,9 +183,7 @@ async function gatherContext(
         *,
         units (
           *,
-          condominiums (
-            *
-          )
+          condominiums (*)
         )
       `)
       .eq('id', conversation.charge_id)
@@ -211,13 +205,13 @@ async function gatherContext(
   };
 }
 
-// Identificar intenção usando OpenAI
+// Identificar intenção usando Lovable AI
 async function identifyIntent(message: string, context: ConversationContext) {
-  console.log('🔍 Identificando intenção...');
+  console.log('🔍 Identificando intenção com Lovable AI...');
 
-  const openaiApiKey = Deno.env.get('API_OPENAI');
-  if (!openaiApiKey) {
-    console.warn('⚠️ OpenAI API key não configurada, usando regex simples');
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!lovableApiKey) {
+    console.warn('⚠️ Lovable API key não configurada, usando regex simples');
     return identifyIntentSimple(message);
   }
 
@@ -250,29 +244,39 @@ Tipos de intenção:
 - general: Conversa geral ou saudação`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message },
         ],
         temperature: 0.3,
-        response_format: { type: 'json_object' },
       }),
     });
 
-    const data = await response.json();
-    const intent = JSON.parse(data.choices[0].message.content);
+    if (!response.ok) {
+      console.error('Erro na API Lovable:', response.status);
+      return identifyIntentSimple(message);
+    }
 
-    return intent;
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content || '';
+    
+    // Extrair JSON da resposta
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    
+    return identifyIntentSimple(message);
   } catch (error) {
-    console.error('Erro ao usar OpenAI, usando fallback:', error);
+    console.error('Erro ao usar Lovable AI, usando fallback:', error);
     return identifyIntentSimple(message);
   }
 }
@@ -289,11 +293,11 @@ function identifyIntentSimple(message: string) {
     return { type: 'request_negotiation', confidence: 0.8, entities: {} };
   }
 
-  if (/paguei|já paguei|pagamento realizado|transferência|pix/i.test(msgLower)) {
+  if (/paguei|já paguei|pagamento realizado|transferência|pix feito/i.test(msgLower)) {
     return { type: 'confirm_payment', confidence: 0.8, entities: {} };
   }
 
-  if (/comprovante|recibo|enviei|segue/i.test(msgLower)) {
+  if (/comprovante|recibo|enviei|segue anexo/i.test(msgLower)) {
     return { type: 'upload_proof', confidence: 0.7, entities: {} };
   }
 
@@ -319,15 +323,16 @@ async function handleRequestBoleto(supabase: any, context: ConversationContext, 
     };
   }
 
-  const charge = context.charges[0]; // Pega a cobrança mais antiga
+  const charge = context.charges[0];
 
-  // Criar solicitação de novo boleto
+  // Criar solicitação de boleto
   const { data: boletoRequest, error } = await supabase
     .from('boleto_requests')
     .insert({
       charge_id: charge.id,
+      conversation_id: context.conversation.id,
+      requested_by: context.conversation.phone_number,
       status: 'pending',
-      reason: 'Solicitado via WhatsApp',
     })
     .select()
     .single();
@@ -340,19 +345,30 @@ async function handleRequestBoleto(supabase: any, context: ConversationContext, 
     };
   }
 
-  // Registrar no timeline
-  await supabase
-    .from('charge_timeline')
-    .insert({
-      charge_id: charge.id,
-      event_type: 'request_new',
-      description: 'Condômino solicitou novo boleto via WhatsApp',
-    });
+  // Calcular valor atualizado
+  const today = new Date();
+  const dueDate = new Date(charge.due_date);
+  let totalAmount = parseFloat(charge.amount);
+  let fineAmount = 0;
+  let interestAmount = 0;
+
+  if (today > dueDate) {
+    const daysLate = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+    fineAmount = totalAmount * 0.02; // 2% multa
+    interestAmount = totalAmount * (0.01 * (daysLate / 30)); // 1% ao mês
+    totalAmount = totalAmount + fineAmount + interestAmount;
+  }
 
   return {
     action: 'boleto_requested',
     charge,
     requestId: boletoRequest.id,
+    originalAmount: parseFloat(charge.amount),
+    fineAmount,
+    interestAmount,
+    totalAmount,
+    boletUrl: charge.boleto_url,
+    pixCode: charge.pix_code,
   };
 }
 
@@ -367,18 +383,50 @@ async function handleRequestNegotiation(supabase: any, context: ConversationCont
     };
   }
 
-  const totalDebt = context.charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-  const installments = intent.entities?.installments || 3;
+  // Buscar parâmetros de negociação
+  const { data: params } = await supabase
+    .from('negotiation_parameters')
+    .select('*');
 
-  // Calcular valor da parcela
-  const installmentValue = totalDebt / installments;
+  const paramMap: Record<string, string> = {};
+  params?.forEach((p: any) => {
+    paramMap[p.parameter_key] = p.parameter_value;
+  });
+
+  const maxDiscount = parseFloat(paramMap['max_discount'] || '10');
+  const maxInstallments = parseInt(paramMap['max_installments'] || '6');
+
+  const totalDebt = context.charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+  const installments = Math.min(intent.entities?.installments || 3, maxInstallments);
+  const discountPercent = Math.min(5, maxDiscount); // 5% de desconto padrão
+  const discountedAmount = totalDebt * (1 - discountPercent / 100);
+  const installmentValue = discountedAmount / installments;
+
+  // Criar proposta de negociação
+  const { data: negotiation } = await supabase
+    .from('negotiation_history')
+    .insert({
+      charge_id: context.charges[0].id,
+      unit_id: context.unit?.id,
+      original_amount: totalDebt,
+      proposed_amount: discountedAmount,
+      discount_percentage: discountPercent,
+      installments: installments,
+      proposed_by: 'ai_agent',
+      status: 'pending',
+    })
+    .select()
+    .single();
 
   return {
     action: 'negotiation_proposed',
     totalDebt,
+    discountPercent,
+    discountedAmount,
     installments,
     installmentValue,
     charges: context.charges,
+    negotiationId: negotiation?.id,
   };
 }
 
@@ -386,7 +434,6 @@ async function handleRequestNegotiation(supabase: any, context: ConversationCont
 async function handleConfirmPayment(supabase: any, context: ConversationContext, intent: any) {
   console.log('✅ Registrando confirmação de pagamento...');
 
-  // Atualizar estado da conversa para aguardar comprovante
   await supabase
     .from('whatsapp_conversations')
     .update({
@@ -404,25 +451,59 @@ async function handleConfirmPayment(supabase: any, context: ConversationContext,
 async function handleQuestion(supabase: any, context: ConversationContext, intent: any) {
   console.log('❓ Processando pergunta...');
 
-  // Esta função pode usar RAG (Retrieval Augmented Generation) no futuro
-  // Por ora, retorna informações básicas
-
   return {
     action: 'question_answered',
     chargesInfo: context.charges.map(c => ({
       amount: c.amount,
       dueDate: c.due_date,
       referenceMonth: c.reference_month,
+      status: c.status,
     })),
+    unitInfo: {
+      unitNumber: context.unit?.unit_number,
+      condominium: context.unit?.condominiums?.name,
+      ownerName: context.unit?.owner_name,
+    },
   };
 }
 
 // Handler: Upload de comprovante
-async function handleUploadProof(supabase: any, context: ConversationContext, intent: any) {
+async function handleUploadProof(supabase: any, context: ConversationContext, intent: any, conversationId: string) {
   console.log('📎 Processando comprovante de pagamento...');
 
-  // O comprovante já foi salvo pelo webhook
-  // Aqui apenas confirmamos o recebimento
+  // Buscar última mensagem com mídia
+  const { data: mediaMessages } = await supabase
+    .from('whatsapp_messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .in('message_type', ['image', 'document'])
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (mediaMessages && mediaMessages.length > 0 && context.charges.length > 0) {
+    const mediaMessage = mediaMessages[0];
+    
+    // Criar registro de comprovante
+    await supabase
+      .from('payment_proofs')
+      .insert({
+        charge_id: context.charges[0].id,
+        conversation_id: conversationId,
+        message_id: mediaMessage.id,
+        file_url: mediaMessage.media_url,
+        file_type: mediaMessage.media_mimetype,
+        status: 'pending',
+      });
+
+    // Atualizar conversa
+    await supabase
+      .from('whatsapp_conversations')
+      .update({
+        status: 'proof_received',
+        awaiting_response_type: null,
+      })
+      .eq('id', conversationId);
+  }
 
   return {
     action: 'proof_received',
@@ -434,29 +515,26 @@ async function handleDispute(supabase: any, context: ConversationContext, intent
   console.log('⚠️ Processando contestação...');
 
   if (context.charges.length > 0) {
-    // Registrar contestação no timeline
     await supabase
       .from('charge_timeline')
       .insert({
         charge_id: context.charges[0].id,
         event_type: 'disputed',
-        description: 'Condômino contestou a cobrança via WhatsApp',
-      });
-
-    // Criar registro de bug/issue para análise manual
-    await supabase
-      .from('system_logs')
-      .insert({
-        event_type: 'charge_dispute',
-        event_category: 'workflow',
-        description: `Contestação de cobrança via WhatsApp - Charge ID: ${context.charges[0].id}`,
-        metadata: {
-          charge_id: context.charges[0].id,
-          conversation_id: context.conversation.id,
+        event_data: {
+          description: 'Condômino contestou a cobrança via WhatsApp',
           phone: context.conversation.phone_number,
         },
       });
   }
+
+  // Escalar para atendimento humano
+  await supabase
+    .from('whatsapp_conversations')
+    .update({
+      status: 'escalated',
+      tags: [...(context.conversation.tags || []), 'contestacao', 'urgente'],
+    })
+    .eq('id', context.conversation.id);
 
   return {
     action: 'dispute_registered',
@@ -470,21 +548,22 @@ async function handleGeneral(supabase: any, context: ConversationContext, intent
 
   return {
     action: 'general_response',
+    hasCharges: context.charges.length > 0,
+    totalDebt: context.charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0),
   };
 }
 
-// Gerar resposta usando IA
+// Gerar resposta usando Lovable AI
 async function generateResponse(
   context: ConversationContext,
   intent: any,
   actionResult: any
 ) {
-  console.log('✍️ Gerando resposta...');
+  console.log('✍️ Gerando resposta com Lovable AI...');
 
-  const openaiApiKey = Deno.env.get('API_OPENAI');
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-  if (!openaiApiKey) {
-    // Fallback: respostas pré-definidas
+  if (!lovableApiKey) {
     return generateResponseSimple(context, intent, actionResult);
   }
 
@@ -496,137 +575,176 @@ Informações do condômino:
 - Total de cobranças pendentes: ${context.charges.length}
 - Valor total devido: R$ ${context.charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0).toFixed(2)}
 
-Gere uma resposta curta (máximo 200 caracteres) e direta para o WhatsApp.
+Resultado da ação: ${JSON.stringify(actionResult)}
+
+Gere uma resposta curta (máximo 300 caracteres) e direta para o WhatsApp.
 Use emojis quando apropriado para deixar a conversa mais amigável.
-Nunca use markdown ou formatação especial.`;
-
-  let userPrompt = '';
-
-  switch (actionResult.action) {
-    case 'boleto_requested':
-      userPrompt = `O condômino solicitou um novo boleto. A solicitação foi registrada. Informe que em breve receberá o boleto.`;
-      break;
-
-    case 'negotiation_proposed':
-      userPrompt = `Propor parcelamento de R$ ${actionResult.totalDebt.toFixed(2)} em ${actionResult.installments}x de R$ ${actionResult.installmentValue.toFixed(2)}`;
-      break;
-
-    case 'waiting_proof':
-      userPrompt = `O condômino informou que pagou. Pedir que envie o comprovante de pagamento.`;
-      break;
-
-    case 'question_answered':
-      userPrompt = `Informar as cobranças pendentes: ${JSON.stringify(actionResult.chargesInfo)}`;
-      break;
-
-    case 'proof_received':
-      userPrompt = `Confirmar recebimento do comprovante e informar que será analisado em breve.`;
-      break;
-
-    case 'dispute_registered':
-      userPrompt = `A contestação foi registrada. Informar que o caso será analisado pela administração e retornaremos em breve.`;
-      break;
-
-    case 'no_charges':
-      userPrompt = `Não há cobranças pendentes para esta unidade.`;
-      break;
-
-    default:
-      userPrompt = `Saudar o condômino e perguntar como pode ajudar.`;
-  }
+Seja empático e ofereça ajuda.`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
+          { role: 'user', content: `Intenção: ${intent.type}. Gere uma resposta apropriada.` },
         ],
         temperature: 0.7,
-        max_tokens: 100,
       }),
     });
 
+    if (!response.ok) {
+      console.error('Erro na API Lovable:', response.status);
+      return generateResponseSimple(context, intent, actionResult);
+    }
+
     const data = await response.json();
-    const text = data.choices[0].message.content;
+    const text = data.choices[0]?.message?.content || '';
 
     return {
-      text,
+      text: text.trim(),
       awaiting: actionResult.action === 'waiting_proof' ? 'proof' : null,
     };
   } catch (error) {
-    console.error('Erro ao gerar resposta, usando fallback:', error);
+    console.error('Erro ao gerar resposta:', error);
     return generateResponseSimple(context, intent, actionResult);
   }
 }
 
 // Gerar resposta simples (fallback)
-function generateResponseSimple(context: ConversationContext, intent: any, actionResult: any) {
-  const responses: any = {
-    boleto_requested: '📄 Sua solicitação de boleto foi registrada! Você receberá um novo boleto em breve.',
-    negotiation_proposed: `💰 Podemos parcelar sua dívida de R$ ${actionResult.totalDebt?.toFixed(2)} em ${actionResult.installments}x de R$ ${actionResult.installmentValue?.toFixed(2)}. Aceita?`,
-    waiting_proof: '✅ Ótimo! Por favor, envie o comprovante de pagamento para confirmarmos.',
-    proof_received: '📎 Comprovante recebido! Vamos analisar e confirmar seu pagamento em breve.',
-    dispute_registered: '⚠️ Sua contestação foi registrada. Nossa equipe analisará e retornará em breve.',
-    no_charges: '✅ Parabéns! Não encontramos cobranças pendentes para sua unidade.',
-    general_response: '👋 Olá! Como posso ajudar? Você pode solicitar boleto, parcelar dívidas ou tirar dúvidas.',
-  };
+function generateResponseSimple(
+  context: ConversationContext,
+  intent: any,
+  actionResult: any
+) {
+  const condoName = context.unit?.condominiums?.name || 'seu condomínio';
+  const totalDebt = context.charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
 
-  return {
-    text: responses[actionResult.action] || responses.general_response,
-    awaiting: actionResult.action === 'waiting_proof' ? 'proof' : null,
-  };
+  switch (actionResult.action) {
+    case 'boleto_requested':
+      const total = actionResult.totalAmount?.toFixed(2) || actionResult.charge?.amount;
+      if (actionResult.boletUrl) {
+        return {
+          text: `📄 *Boleto Atualizado*\n\n💰 Valor: R$ ${total}\n📅 Vencimento: ${actionResult.charge?.due_date}\n\n🔗 Link: ${actionResult.boletUrl}\n\n📱 *PIX:*\n\`\`\`${actionResult.pixCode || 'Não disponível'}\`\`\`\n\nQualquer dúvida, estou aqui!`,
+          awaiting: null,
+        };
+      }
+      return {
+        text: `📄 Recebemos sua solicitação de boleto!\n\nEstamos gerando um novo boleto no valor de R$ ${total}. Em breve você receberá o link.\n\nPrecisa de mais alguma coisa?`,
+        awaiting: null,
+      };
+
+    case 'negotiation_proposed':
+      return {
+        text: `💰 *Proposta de Negociação*\n\n📋 Débito: R$ ${actionResult.totalDebt.toFixed(2)}\n💵 Com desconto: R$ ${actionResult.discountedAmount.toFixed(2)} (${actionResult.discountPercent}% off)\n📊 Parcelas: ${actionResult.installments}x de R$ ${actionResult.installmentValue.toFixed(2)}\n\nDeseja aceitar? Responda *SIM* ou *NÃO*.`,
+        awaiting: 'negotiation_response',
+      };
+
+    case 'waiting_proof':
+      return {
+        text: `✅ Ótimo! Por favor, envie o comprovante de pagamento (foto ou PDF) para confirmarmos.\n\n📎 Aguardando seu comprovante...`,
+        awaiting: 'proof',
+      };
+
+    case 'proof_received':
+      return {
+        text: `📎 *Comprovante Recebido!*\n\nObrigado por enviar. Estamos analisando e em breve confirmaremos a quitação.\n\n🕐 Prazo: até 24 horas úteis`,
+        awaiting: null,
+      };
+
+    case 'question_answered':
+      if (context.charges.length === 0) {
+        return {
+          text: `📊 Não encontramos cobranças pendentes para sua unidade.\n\nSe você tem alguma dúvida específica, por favor descreva e vamos ajudar!`,
+          awaiting: null,
+        };
+      }
+      const charge = context.charges[0];
+      return {
+        text: `📊 *Resumo da sua situação:*\n\n📍 Unidade: ${context.unit?.unit_number || 'N/D'}\n💰 Valor: R$ ${charge.amount}\n📅 Vencimento: ${charge.due_date}\n📋 Ref: ${charge.reference_month || 'N/D'}\n\nPosso gerar um novo boleto ou ajudar com negociação?`,
+        awaiting: null,
+      };
+
+    case 'dispute_registered':
+      return {
+        text: `⚠️ Registramos sua contestação.\n\nUm atendente irá analisar o seu caso e entrar em contato em breve.\n\n📞 Se preferir, ligue para nossa central de atendimento.`,
+        awaiting: null,
+      };
+
+    case 'no_charges':
+      return {
+        text: `✅ Boa notícia! Não encontramos cobranças pendentes em seu nome.\n\nSe você acredita que há algum erro, por favor descreva a situação.`,
+        awaiting: null,
+      };
+
+    default:
+      if (context.charges.length > 0) {
+        return {
+          text: `Olá! 👋 Sou o assistente virtual de ${condoName}.\n\nIdentifiquei ${context.charges.length} cobrança(s) pendente(s) no valor de R$ ${totalDebt.toFixed(2)}.\n\nComo posso ajudar?\n• 📄 Novo boleto\n• 💰 Negociar\n• ❓ Tirar dúvidas`,
+          awaiting: null,
+        };
+      }
+      return {
+        text: `Olá! 👋 Sou o assistente virtual de ${condoName}.\n\nComo posso ajudar você hoje?`,
+        awaiting: null,
+      };
+  }
 }
 
-// Enviar mensagem via WhatsApp (UAZAPI)
+// Enviar mensagem via WhatsApp
 async function sendWhatsAppMessage(
   supabase: any,
   conversationId: string,
   phone: string,
-  message: string
+  text: string
 ) {
   console.log('📤 Enviando mensagem via WhatsApp...');
 
   try {
-    // Invocar Edge Function de envio de WhatsApp
-    const { data, error } = await supabase.functions.invoke('send-whatsapp-message', {
+    const { error } = await supabase.functions.invoke('send-whatsapp-message', {
       body: {
         phone,
-        message,
+        message: text,
         conversationId,
       },
     });
 
     if (error) {
-      console.error('❌ Erro ao enviar via UAZAPI:', error);
-      // Fallback: salvar no banco mesmo se falhou
-      await supabase
-        .from('whatsapp_messages')
-        .insert({
-          conversation_id: conversationId,
-          direction: 'outbound',
-          sender_phone: 'system',
-          recipient_phone: phone,
-          message_type: 'text',
-          content: message,
-          status: 'failed',
-        });
-
-      throw error;
+      console.error('Erro ao enviar mensagem:', error);
+      return;
     }
 
-    console.log('✅ Mensagem enviada via UAZAPI:', data.messageId);
-    return data;
+    // Salvar mensagem enviada
+    await supabase
+      .from('whatsapp_messages')
+      .insert({
+        conversation_id: conversationId,
+        direction: 'outbound',
+        sender_phone: 'system',
+        recipient_phone: phone,
+        message_type: 'text',
+        content: text,
+        status: 'sent',
+      });
+
+    // Atualizar conversa
+    await supabase
+      .from('whatsapp_conversations')
+      .update({
+        last_message_at: new Date().toISOString(),
+        last_message_from: 'bot',
+        last_message_preview: text.substring(0, 100),
+      })
+      .eq('id', conversationId);
+
+    console.log('✅ Mensagem enviada com sucesso');
   } catch (error) {
-    console.error('❌ Erro crítico ao enviar mensagem:', error);
-    // Não bloquear o fluxo mesmo se envio falhar
-    return null;
+    console.error('Erro ao enviar WhatsApp:', error);
   }
 }
 
@@ -639,9 +757,8 @@ async function updateConversationState(
   await supabase
     .from('whatsapp_conversations')
     .update({
-      conversation_state: state,
-      last_message_at: new Date().toISOString(),
-      last_message_from: 'bot',
+      metadata: state,
+      updated_at: new Date().toISOString(),
     })
     .eq('id', conversationId);
 }
@@ -653,22 +770,25 @@ async function logChargeTimeline(
   intent: any,
   actionResult: any
 ) {
-  const eventTypes: any = {
-    request_boleto: 'request_new',
-    confirm_payment: 'payment_claimed',
-    upload_proof: 'proof_uploaded',
+  const eventTypeMap: Record<string, string> = {
+    request_boleto: 'boleto_requested',
+    request_negotiation: 'negotiation_started',
+    confirm_payment: 'payment_confirmed',
+    upload_proof: 'proof_received',
     dispute: 'disputed',
   };
 
-  const eventType = eventTypes[intent.type];
-  if (!eventType) return;
+  const eventType = eventTypeMap[intent.type] || 'interaction';
 
   await supabase
     .from('charge_timeline')
     .insert({
       charge_id: chargeId,
       event_type: eventType,
-      description: `${intent.type} via WhatsApp - ${actionResult.action}`,
-      metadata: { intent, actionResult },
+      event_data: {
+        intent: intent.type,
+        confidence: intent.confidence,
+        action: actionResult.action,
+      },
     });
 }

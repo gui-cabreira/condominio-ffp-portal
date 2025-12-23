@@ -491,6 +491,60 @@ export type Database = {
           },
         ]
       }
+      boleto_requests: {
+        Row: {
+          boleto_url: string | null
+          charge_id: string
+          conversation_id: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          pix_code: string | null
+          processed_at: string | null
+          requested_by: string | null
+          status: string | null
+        }
+        Insert: {
+          boleto_url?: string | null
+          charge_id: string
+          conversation_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          pix_code?: string | null
+          processed_at?: string | null
+          requested_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          boleto_url?: string | null
+          charge_id?: string
+          conversation_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          pix_code?: string | null
+          processed_at?: string | null
+          requested_by?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boleto_requests_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boleto_requests_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       charge_imports: {
         Row: {
           administrator_id: string | null
@@ -1506,6 +1560,82 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_proofs: {
+        Row: {
+          ai_analysis: Json | null
+          ai_confidence: number | null
+          analyzed_at: string | null
+          analyzed_by: string | null
+          charge_id: string
+          conversation_id: string | null
+          created_at: string | null
+          file_name: string | null
+          file_type: string | null
+          file_url: string
+          id: string
+          message_id: string | null
+          notes: string | null
+          rejection_reason: string | null
+          status: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          ai_confidence?: number | null
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          charge_id: string
+          conversation_id?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          message_id?: string | null
+          notes?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          ai_confidence?: number | null
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          charge_id?: string
+          conversation_id?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          message_id?: string | null
+          notes?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_proofs_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_proofs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_proofs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           approved: boolean | null
@@ -1828,6 +1958,228 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_conversations: {
+        Row: {
+          assigned_to: string | null
+          awaiting_response_type: string | null
+          charge_id: string | null
+          condominium_id: string | null
+          contact_name: string | null
+          created_at: string | null
+          id: string
+          last_message_at: string | null
+          last_message_from: string | null
+          last_message_preview: string | null
+          metadata: Json | null
+          phone_number: string
+          status: string | null
+          tags: string[] | null
+          unit_id: string | null
+          unread_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          awaiting_response_type?: string | null
+          charge_id?: string | null
+          condominium_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_message_from?: string | null
+          last_message_preview?: string | null
+          metadata?: Json | null
+          phone_number: string
+          status?: string | null
+          tags?: string[] | null
+          unit_id?: string | null
+          unread_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          awaiting_response_type?: string | null
+          charge_id?: string | null
+          condominium_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_message_from?: string | null
+          last_message_preview?: string | null
+          metadata?: Json | null
+          phone_number?: string
+          status?: string | null
+          tags?: string[] | null
+          unit_id?: string | null
+          unread_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversations_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversations_condominium_id_fkey"
+            columns: ["condominium_id"]
+            isOneToOne: false
+            referencedRelation: "condominiums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversations_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_messages: {
+        Row: {
+          caption: string | null
+          content: string | null
+          conversation_id: string
+          created_at: string | null
+          delivered_at: string | null
+          direction: string
+          error_message: string | null
+          id: string
+          media_mimetype: string | null
+          media_url: string | null
+          message_type: string | null
+          metadata: Json | null
+          read_at: string | null
+          recipient_phone: string | null
+          sender_phone: string | null
+          status: string | null
+          uazapi_message_id: string | null
+        }
+        Insert: {
+          caption?: string | null
+          content?: string | null
+          conversation_id: string
+          created_at?: string | null
+          delivered_at?: string | null
+          direction?: string
+          error_message?: string | null
+          id?: string
+          media_mimetype?: string | null
+          media_url?: string | null
+          message_type?: string | null
+          metadata?: Json | null
+          read_at?: string | null
+          recipient_phone?: string | null
+          sender_phone?: string | null
+          status?: string | null
+          uazapi_message_id?: string | null
+        }
+        Update: {
+          caption?: string | null
+          content?: string | null
+          conversation_id?: string
+          created_at?: string | null
+          delivered_at?: string | null
+          direction?: string
+          error_message?: string | null
+          id?: string
+          media_mimetype?: string | null
+          media_url?: string | null
+          message_type?: string | null
+          metadata?: Json | null
+          read_at?: string | null
+          recipient_phone?: string | null
+          sender_phone?: string | null
+          status?: string | null
+          uazapi_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_templates: {
+        Row: {
+          active: boolean | null
+          category: string | null
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          variables: string[] | null
+        }
+        Insert: {
+          active?: boolean | null
+          category?: string | null
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          variables?: string[] | null
+        }
+        Update: {
+          active?: boolean | null
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          variables?: string[] | null
+        }
+        Relationships: []
+      }
+      whatsapp_webhooks_log: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          instance_id: string | null
+          payload: Json
+          phone_number: string | null
+          processed: boolean | null
+          processed_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          instance_id?: string | null
+          payload: Json
+          phone_number?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          instance_id?: string | null
+          payload?: Json
+          phone_number?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
         }
         Relationships: []
       }

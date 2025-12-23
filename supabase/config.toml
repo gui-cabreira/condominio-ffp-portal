@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.send-charge-notification]
 verify_jwt = false
+
+[functions.langgraph-agent]
+verify_jwt = false
+
+[functions.calculate-fees]
+verify_jwt = false
