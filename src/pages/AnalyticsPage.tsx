@@ -1,12 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useMonthlyData, useStatusData, useCommunicationData } from '@/hooks/useDashboardData';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, AreaChart, Area } from 'recharts';
+import { useMonthlyData, useStatusData, useCommunicationData, useConversionFunnel } from '@/hooks/useDashboardData';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { TrendingUp, DollarSign, Users, CheckCircle } from 'lucide-react';
 
 const AnalyticsPage = () => {
   const { data: monthlyData, isLoading: monthlyLoading } = useMonthlyData();
   const { data: statusData, isLoading: statusLoading } = useStatusData();
   const { data: communicationData, isLoading: commLoading } = useCommunicationData();
+  const { data: conversionFunnel, isLoading: funnelLoading } = useConversionFunnel();
 
   const paymentMethods = [
     { name: 'PIX', value: 45, color: '#10b981' },
@@ -25,14 +26,7 @@ const AnalyticsPage = () => {
     { name: 'Dom', collected: 2000, expected: 3000 }
   ];
 
-  const conversionFunnel = [
-    { stage: 'Cobranças Enviadas', count: 1000, percentage: 100 },
-    { stage: 'Visualizadas', count: 850, percentage: 85 },
-    { stage: 'Respondidas', count: 600, percentage: 60 },
-    { stage: 'Pagas', count: 450, percentage: 45 }
-  ];
-
-  const isLoading = monthlyLoading || statusLoading || commLoading;
+  const isLoading = monthlyLoading || statusLoading || commLoading || funnelLoading;
 
   if (isLoading) {
     return (
@@ -183,7 +177,7 @@ const AnalyticsPage = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {conversionFunnel.map((stage, index) => (
+              {(conversionFunnel || []).map((stage, index) => (
                 <div key={index} className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>{stage.stage}</span>

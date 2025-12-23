@@ -10,7 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, ComposedChart } from 'recharts';
 import StatisticsAgent from '@/components/StatisticsAgent';
 import WeeklyReports from '@/components/WeeklyReports';
-import { useDashboardStats, useCondominiums, useMonthlyData, useStatusData, useCommunicationData, useWeeklyPerformance } from '@/hooks/useDashboardData';
+import { useDashboardStats, useCondominiums, useMonthlyData, useStatusData, useCommunicationData, useWeeklyPerformance, useConversionFunnel } from '@/hooks/useDashboardData';
 
 const CorporateDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,6 +22,7 @@ const CorporateDashboard = () => {
   const { data: statusData, isLoading: statusLoading } = useStatusData();
   const { data: communicationData, isLoading: commLoading } = useCommunicationData();
   const { data: weeklyPerformanceData, isLoading: weeklyLoading } = useWeeklyPerformance();
+  const { data: conversionFunnelData, isLoading: funnelLoading } = useConversionFunnel();
 
   // Dados estáticos temporários para gráficos adicionais
   const paymentMethodsData = [
@@ -29,14 +30,6 @@ const CorporateDashboard = () => {
     { method: 'Boleto', value: 35, color: '#3b82f6' },
     { method: 'Cartão', value: 15, color: '#f59e0b' },
     { method: 'Transferência', value: 5, color: '#8b5cf6' },
-  ];
-
-  const conversionFunnelData = [
-    { stage: 'Enviado', count: 1000, percentage: 100 },
-    { stage: 'Aberto', count: 750, percentage: 75 },
-    { stage: 'Clicado', count: 450, percentage: 45 },
-    { stage: 'Visualizado', count: 300, percentage: 30 },
-    { stage: 'Pago', count: 180, percentage: 18 },
   ];
 
   const automationStatusData = [
@@ -62,7 +55,7 @@ const CorporateDashboard = () => {
     }
   };
 
-  const isLoading = statsLoading || condosLoading || monthlyLoading || statusLoading || commLoading || weeklyLoading;
+  const isLoading = statsLoading || condosLoading || monthlyLoading || statusLoading || commLoading || weeklyLoading || funnelLoading;
 
   if (isLoading) {
     return (
@@ -253,7 +246,7 @@ const CorporateDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {conversionFunnelData.map((stage, index) => (
+                {(conversionFunnelData || []).map((stage, index) => (
                   <div key={index} className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">{stage.stage}</span>
