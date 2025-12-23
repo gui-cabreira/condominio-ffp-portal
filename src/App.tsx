@@ -44,6 +44,7 @@ import ProfileCompletion from "./pages/ProfileCompletion";
 import SetupAdmin from "./pages/SetupAdmin";
 import { CorporateLayout } from "./components/CorporateLayout";
 import AtendimentoPage from "./pages/AtendimentoPage";
+import CRMPipelinePage from "./pages/CRMPipelinePage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -220,6 +221,13 @@ const App = () => {
               <AuthGuard requiredRole="admin">
                 <CorporateLayout>
                   <AtendimentoPage />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/crm" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <CRMPipelinePage />
                 </CorporateLayout>
               </AuthGuard>
             } />

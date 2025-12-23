@@ -1,7 +1,7 @@
 import { 
   Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, 
   Upload, UserPlus, Building, Server, MessageSquare, Cog, Headphones, 
-  Workflow, TrendingUp, Shield, ChevronDown
+  Workflow, TrendingUp, Shield, ChevronDown, Kanban
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -49,6 +49,7 @@ const menuCategories: MenuCategory[] = [
     label: 'Atendimento',
     icon: Headphones,
     items: [
+      { title: 'CRM Pipeline', url: '/portal/corporativo/crm', icon: Kanban },
       { title: 'CRM Atendimento', url: '/portal/corporativo/atendimento', icon: MessageSquare },
       { title: 'Coach IA', url: '/portal/corporativo/coach-painel', icon: MessageSquare },
     ]
