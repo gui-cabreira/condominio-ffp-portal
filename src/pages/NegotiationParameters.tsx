@@ -87,9 +87,9 @@ export default function NegotiationParameters() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
-        <div className="flex items-center gap-4">
+    <div className="p-4 md:p-6 w-full">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <Button
             variant="outline"
             size="sm"
@@ -99,11 +99,11 @@ export default function NegotiationParameters() {
             Voltar
           </Button>
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Settings className="h-8 w-8" />
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+              <Settings className="h-7 w-7 md:h-8 md:w-8" />
               Parâmetros de Negociação
             </h1>
-            <p className="text-muted-foreground">Configure as taxas padrão para cálculos automáticos</p>
+            <p className="text-muted-foreground mt-1">Configure as taxas padrão para cálculos automáticos</p>
           </div>
         </div>
 

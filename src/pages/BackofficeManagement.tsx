@@ -370,11 +370,15 @@ const BackofficeManagement = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 w-full">
+      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Backoffice</h1>
-          <p className="text-muted-foreground">Gestão completa de administradoras e cobranças</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+            <Building2 className="h-7 w-7 md:h-8 md:w-8" />
+            Backoffice
+          </h1>
+          <p className="text-muted-foreground mt-1">Gestão completa de administradoras e cobranças</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -689,6 +693,7 @@ const BackofficeManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 };

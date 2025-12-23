@@ -66,13 +66,13 @@ const CorporateDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-4 md:p-6 w-full">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header com Ações */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-ffp-navy">Dashboard Corporativo</h1>
-            <p className="text-muted-foreground">Visão completa da operação</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Dashboard Corporativo</h1>
+            <p className="text-muted-foreground mt-1">Visão completa da operação</p>
           </div>
           <div className="flex gap-2">
             <Link to="/portal/corporativo/condominios">
@@ -404,10 +404,9 @@ const CorporateDashboard = () => {
         {/* Relatórios Semanais */}
         <WeeklyReports />
 
+        {/* Statistics Agent */}
+        <StatisticsAgent />
       </div>
-
-      {/* Statistics Agent */}
-      <StatisticsAgent />
     </div>
   );
 };
