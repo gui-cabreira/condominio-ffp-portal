@@ -8,3 +8,15 @@ verify_jwt = false
 
 [functions.negotiate-ai]
 verify_jwt = false
+
+[functions.auto-charge-notification]
+verify_jwt = false
+
+[functions.uazapi-webhook]
+verify_jwt = false
+
+[functions.send-whatsapp-message]
+verify_jwt = false
+
+[functions.send-charge-notification]
+verify_jwt = false

@@ -72,6 +72,7 @@ export function NewChargeDialog({
     reference_month: '',
     description: '',
   });
+  const [autoNotify, setAutoNotify] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -213,10 +214,40 @@ export function NewChargeDialog({
         }
       }
 
-      toast({
-        title: 'Sucesso',
-        description: 'Cobrança cadastrada com sucesso',
-      });
+      // Disparar notificação automática se habilitado
+      if (autoNotify && chargeResult) {
+        try {
+          console.log('Sending auto notification for charge:', chargeResult.id);
+          const { error: notifyError } = await supabase.functions.invoke('auto-charge-notification', {
+            body: {
+              chargeId: chargeResult.id,
+              sendEmail: true,
+              sendWhatsApp: true
+            }
+          });
+
+          if (notifyError) {
+            console.error('Notification error:', notifyError);
+            toast({
+              title: 'Aviso',
+              description: 'Cobrança criada, mas houve erro ao enviar notificações',
+              variant: 'default',
+            });
+          } else {
+            toast({
+              title: 'Sucesso',
+              description: 'Cobrança cadastrada e notificações enviadas!',
+            });
+          }
+        } catch (notifyError) {
+          console.error('Notification error:', notifyError);
+        }
+      } else {
+        toast({
+          title: 'Sucesso',
+          description: 'Cobrança cadastrada com sucesso',
+        });
+      }
 
       // Reset do formulário
       setStep(1);
