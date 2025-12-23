@@ -257,3 +257,65 @@ export function useWeeklyPerformance() {
     }
   });
 }
+
+export function useConversionFunnel() {
+  return useQuery({
+    queryKey: ['conversion-funnel'],
+    queryFn: async () => {
+      // Buscar todas as mensagens
+      const { data: messages } = await supabase
+        .from('messages')
+        .select('id, status, sent_at, delivered_at, opened_at, clicked_at, responded_at, charge_id');
+
+      // Buscar todas as cobranças pagas
+      const { data: paidCharges } = await supabase
+        .from('charges')
+        .select('id')
+        .eq('status', 'paid');
+
+      const paidChargeIds = new Set(paidCharges?.map(c => c.id) || []);
+
+      // Calcular métricas do funil
+      const totalEnviado = messages?.filter(m => m.sent_at)?.length || 0;
+      const totalAberto = messages?.filter(m => m.opened_at)?.length || 0;
+      const totalClicado = messages?.filter(m => m.clicked_at)?.length || 0;
+      
+      // Mensagens que tiveram resposta ou interação
+      const totalVisualizado = messages?.filter(m => m.responded_at || m.clicked_at || m.opened_at)?.length || 0;
+      
+      // Mensagens de cobranças que foram pagas
+      const totalPago = messages?.filter(m => m.charge_id && paidChargeIds.has(m.charge_id))?.length || 0;
+
+      // Base para porcentagem (total enviado ou 1 para evitar divisão por zero)
+      const base = totalEnviado || 1;
+
+      return [
+        { 
+          stage: 'Enviado', 
+          count: totalEnviado, 
+          percentage: 100 
+        },
+        { 
+          stage: 'Aberto', 
+          count: totalAberto, 
+          percentage: Math.round((totalAberto / base) * 100) 
+        },
+        { 
+          stage: 'Clicado', 
+          count: totalClicado, 
+          percentage: Math.round((totalClicado / base) * 100) 
+        },
+        { 
+          stage: 'Visualizado', 
+          count: totalVisualizado, 
+          percentage: Math.round((totalVisualizado / base) * 100) 
+        },
+        { 
+          stage: 'Pago', 
+          count: totalPago, 
+          percentage: Math.round((totalPago / base) * 100) 
+        },
+      ];
+    }
+  });
+}
