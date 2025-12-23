@@ -178,14 +178,15 @@ export default function CondominiumsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 w-full">
+      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Building2 className="h-8 w-8" />
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+            <Building2 className="h-7 w-7 md:h-8 md:w-8" />
             Condomínios
           </h1>
-          <p className="text-muted-foreground">Gerencie todos os condomínios</p>
+          <p className="text-muted-foreground mt-1">Gerencie todos os condomínios</p>
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -316,6 +317,7 @@ export default function CondominiumsPage() {
           </Table>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

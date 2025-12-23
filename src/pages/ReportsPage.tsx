@@ -12,10 +12,14 @@ const ReportsPage = () => {
   ];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-4 md:p-6 w-full">
+      <div className="max-w-7xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Relatórios</h1>
-        <p className="text-muted-foreground">Gere e visualize relatórios do sistema</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+          <FileText className="h-7 w-7 md:h-8 md:w-8" />
+          Relatórios
+        </h1>
+        <p className="text-muted-foreground mt-1">Gere e visualize relatórios do sistema</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -52,6 +56,7 @@ const ReportsPage = () => {
           <WeeklyReports />
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };
