@@ -217,6 +217,11 @@ const App = () => {
             } />
             <Route path="/aceitar-convite" element={<AcceptInvitation />} />
             <Route path="/completar-perfil" element={<ProfileCompletion />} />
+            <Route path="/portal/corporativo/completar-perfil" element={
+              <AuthGuard>
+                <ProfileCompletion />
+              </AuthGuard>
+            } />
             <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
             <Route path="/cadastro" element={<Signup />} />
             <Route path="/esqueci-senha" element={<ForgotPassword />} />

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,6 +18,7 @@ interface ProfileDialogProps {
   onOpenChange: (open: boolean) => void;
   profile: {
     id: string;
+    user_id?: string;
     email: string;
     first_name?: string;
     last_name?: string;
@@ -28,6 +29,8 @@ interface ProfileDialogProps {
     birth_date?: string;
     zip_code?: string;
     street?: string;
+    number?: string;
+    complement?: string;
     neighborhood?: string;
     city?: string;
     state?: string;
@@ -37,17 +40,19 @@ interface ProfileDialogProps {
 
 export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: ProfileDialogProps) {
   const [formData, setFormData] = useState({
-    first_name: profile?.first_name || '',
-    last_name: profile?.last_name || '',
-    cpf: profile?.cpf || '',
-    rg: profile?.rg || '',
-    phone: profile?.phone || '',
-    birth_date: profile?.birth_date || '',
-    zip_code: profile?.zip_code || '',
-    street: profile?.street || '',
-    neighborhood: profile?.neighborhood || '',
-    city: profile?.city || '',
-    state: profile?.state || '',
+    first_name: '',
+    last_name: '',
+    cpf: '',
+    rg: '',
+    phone: '',
+    birth_date: '',
+    zip_code: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -56,6 +61,27 @@ export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: 
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const imgRef = useRef<HTMLImageElement>(null);
   const { toast } = useToast();
+
+  // Atualizar formData quando profile mudar ou dialog abrir
+  useEffect(() => {
+    if (profile && open) {
+      setFormData({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        cpf: profile.cpf || '',
+        rg: profile.rg || '',
+        phone: profile.phone || '',
+        birth_date: profile.birth_date || '',
+        zip_code: profile.zip_code || '',
+        street: profile.street || '',
+        number: profile.number || '',
+        complement: profile.complement || '',
+        neighborhood: profile.neighborhood || '',
+        city: profile.city || '',
+        state: profile.state || '',
+      });
+    }
+  }, [profile, open]);
 
   const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -113,18 +139,20 @@ export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: 
   const uploadAvatar = async () => {
     if (!profile || !completedCrop) return;
 
+    const userId = profile.user_id || profile.id;
+
     try {
       setUploading(true);
       const croppedBlob = await getCroppedImg();
       
       const fileExt = 'jpg';
-      const fileName = `${profile.id}/avatar.${fileExt}`;
+      const fileName = `${userId}/avatar.${fileExt}`;
 
       // Deletar avatar antigo se existir
       if (profile.avatar_url) {
         const oldPath = profile.avatar_url.split('/').pop();
         if (oldPath) {
-          await supabase.storage.from('avatars').remove([`${profile.id}/${oldPath}`]);
+          await supabase.storage.from('avatars').remove([`${userId}/${oldPath}`]);
         }
       }
 
@@ -139,7 +167,7 @@ export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: 
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: data.publicUrl })
-        .eq('id', profile.id);
+        .eq('user_id', userId);
 
       if (updateError) throw updateError;
 
@@ -167,6 +195,8 @@ export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: 
       ...prev,
       zip_code: data.cep || prev.zip_code,
       street: data.street || prev.street,
+      number: data.number || prev.number,
+      complement: data.complement || prev.complement,
       neighborhood: data.neighborhood || prev.neighborhood,
       city: data.city || prev.city,
       state: data.state || prev.state
@@ -177,12 +207,14 @@ export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: 
     e.preventDefault();
     if (!profile) return;
 
+    const userId = profile.user_id || profile.id;
+
     try {
       setSaving(true);
       const { error } = await supabase
         .from('profiles')
         .update(formData)
-        .eq('id', profile.id);
+        .eq('user_id', userId);
 
       if (error) throw error;
 
@@ -355,8 +387,8 @@ export function ProfileDialog({ open, onOpenChange, profile, onProfileUpdate }: 
                 value={{
                   cep: formData.zip_code,
                   street: formData.street,
-                  number: '',
-                  complement: '',
+                  number: formData.number,
+                  complement: formData.complement,
                   neighborhood: formData.neighborhood,
                   city: formData.city,
                   state: formData.state

@@ -70,9 +70,9 @@ export default function ProfileCompletion() {
     // Buscar dados existentes do perfil
     const { data: profile } = await supabase
       .from('profiles')
-      .select('*, user_roles(role)')
-      .eq('id', user.id)
-      .single();
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
     
     if (profile) {
       setFormData(prev => ({
@@ -86,23 +86,23 @@ export default function ProfileCompletion() {
         birth_date: profile.birth_date || '',
         zip_code: profile.zip_code || '',
         street: profile.street || '',
-        number: '',
+        number: profile.number || '',
         complement: profile.complement || '',
         neighborhood: profile.neighborhood || '',
         city: profile.city || '',
         state: profile.state || ''
       }));
+    }
       
-      // Buscar role do usuário
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
+    // Buscar role do usuário
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle();
       
-      if (roleData) {
-        setUserRole(roleData.role);
-      }
+    if (roleData) {
+      setUserRole(roleData.role);
     }
   };
 
@@ -173,10 +173,22 @@ export default function ProfileCompletion() {
       const { error } = await supabase
         .from('profiles')
         .update({
-          ...formData,
-          profile_completed: true
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          cpf: formData.cpf,
+          rg: formData.rg,
+          phone: formData.phone,
+          birth_date: formData.birth_date,
+          avatar_url: formData.avatar_url,
+          zip_code: formData.zip_code,
+          street: formData.street,
+          number: formData.number,
+          complement: formData.complement,
+          neighborhood: formData.neighborhood,
+          city: formData.city,
+          state: formData.state
         })
-        .eq('id', user.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
