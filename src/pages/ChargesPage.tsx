@@ -320,50 +320,48 @@ export default function ChargesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Lista de Negociações</CardTitle>
-          <CardDescription>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-              <div className="flex items-center gap-2">
-                <Search className="h-4 w-4" />
-                <Input
-                  placeholder="Buscar..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div>
-                <select
-                  className="w-full p-2 border rounded-md bg-background"
-                  value={selectedAdministrator}
-                  onChange={(e) => {
-                    setSelectedAdministrator(e.target.value);
-                    setSelectedCondominium(''); // Reset condomínio ao trocar administradora
-                  }}
-                >
-                  <option value="">Todas Administradoras</option>
-                  {administrators.map((admin) => (
-                    <option key={admin.id} value={admin.id}>
-                      {admin.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <select
-                  className="w-full p-2 border rounded-md bg-background"
-                  value={selectedCondominium}
-                  onChange={(e) => setSelectedCondominium(e.target.value)}
-                  disabled={!selectedAdministrator && condominiums.length > 20}
-                >
-                  <option value="">Todos Condomínios</option>
-                  {filteredCondominiums.map((condo) => (
-                    <option key={condo.id} value={condo.id}>
-                      {condo.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              <Input
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          </CardDescription>
+            <div>
+              <select
+                className="w-full p-2 border rounded-md bg-background"
+                value={selectedAdministrator}
+                onChange={(e) => {
+                  setSelectedAdministrator(e.target.value);
+                  setSelectedCondominium(''); // Reset condomínio ao trocar administradora
+                }}
+              >
+                <option value="">Todas Administradoras</option>
+                {administrators.map((admin) => (
+                  <option key={admin.id} value={admin.id}>
+                    {admin.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <select
+                className="w-full p-2 border rounded-md bg-background"
+                value={selectedCondominium}
+                onChange={(e) => setSelectedCondominium(e.target.value)}
+                disabled={!selectedAdministrator && condominiums.length > 20}
+              >
+                <option value="">Todos Condomínios</option>
+                {filteredCondominiums.map((condo) => (
+                  <option key={condo.id} value={condo.id}>
+                    {condo.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all">

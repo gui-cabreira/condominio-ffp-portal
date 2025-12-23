@@ -66,15 +66,20 @@ const Footer = () => {
         <div className="border-t border-gray-200 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-500 text-sm">
-              © 2024 Fermiano, Ferreira Pinto Advogados. Todos os direitos reservados.
+              © {new Date().getFullYear()} Fermiano, Ferreira Pinto Advogados. Todos os direitos reservados.
             </p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-500 hover:text-ffp-gold text-sm transition-colors">
-                Política de Privacidade
-              </a>
-              <a href="#" className="text-gray-500 hover:text-ffp-gold text-sm transition-colors">
-                Termos de Uso
-              </a>
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 mt-4 md:mt-0">
+              <span className="text-gray-400 text-xs">
+                Desenvolvido por <a href="https://appnow.com.br" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">AppNow</a>
+              </span>
+              <div className="flex space-x-6">
+                <a href="#" className="text-gray-500 hover:text-ffp-gold text-sm transition-colors">
+                  Política de Privacidade
+                </a>
+                <a href="#" className="text-gray-500 hover:text-ffp-gold text-sm transition-colors">
+                  Termos de Uso
+                </a>
+              </div>
             </div>
           </div>
         </div>
