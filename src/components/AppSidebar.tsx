@@ -104,7 +104,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className={`border-r transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
+    <Sidebar collapsible="icon" className="border-r transition-all duration-300">
       <SidebarHeader className="border-b p-2">
         <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
           {!collapsed && (
