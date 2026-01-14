@@ -105,8 +105,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar className={`border-r transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
-      <SidebarHeader className="border-b p-4">
-        <div className="flex items-center justify-between">
+      <SidebarHeader className="border-b p-2">
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
           {!collapsed && (
             <img 
               src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
