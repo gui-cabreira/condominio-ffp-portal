@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAddress } from '@/hooks/useAddress';
-import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calendar, Copy, Edit, Trash2, Eye, MousePointer, TrendingUp, AlertCircle, Search, Loader2 } from 'lucide-react';
+import { UserPlus, Users, Clock, CheckCircle, XCircle, Mail, Shield, User, Calendar, Copy, Edit, Trash2, Eye, MousePointer, TrendingUp, AlertCircle, Search, Loader2, RefreshCw } from 'lucide-react';
 
 interface User {
   id: string;
@@ -62,6 +62,7 @@ const UserManagement = () => {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
   const [isInviting, setIsInviting] = useState(false);
+  const [resendingInvitation, setResendingInvitation] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
 
@@ -386,6 +387,52 @@ const UserManagement = () => {
         description: 'Erro ao deletar convite',
         variant: 'destructive'
       });
+    }
+  };
+
+  const handleResendInvitation = async (invitation: Invitation) => {
+    if (!confirm(`Deseja reenviar o convite para ${invitation.email}? Um novo email será enviado com um novo link.`)) return;
+
+    try {
+      setResendingInvitation(invitation.id);
+      
+      // Deletar convite antigo
+      const { error: deleteError } = await supabase
+        .from('user_invitations')
+        .delete()
+        .eq('id', invitation.id);
+
+      if (deleteError) throw deleteError;
+
+      // Criar novo convite
+      const { data, error } = await supabase.functions.invoke('send-user-invitation', {
+        body: {
+          email: invitation.email,
+          role: invitation.role,
+          invitedBy: (await supabase.auth.getUser()).data.user?.id
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Convite Reenviado!",
+          description: `Novo convite enviado para ${invitation.email}`
+        });
+        loadData();
+      } else {
+        throw new Error(data.error || 'Erro ao reenviar convite');
+      }
+    } catch (error: any) {
+      console.error('Error resending invitation:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao reenviar convite',
+        variant: 'destructive'
+      });
+    } finally {
+      setResendingInvitation(null);
     }
   };
 
@@ -1050,19 +1097,38 @@ const UserManagement = () => {
                                   <Eye className="h-3 w-3 mr-1" />
                                   Detalhes
                                 </Button>
-                                {!invitation.accepted_at && new Date(invitation.expires_at) > new Date() && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => copyInvitationLink(invitation.invitation_token)}
-                                  >
-                                    <Copy className="h-3 w-3" />
-                                  </Button>
+                                {!invitation.accepted_at && (
+                                  <>
+                                    {new Date(invitation.expires_at) > new Date() && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => copyInvitationLink(invitation.invitation_token)}
+                                        title="Copiar link"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleResendInvitation(invitation)}
+                                      disabled={resendingInvitation === invitation.id}
+                                      title="Reenviar convite"
+                                    >
+                                      {resendingInvitation === invitation.id ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <RefreshCw className="h-3 w-3" />
+                                      )}
+                                    </Button>
+                                  </>
                                 )}
                                 <Button
                                   size="sm"
                                   variant="destructive"
                                   onClick={() => handleDeleteInvitation(invitation.id)}
+                                  title="Excluir convite"
                                 >
                                   <Trash2 className="h-3 w-3" />
                                 </Button>
