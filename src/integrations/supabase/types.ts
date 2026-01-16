@@ -289,6 +289,78 @@ export type Database = {
           },
         ]
       }
+      agreements: {
+        Row: {
+          administrator_id: string | null
+          agreement_date: string
+          created_at: string | null
+          created_by: string | null
+          discount_amount: number | null
+          external_id: string | null
+          id: string
+          original_charges: Json | null
+          original_debt: number
+          paid_installments: number | null
+          status: string | null
+          terms: string | null
+          total_amount: number
+          total_installments: number
+          unit_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          administrator_id?: string | null
+          agreement_date: string
+          created_at?: string | null
+          created_by?: string | null
+          discount_amount?: number | null
+          external_id?: string | null
+          id?: string
+          original_charges?: Json | null
+          original_debt: number
+          paid_installments?: number | null
+          status?: string | null
+          terms?: string | null
+          total_amount: number
+          total_installments: number
+          unit_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          administrator_id?: string | null
+          agreement_date?: string
+          created_at?: string | null
+          created_by?: string | null
+          discount_amount?: number | null
+          external_id?: string | null
+          id?: string
+          original_charges?: Json | null
+          original_debt?: number
+          paid_installments?: number | null
+          status?: string | null
+          terms?: string | null
+          total_amount?: number
+          total_installments?: number
+          unit_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agreements_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agreements_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_knowledge_base: {
         Row: {
           administrator_id: string | null
@@ -767,18 +839,23 @@ export type Database = {
       charges: {
         Row: {
           administrator_id: string | null
+          agreement_id: string | null
           amount: number
           attorney_fees: number | null
           boleto_barcode: string | null
           boleto_url: string | null
+          charge_type: Database["public"]["Enums"]["charge_type"] | null
           correction_amount: number | null
           created_at: string
           created_by: string | null
           description: string | null
           due_date: string
+          external_id: string | null
+          extrajudicial_case_id: string | null
           fees_rate: number | null
           fine_amount: number | null
           id: string
+          installment_number: number | null
           interest_amount: number | null
           interest_rate: number | null
           last_contact_at: string | null
@@ -798,18 +875,23 @@ export type Database = {
         }
         Insert: {
           administrator_id?: string | null
+          agreement_id?: string | null
           amount: number
           attorney_fees?: number | null
           boleto_barcode?: string | null
           boleto_url?: string | null
+          charge_type?: Database["public"]["Enums"]["charge_type"] | null
           correction_amount?: number | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           due_date: string
+          external_id?: string | null
+          extrajudicial_case_id?: string | null
           fees_rate?: number | null
           fine_amount?: number | null
           id?: string
+          installment_number?: number | null
           interest_amount?: number | null
           interest_rate?: number | null
           last_contact_at?: string | null
@@ -829,18 +911,23 @@ export type Database = {
         }
         Update: {
           administrator_id?: string | null
+          agreement_id?: string | null
           amount?: number
           attorney_fees?: number | null
           boleto_barcode?: string | null
           boleto_url?: string | null
+          charge_type?: Database["public"]["Enums"]["charge_type"] | null
           correction_amount?: number | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           due_date?: string
+          external_id?: string | null
+          extrajudicial_case_id?: string | null
           fees_rate?: number | null
           fine_amount?: number | null
           id?: string
+          installment_number?: number | null
           interest_amount?: number | null
           interest_rate?: number | null
           last_contact_at?: string | null
@@ -864,6 +951,20 @@ export type Database = {
             columns: ["administrator_id"]
             isOneToOne: false
             referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charges_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charges_extrajudicial_case_id_fkey"
+            columns: ["extrajudicial_case_id"]
+            isOneToOne: false
+            referencedRelation: "extrajudicial_cases"
             referencedColumns: ["id"]
           },
           {
@@ -1485,6 +1586,84 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "uazapi_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extrajudicial_cases: {
+        Row: {
+          administrator_id: string | null
+          attorney_contact: string | null
+          attorney_name: string | null
+          case_date: string
+          case_number: string | null
+          created_at: string | null
+          created_by: string | null
+          deadline_date: string | null
+          external_id: string | null
+          id: string
+          notes: string | null
+          related_charges: Json | null
+          settlement_amount: number | null
+          settlement_date: string | null
+          status: string | null
+          total_amount: number
+          unit_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          administrator_id?: string | null
+          attorney_contact?: string | null
+          attorney_name?: string | null
+          case_date: string
+          case_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deadline_date?: string | null
+          external_id?: string | null
+          id?: string
+          notes?: string | null
+          related_charges?: Json | null
+          settlement_amount?: number | null
+          settlement_date?: string | null
+          status?: string | null
+          total_amount: number
+          unit_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          administrator_id?: string | null
+          attorney_contact?: string | null
+          attorney_name?: string | null
+          case_date?: string
+          case_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deadline_date?: string | null
+          external_id?: string | null
+          id?: string
+          notes?: string | null
+          related_charges?: Json | null
+          settlement_amount?: number | null
+          settlement_date?: string | null
+          status?: string | null
+          total_amount?: number
+          unit_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extrajudicial_cases_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrajudicial_cases_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
             referencedColumns: ["id"]
           },
         ]
@@ -2810,6 +2989,7 @@ export type Database = {
     }
     Enums: {
       charge_status: "pending" | "paid" | "overdue" | "cancelled"
+      charge_type: "regular" | "inadimplencia" | "acordo" | "extrajudicial"
       message_status: "pending" | "sent" | "delivered" | "failed"
       message_type: "email" | "whatsapp" | "sms"
       user_role: "admin" | "assistant" | "employee" | "supervisor"
@@ -2941,6 +3121,7 @@ export const Constants = {
   public: {
     Enums: {
       charge_status: ["pending", "paid", "overdue", "cancelled"],
+      charge_type: ["regular", "inadimplencia", "acordo", "extrajudicial"],
       message_status: ["pending", "sent", "delivered", "failed"],
       message_type: ["email", "whatsapp", "sms"],
       user_role: ["admin", "assistant", "employee", "supervisor"],
