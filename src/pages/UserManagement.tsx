@@ -304,11 +304,13 @@ const UserManagement = () => {
         throw new Error('Não foi possível atualizar o perfil (sem permissão ou registro não encontrado).');
       }
 
-      // Atualizar role (UPDATE ao invés de DELETE + INSERT)
+      // Atualizar ou criar role usando upsert
       const { error: roleError } = await supabase
         .from('user_roles')
-        .update({ role: editForm.role as any })
-        .eq('user_id', userId);
+        .upsert(
+          { user_id: userId, role: editForm.role as any },
+          { onConflict: 'user_id' }
+        );
 
       if (roleError) throw roleError;
 
