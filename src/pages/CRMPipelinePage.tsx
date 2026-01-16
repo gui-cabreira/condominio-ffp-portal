@@ -346,6 +346,7 @@ export default function CRMPipelinePage() {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         onSendNotification={handleSendNotification}
+        onChargeUpdated={loadData}
       />
     </div>
   );
