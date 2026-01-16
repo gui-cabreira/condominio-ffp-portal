@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Save, Eye, EyeOff, CheckCircle, Server, Smartphone, RefreshCw, Plus, Trash2, Bot, Zap, Shield, User } from 'lucide-react';
+import { Settings, Key, Save, Eye, EyeOff, CheckCircle, Server, Smartphone, RefreshCw, Plus, Trash2, Bot, Zap, Shield, User, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { PageContainer } from '@/components/PageContainer';
+import { PageHeader } from '@/components/PageHeader';
 
 interface WhatsAppInstance {
   id: string;
@@ -322,44 +324,30 @@ const WorkflowSettings = () => {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <PageContainer>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-          <Settings className="w-8 h-8" />
-          Configurações
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          {isAdmin 
-            ? 'Configure o servidor de mensagens e gerencie instâncias'
-            : 'Gerencie sua instância WhatsApp'
-          }
-        </p>
-      </div>
-
-      {/* Role indicator */}
-      <div className="flex items-center gap-2">
-        <Badge variant={isAdmin ? 'default' : 'secondary'} className="flex items-center gap-1">
-          {isAdmin ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
-          {isAdmin ? 'Administrador' : 'Supervisor'}
-        </Badge>
-        {isAdmin && (
-          <span className="text-xs text-muted-foreground">
-            Acesso completo a todas as instâncias
-          </span>
-        )}
-        {isSupervisor && (
-          <span className="text-xs text-muted-foreground">
-            Você pode criar sua instância pessoal e ver instâncias autônomas
-          </span>
-        )}
-      </div>
+    <PageContainer>
+      <PageHeader
+        icon={Settings}
+        title="Configurações"
+        description={isAdmin 
+          ? 'Configure o servidor de mensagens e gerencie instâncias'
+          : 'Gerencie sua instância WhatsApp'
+        }
+        badge={
+          <Badge variant={isAdmin ? 'default' : 'secondary'} className="flex items-center gap-1">
+            {isAdmin ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
+            {isAdmin ? 'Administrador' : 'Supervisor'}
+          </Badge>
+        }
+      />
 
       {/* Server Configuration - APENAS ADMIN */}
       {isAdmin && (
@@ -620,7 +608,7 @@ const WorkflowSettings = () => {
           <p className="text-xs">Os webhooks são direcionados para o sistema de Coach IA.</p>
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 };
 

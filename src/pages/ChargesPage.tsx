@@ -11,6 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NegotiationDialog } from '@/components/NegotiationDialog';
+import { PageContainer } from '@/components/PageContainer';
+import { PageHeader } from '@/components/PageHeader';
 
 interface Charge {
   id: string;
@@ -228,29 +230,27 @@ export default function ChargesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
+      <PageContainer>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="p-4 md:p-6 w-full">
-      <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <FileText className="h-7 w-7 md:h-8 md:w-8" />
-            Negociações
-          </h1>
-          <p className="text-muted-foreground mt-1">Gerencie todas as negociações e acordos</p>
-        </div>
-
-        <Button onClick={() => setNewChargeDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Negociação
-        </Button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        icon={FileText}
+        title="Negociações"
+        description="Gerencie todas as negociações e acordos"
+        actions={
+          <Button onClick={() => setNewChargeDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Negociação
+          </Button>
+        }
+      />
 
       <NegotiationDialog
         open={newChargeDialogOpen}
@@ -414,8 +414,7 @@ export default function ChargesPage() {
           </Tabs>
         </CardContent>
         </Card>
-      </div>
-    </div>
+    </PageContainer>
   );
 }
 

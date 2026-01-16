@@ -2,6 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import WeeklyReports from '@/components/WeeklyReports';
 import { FileText, Download, Calendar, TrendingUp } from 'lucide-react';
+import { PageContainer } from '@/components/PageContainer';
+import { PageHeader } from '@/components/PageHeader';
 
 const ReportsPage = () => {
   const quickReports = [
@@ -12,15 +14,12 @@ const ReportsPage = () => {
   ];
 
   return (
-    <div className="p-4 md:p-6 w-full">
-      <div className="max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-          <FileText className="h-7 w-7 md:h-8 md:w-8" />
-          Relatórios
-        </h1>
-        <p className="text-muted-foreground mt-1">Gere e visualize relatórios do sistema</p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        icon={FileText}
+        title="Relatórios"
+        description="Gere e visualize relatórios do sistema"
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {quickReports.map((report, index) => (
@@ -56,8 +55,7 @@ const ReportsPage = () => {
           <WeeklyReports />
         </CardContent>
       </Card>
-      </div>
-    </div>
+    </PageContainer>
   );
 };
 
