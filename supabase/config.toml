@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.uazapi-sse]
 verify_jwt = false
+
+[functions.resend-webhook]
+verify_jwt = false
+
+[functions.process-charges-ai]
+verify_jwt = false

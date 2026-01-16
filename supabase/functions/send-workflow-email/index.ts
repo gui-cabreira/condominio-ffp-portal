@@ -55,6 +55,22 @@ serve(async (req) => {
 
     console.log('Email enviado com sucesso:', emailData?.id)
 
+    // Registrar no email_tracking para rastreamento
+    if (emailData?.id) {
+      await supabaseClient
+        .from('email_tracking')
+        .insert({
+          email_id: emailData.id,
+          recipient: to,
+          subject: processedSubject,
+          email_type: 'workflow',
+          related_entity_type: 'workflow_step',
+          related_entity_id: stepId,
+          sent_at: new Date().toISOString(),
+          metadata: { chargeData, stepId }
+        })
+    }
+
     // Atualizar step com sucesso
     const { error: updateError } = await supabaseClient
       .from('workflow_execution_steps')

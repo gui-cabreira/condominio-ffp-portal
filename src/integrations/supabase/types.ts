@@ -1372,6 +1372,69 @@ export type Database = {
         }
         Relationships: []
       }
+      email_tracking: {
+        Row: {
+          bounced_at: string | null
+          clicked_at: string | null
+          complained_at: string | null
+          created_at: string
+          delivered_at: string | null
+          email_id: string
+          email_type: string
+          id: string
+          metadata: Json | null
+          opened_at: string | null
+          recipient: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          sent_at: string | null
+          subject: string | null
+          tracking_events: Json | null
+          unsubscribed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          bounced_at?: string | null
+          clicked_at?: string | null
+          complained_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          email_id: string
+          email_type?: string
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          tracking_events?: Json | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bounced_at?: string | null
+          clicked_at?: string | null
+          complained_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          email_id?: string
+          email_type?: string
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          tracking_events?: Json | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employee_coach_instances: {
         Row: {
           coach_agent_id: string | null
