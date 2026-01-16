@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Save, Eye, EyeOff, CheckCircle, Server, Smartphone, RefreshCw, Plus, Trash2 } from 'lucide-react';
+import { Settings, Key, Save, Eye, EyeOff, CheckCircle, Server, Smartphone, RefreshCw, Plus, Trash2, Bot, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,11 +19,14 @@ interface WhatsAppInstance {
   status: string;
   phone_number: string | null;
   instance_type: string;
+  is_autonomous: boolean;
+  admin_field_01: string | null;
+  admin_field_02: string | null;
   created_at: string;
 }
 
 const WorkflowSettings = () => {
-  const [serverUrl, setServerUrl] = useState('');
+  const [serverUrl, setServerUrl] = useState('https://appnow.uazapi.com');
   const [adminToken, setAdminToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,6 +36,9 @@ const WorkflowSettings = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState('');
   const [newInstanceType, setNewInstanceType] = useState('general');
+  const [newInstanceAutonomous, setNewInstanceAutonomous] = useState(true);
+  const [newAdminField01, setNewAdminField01] = useState('FFP Advogados');
+  const [newAdminField02, setNewAdminField02] = useState('');
   const [creatingInstance, setCreatingInstance] = useState(false);
 
   useEffect(() => {
@@ -158,6 +165,13 @@ const WorkflowSettings = () => {
     try {
       const instanceId = newInstanceName.toLowerCase().replace(/\s+/g, '_');
       
+      // Eventos críticos para receber mensagens
+      const webhookEvents = [
+        'messages',           // CRÍTICO - Evento principal
+        'messages_update',    // Status de mensagens
+        'connection',         // Status da conexão
+      ];
+      
       const response = await fetch(`${serverUrl}/instance/create`, {
         method: 'POST',
         headers: {
@@ -166,9 +180,11 @@ const WorkflowSettings = () => {
         },
         body: JSON.stringify({
           instanceName: instanceId,
-          webhook: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/coach-webhook`,
-          webhookByEvents: true,
-          events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE']
+          webhook: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/uazapi-webhook`,
+          webhookByEvents: false, // Receber todos eventos no mesmo endpoint
+          events: webhookEvents,
+          adminField01: newAdminField01,
+          adminField02: newAdminField02 || instanceId
         })
       });
 
@@ -187,6 +203,10 @@ const WorkflowSettings = () => {
           api_key: data.hash || adminToken,
           base_url: serverUrl,
           instance_type: newInstanceType,
+          is_autonomous: newInstanceAutonomous,
+          admin_field_01: newAdminField01,
+          admin_field_02: newAdminField02 || instanceId,
+          webhook_events: webhookEvents,
           status: 'disconnected',
           created_by: userData.user?.id
         });
@@ -195,6 +215,7 @@ const WorkflowSettings = () => {
       setDialogOpen(false);
       setNewInstanceName('');
       setNewInstanceType('general');
+      setNewInstanceAutonomous(true);
       await fetchInstances();
     } catch (error: any) {
       console.error('Error creating instance:', error);
@@ -255,14 +276,25 @@ const WorkflowSettings = () => {
     }
   };
 
-  const getTypeBadge = (type: string) => {
+  const getTypeBadge = (type: string, isAutonomous?: boolean) => {
     const types: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
       general: { label: 'Geral', variant: 'default' },
+      cobranca: { label: 'Cobrança', variant: 'default' },
       coach: { label: 'Coach IA', variant: 'secondary' },
       notification: { label: 'Notificações', variant: 'outline' }
     };
     const t = types[type] || types.general;
-    return <Badge variant={t.variant}>{t.label}</Badge>;
+    return (
+      <div className="flex items-center gap-1">
+        <Badge variant={t.variant}>{t.label}</Badge>
+        {isAutonomous && (
+          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+            <Bot className="h-3 w-3 mr-1" />
+            Auto
+          </Badge>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -383,7 +415,7 @@ const WorkflowSettings = () => {
                     id="instanceName"
                     value={newInstanceName}
                     onChange={(e) => setNewInstanceName(e.target.value)}
-                    placeholder="Ex: Coach Vendas"
+                    placeholder="Ex: FFP Cobrança 01"
                   />
                 </div>
                 
@@ -395,10 +427,49 @@ const WorkflowSettings = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="general">Geral</SelectItem>
+                      <SelectItem value="cobranca">Cobrança</SelectItem>
                       <SelectItem value="coach">Coach IA</SelectItem>
                       <SelectItem value="notification">Notificações</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-primary" />
+                    <div>
+                      <Label className="text-sm font-medium">Modo Autônomo</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Responde automaticamente via IA
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={newInstanceAutonomous}
+                    onCheckedChange={setNewInstanceAutonomous}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="adminField01">Empresa (Admin Field 01)</Label>
+                  <Input
+                    id="adminField01"
+                    value={newAdminField01}
+                    onChange={(e) => setNewAdminField01(e.target.value)}
+                    placeholder="FFP Advogados"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="adminField02">Operador (Admin Field 02)</Label>
+                  <Input
+                    id="adminField02"
+                    value={newAdminField02}
+                    onChange={(e) => setNewAdminField02(e.target.value)}
+                    placeholder="Nome do operador ou ID"
+                  />
                 </div>
               </div>
               
@@ -450,7 +521,7 @@ const WorkflowSettings = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-2">
-                    {getTypeBadge(instance.instance_type)}
+                    {getTypeBadge(instance.instance_type, instance.is_autonomous)}
                   </div>
                   
                   <div className="flex items-center gap-2">

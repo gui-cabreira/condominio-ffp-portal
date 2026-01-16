@@ -38,18 +38,21 @@ Deno.serve(async (req) => {
     const eventType = payload.event;
     
     switch (eventType) {
+      case 'messages':           // CRÍTICO - Evento principal UAZAPI
       case 'message.received':
       case 'messages.upsert':
         console.log('💬 Nova mensagem recebida');
         await handleIncomingMessage(supabase, payload);
         break;
       
+      case 'messages_update':
       case 'message.status':
       case 'messages.update':
         console.log('✅ Status de mensagem atualizado');
         await handleMessageStatus(supabase, payload);
         break;
       
+      case 'connection':
       case 'connection.update':
         console.log('🔌 Status de conexão atualizado');
         await handleConnectionUpdate(supabase, payload);
