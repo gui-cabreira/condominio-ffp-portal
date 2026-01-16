@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -6,11 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Phone, Mail, MapPin, Calendar, DollarSign, MessageSquare, 
-  FileText, History, User, Building2, Send
+  FileText, History, User, Building2, Send, CheckCircle, FileImage
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChargeTimeline } from '@/components/ChargeTimeline';
+import { PaymentProofsList } from './PaymentProofsList';
+import { ConfirmPaymentDialog } from './ConfirmPaymentDialog';
 
 interface ChargeData {
   id: string;
@@ -63,9 +66,12 @@ interface ChargeDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSendNotification: (chargeId: string, channel: 'email' | 'whatsapp') => void;
+  onChargeUpdated?: () => void;
 }
 
-export function ChargeDetailSheet({ charge, open, onOpenChange, onSendNotification }: ChargeDetailSheetProps) {
+export function ChargeDetailSheet({ charge, open, onOpenChange, onSendNotification, onChargeUpdated }: ChargeDetailSheetProps) {
+  const [confirmPaymentOpen, setConfirmPaymentOpen] = useState(false);
+  
   if (!charge) return null;
 
   const daysOverdue = differenceInDays(new Date(), new Date(charge.due_date));
@@ -90,9 +96,10 @@ export function ChargeDetailSheet({ charge, open, onOpenChange, onSendNotificati
 
         <ScrollArea className="h-[calc(100vh-100px)] mt-4">
           <Tabs defaultValue="info" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="info">Info</TabsTrigger>
               <TabsTrigger value="valores">Valores</TabsTrigger>
+              <TabsTrigger value="comprovantes">Recibos</TabsTrigger>
               <TabsTrigger value="acordos">Acordos</TabsTrigger>
               <TabsTrigger value="historico">Histórico</TabsTrigger>
             </TabsList>
@@ -168,25 +175,45 @@ export function ChargeDetailSheet({ charge, open, onOpenChange, onSendNotificati
                     Ações Rápidas
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => onSendNotification(charge.id, 'whatsapp')}
-                    className="flex-1"
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    WhatsApp
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => onSendNotification(charge.id, 'email')}
-                    className="flex-1"
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Email
-                  </Button>
+                <CardContent className="space-y-3">
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => onSendNotification(charge.id, 'whatsapp')}
+                      className="flex-1"
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      WhatsApp
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => onSendNotification(charge.id, 'email')}
+                      className="flex-1"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email
+                    </Button>
+                  </div>
+                  
+                  {charge.status !== 'paid' && (
+                    <Button 
+                      size="sm" 
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => setConfirmPaymentOpen(true)}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Dar Baixa (Confirmar Pagamento)
+                    </Button>
+                  )}
+                  
+                  {charge.status === 'paid' && (
+                    <div className="flex items-center justify-center gap-2 p-2 bg-green-50 text-green-700 rounded-md text-sm">
+                      <CheckCircle className="h-4 w-4" />
+                      Cobrança Quitada
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -251,6 +278,17 @@ export function ChargeDetailSheet({ charge, open, onOpenChange, onSendNotificati
               </Card>
             </TabsContent>
 
+            {/* Nova aba de Comprovantes */}
+            <TabsContent value="comprovantes" className="mt-4">
+              <PaymentProofsList 
+                chargeId={charge.id} 
+                onPaymentConfirmed={() => {
+                  onChargeUpdated?.();
+                  onOpenChange(false);
+                }}
+              />
+            </TabsContent>
+
             <TabsContent value="acordos" className="space-y-4 mt-4">
               {charge.negotiation_history && charge.negotiation_history.length > 0 ? (
                 charge.negotiation_history.map((neg) => (
@@ -304,6 +342,18 @@ export function ChargeDetailSheet({ charge, open, onOpenChange, onSendNotificati
           </Tabs>
         </ScrollArea>
       </SheetContent>
+
+      {/* Dialog de confirmação de pagamento */}
+      <ConfirmPaymentDialog
+        chargeId={charge.id}
+        chargeAmount={charge.amount}
+        open={confirmPaymentOpen}
+        onOpenChange={setConfirmPaymentOpen}
+        onPaymentConfirmed={() => {
+          onChargeUpdated?.();
+          onOpenChange(false);
+        }}
+      />
     </Sheet>
   );
 }
