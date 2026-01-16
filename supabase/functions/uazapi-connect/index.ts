@@ -5,9 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Configuração intrínseca do servidor UAZAPI - NÃO expor ao usuário
-const UAZAPI_SERVER_URL = "https://appnow.uazapi.com";
-const UAZAPI_ADMIN_TOKEN = "online";
+// Configuração do servidor UAZAPI - usa secrets configurados
+const UAZAPI_SERVER_URL = Deno.env.get('UAZAPI_SERVER_URL') || "https://appnow.uazapi.com";
+const UAZAPI_ADMIN_TOKEN = Deno.env.get('UAZAPI_API_KEY') || "";
 
 interface ConnectRequest {
   action: 'create' | 'connect' | 'status' | 'disconnect' | 'list' | 'sync';
