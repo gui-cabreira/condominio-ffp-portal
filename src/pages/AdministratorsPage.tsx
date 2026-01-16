@@ -136,15 +136,43 @@ const AdministratorsPage = () => {
     setIsSubmitting(true);
 
     try {
+      // Converter strings vazias para null em campos UUID e opcionais
+      const dataToSave = {
+        ...formData,
+        management_system_id: formData.management_system_id || null,
+        phone: formData.phone || null,
+        cnpj: formData.cnpj || null,
+        address: formData.address || null,
+        contact_person: formData.contact_person || null,
+        fantasy_name: formData.fantasy_name || null,
+        legal_name: formData.legal_name || null,
+        legal_nature: formData.legal_nature || null,
+        opening_date: formData.opening_date || null,
+        status: formData.status || null,
+        size: formData.size || null,
+        capital: formData.capital || null,
+        main_activity: formData.main_activity || null,
+        street: formData.street || null,
+        number: formData.number || null,
+        complement: formData.complement || null,
+        neighborhood: formData.neighborhood || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        zip_code: formData.zip_code || null,
+        portal_url: formData.portal_url || null,
+        portal_username: formData.portal_username || null,
+        portal_password: formData.portal_password || null,
+      };
+
       if (editingAdmin) {
         const { error } = await supabase
           .from('administrators')
-          .update(formData)
+          .update(dataToSave)
           .eq('id', editingAdmin.id);
         if (error) throw error;
         toast({ title: 'Administradora atualizada', description: 'Os dados foram atualizados com sucesso.' });
       } else {
-        const { error } = await supabase.from('administrators').insert([formData]);
+        const { error } = await supabase.from('administrators').insert([dataToSave]);
         if (error) throw error;
         toast({ title: 'Administradora cadastrada', description: 'A administradora foi cadastrada com sucesso.' });
       }
@@ -664,12 +692,12 @@ const AdministratorsPage = () => {
                 Nova Administradora
               </Button>
               <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-                  <DialogHeader>
+                <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+                  <DialogHeader className="shrink-0">
                     <DialogTitle>{editingAdmin ? 'Editar Administradora' : 'Nova Administradora'}</DialogTitle>
                     <DialogDescription>Preencha os dados da administradora</DialogDescription>
                   </DialogHeader>
-                  <ScrollArea className="flex-1 pr-4">
+                  <ScrollArea className="flex-1 max-h-[calc(85vh-120px)] pr-4">
                     <FormContent />
                   </ScrollArea>
                 </DialogContent>
