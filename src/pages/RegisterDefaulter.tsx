@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Upload, Sparkles, Check, Loader2, FileText, User, Building2, DollarSign, AlertCircle, Table as TableIcon, Edit, Search } from 'lucide-react';
+import { Upload, Sparkles, Check, Loader2, FileText, User, Building2, DollarSign, AlertCircle, Table as TableIcon, Edit, Search, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { PageContainer } from '@/components/PageContainer';
+import { PageHeader } from '@/components/PageHeader';
 import { useQuery } from '@tanstack/react-query';
 
 interface DefaulterUnit {
@@ -282,19 +284,12 @@ const RegisterDefaulter = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Hero Section */}
-      <Card className="mb-8 border-2 border-ffp-gold/20 bg-gradient-to-br from-white to-ffp-gold/5">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-ffp-gold/10 rounded-full flex items-center justify-center mb-4">
-            <Sparkles className="w-8 h-8 text-ffp-gold" />
-          </div>
-          <CardTitle className="text-2xl text-ffp-navy">Cadastro de Inadimplentes</CardTitle>
-          <CardDescription className="text-base mt-2">
-            Importe boletos individuais ou lotes de inadimplentes via CSV
-          </CardDescription>
-        </CardHeader>
-      </Card>
+    <PageContainer>
+      <PageHeader
+        icon={UserPlus}
+        title="Cadastro de Inadimplentes"
+        description="Importe boletos individuais ou lotes de inadimplentes via CSV"
+      />
 
       <Tabs defaultValue="boleto" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
@@ -749,7 +744,7 @@ const RegisterDefaulter = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContainer>
   );
 };
 

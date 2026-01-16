@@ -20,6 +20,8 @@ import { CNPJLookup } from '@/components/forms/CNPJLookup';
 import { AdministratorContacts } from '@/components/AdministratorContacts';
 import { ContactSelector } from '@/components/ContactSelector';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { PageContainer } from '@/components/PageContainer';
+import { PageHeader } from '@/components/PageHeader';
 
 type Administrator = {
   id: string;
@@ -631,26 +633,18 @@ const AdministratorsPage = () => {
   );
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b px-4 py-3 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <Building2 className="w-6 h-6 text-primary shrink-0" />
-            <div className="min-w-0">
-              <h1 className="text-lg font-semibold truncate">Administradoras</h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">
-                {filteredAdministrators?.length || 0} cadastradas
-              </p>
-            </div>
-          </div>
-          
-          {isMobile ? (
+    <PageContainer>
+      <PageHeader
+        icon={Building2}
+        title="Administradoras"
+        description={`${filteredAdministrators?.length || 0} cadastradas`}
+        actions={
+          isMobile ? (
             <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
               <SheetTrigger asChild>
                 <Button size="sm" onClick={openNewForm}>
-                  <Plus className="w-4 h-4" />
-                  <span className="sr-only sm:not-sr-only sm:ml-2">Nova</span>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova
                 </Button>
               </SheetTrigger>
               <SheetContent side="bottom" className="h-[90vh] rounded-t-xl">
@@ -664,38 +658,40 @@ const AdministratorsPage = () => {
               </SheetContent>
             </Sheet>
           ) : (
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <>
               <Button onClick={openNewForm}>
                 <Plus className="w-4 h-4 mr-2" />
                 Nova Administradora
               </Button>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-                <DialogHeader>
-                  <DialogTitle>{editingAdmin ? 'Editar Administradora' : 'Nova Administradora'}</DialogTitle>
-                  <DialogDescription>Preencha os dados da administradora</DialogDescription>
-                </DialogHeader>
-                <ScrollArea className="flex-1 pr-4">
-                  <FormContent />
-                </ScrollArea>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
+              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                  <DialogHeader>
+                    <DialogTitle>{editingAdmin ? 'Editar Administradora' : 'Nova Administradora'}</DialogTitle>
+                    <DialogDescription>Preencha os dados da administradora</DialogDescription>
+                  </DialogHeader>
+                  <ScrollArea className="flex-1 pr-4">
+                    <FormContent />
+                  </ScrollArea>
+                </DialogContent>
+              </Dialog>
+            </>
+          )
+        }
+      />
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, e-mail ou CNPJ..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 h-9"
-          />
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nome, e-mail ou CNPJ..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -765,7 +761,7 @@ const AdministratorsPage = () => {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+    </PageContainer>
   );
 };
 

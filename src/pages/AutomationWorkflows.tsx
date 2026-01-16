@@ -16,7 +16,8 @@ import {
   Zap,
   AlertCircle,
   TrendingUp,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +39,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { PageContainer } from '@/components/PageContainer';
+import { PageHeader } from '@/components/PageHeader';
 
 const AutomationWorkflows = () => {
   const { toast } = useToast();
@@ -603,27 +606,27 @@ const AutomationWorkflows = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Clock className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
+      <PageContainer>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Workflows de Automação</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie automações de navegador para extração de dados
-          </p>
-        </div>
-
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Workflow
-        </Button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        icon={Zap}
+        title="Workflows de Automação"
+        description="Gerencie automações de navegador para extração de dados"
+        actions={
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Workflow
+          </Button>
+        }
+      />
 
       {/* Cards de Resumo */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -698,7 +701,7 @@ const AutomationWorkflows = () => {
       {selectedWorkflow && !editMode && <ViewWorkflowDialog />}
       {selectedWorkflow && <ExecutionsDialog />}
       {selectedWorkflow && <TestDialog />}
-    </div>
+    </PageContainer>
   );
 };
 
