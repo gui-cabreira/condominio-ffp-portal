@@ -28,6 +28,7 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import AutomationPage from "./pages/AutomationPage";
 import CoachAgentsPage from "./pages/CoachAgentsPage";
 import EmployeeCoachPage from "./pages/EmployeeCoachPage";
+import WhatsAppCentralPage from "./pages/WhatsAppCentralPage";
 import WorkflowSettings from "./pages/WorkflowSettings";
 import ReportsPage from "./pages/ReportsPage";
 import AdministratorsPage from "./pages/AdministratorsPage";
@@ -184,9 +185,12 @@ const App = () => {
             } />
             <Route path="/portal/corporativo/coach-painel" element={
               <AuthGuard>
-                <CorporateLayout>
-                  <EmployeeCoachPage />
-                </CorporateLayout>
+                <EmployeeCoachPage />
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/whatsapp" element={
+              <AuthGuard>
+                <WhatsAppCentralPage />
               </AuthGuard>
             } />
             <Route path="/portal/corporativo/configuracoes" element={
