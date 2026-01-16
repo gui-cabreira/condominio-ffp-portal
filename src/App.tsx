@@ -26,8 +26,6 @@ import UserManagement from "./pages/UserManagement";
 import NegotiationParameters from "./pages/NegotiationParameters";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AutomationPage from "./pages/AutomationPage";
-import CoachAgentsPage from "./pages/CoachAgentsPage";
-import EmployeeCoachPage from "./pages/EmployeeCoachPage";
 import WhatsAppCentralPage from "./pages/WhatsAppCentralPage";
 import WorkflowSettings from "./pages/WorkflowSettings";
 import ReportsPage from "./pages/ReportsPage";
@@ -174,18 +172,6 @@ const App = () => {
                 <CorporateLayout>
                   <AutomationPage />
                 </CorporateLayout>
-              </AuthGuard>
-            } />
-            <Route path="/portal/corporativo/coach" element={
-              <AuthGuard requiredRole="admin">
-                <CorporateLayout>
-                  <CoachAgentsPage />
-                </CorporateLayout>
-              </AuthGuard>
-            } />
-            <Route path="/portal/corporativo/coach-painel" element={
-              <AuthGuard>
-                <EmployeeCoachPage />
               </AuthGuard>
             } />
             <Route path="/portal/corporativo/whatsapp" element={
