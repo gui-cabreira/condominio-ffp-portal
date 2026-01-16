@@ -85,28 +85,35 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
       return createResult;
     },
     onSuccess: async (data) => {
-      setInstanceData(data.instance);
+      setInstanceData(data);
+      
+      // O token vem da resposta do create
+      const instanceToken = data.token || data.instance?.token;
+      
+      if (!instanceToken) {
+        toast.error('Token da instância não retornado');
+        return;
+      }
       
       // 3. Conectar e gerar QR Code
       const { data: connectResult, error: connectError } = await supabase.functions.invoke('uazapi-connect', {
         body: {
           action: 'connect',
-          instanceId: data.instance.instance_id,
-          apiKey: data.instance.api_key,
+          instanceToken: instanceToken,
         },
       });
 
-      if (connectError || !connectResult.success) {
-        toast.error('Falha ao gerar QR Code');
+      if (connectError || !connectResult?.success) {
+        toast.error(connectResult?.error || 'Falha ao gerar QR Code');
         return;
       }
 
-      setQrCode(connectResult.qrCode || null);
-      setPairCode(connectResult.pairCode || null);
+      setQrCode(connectResult.qrcode || null);
+      setPairCode(connectResult.paircode || null);
       setStep('qrcode');
       
       // Iniciar verificação de status
-      startStatusCheck(data.instance.instance_id, data.instance.api_key);
+      startStatusCheck(instanceToken);
     },
     onError: (error: any) => {
       toast.error(error.message || 'Erro ao criar instância');
@@ -114,7 +121,7 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
   });
 
   // Verificar status de conexão periodicamente
-  const startStatusCheck = async (instanceId: string, apiKey: string) => {
+  const startStatusCheck = async (instanceToken: string) => {
     setCheckingStatus(true);
     
     const checkStatus = async () => {
@@ -122,29 +129,28 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
         const { data, error } = await supabase.functions.invoke('uazapi-connect', {
           body: {
             action: 'status',
-            instanceId,
-            apiKey,
+            instanceToken,
           },
         });
 
-        if (!error && data?.success && data?.status === 'open') {
+        if (!error && data?.success && (data?.connected || data?.loggedIn || data?.status === 'open')) {
           setIsConnected(true);
           setCheckingStatus(false);
           setStep('success');
-          
-          // Atualizar status no banco
-          await supabase
-            .from('uazapi_instances')
-            .update({ 
-              status: 'connected',
-              phone_number: data.phoneNumber || null,
-            })
-            .eq('instance_id', instanceId);
 
           queryClient.invalidateQueries({ queryKey: ['whatsapp-instances'] });
           toast.success('WhatsApp conectado com sucesso!');
           return true;
         }
+        
+        // Se tem QR code novo, atualizar
+        if (data?.qrcode) {
+          setQrCode(data.qrcode);
+        }
+        if (data?.paircode) {
+          setPairCode(data.paircode);
+        }
+        
         return false;
       } catch (e) {
         console.error('Erro ao verificar status:', e);
