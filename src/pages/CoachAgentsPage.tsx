@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CorporateLayout } from '@/components/CorporateLayout';
+import { PageContainer } from '@/components/PageContainer';
+import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +16,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Bot, Plus, Edit2, Trash2, MessageSquare, BarChart3, Users, Calendar, TrendingUp, Settings, FileText } from 'lucide-react';
+import { Bot, Plus, Edit2, Trash2, MessageSquare, BarChart3, Users, TrendingUp, Settings, FileText, Smartphone, Zap, Power, Link2, QrCode } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CoachAgent {
   id: string;
@@ -44,8 +47,29 @@ interface CoachingSession {
   condominium_id: string | null;
 }
 
+interface CoachInstance {
+  id: string;
+  name: string;
+  instance_id: string;
+  phone_number: string | null;
+  status: string | null;
+  is_autonomous: boolean | null;
+  instance_type: string | null;
+  agent_personality: string | null;
+  api_key: string;
+  base_url: string;
+  qr_code: string | null;
+  owner_id: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 export default function CoachAgentsPage() {
   const queryClient = useQueryClient();
+  const { user, userRoles } = useAuth();
+  const isAdmin = userRoles?.includes('admin');
+  const isSupervisor = userRoles?.includes('supervisor');
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<CoachAgent | null>(null);
   const [formData, setFormData] = useState({
@@ -56,6 +80,19 @@ export default function CoachAgentsPage() {
     welcome_message: 'Olá! Sou seu coach pessoal. Estou aqui para te ajudar a alcançar seus objetivos. Como posso te ajudar hoje?',
     active: true,
     condominium_id: '',
+  });
+
+  // Instance dialog state
+  const [isInstanceDialogOpen, setIsInstanceDialogOpen] = useState(false);
+  const [editingInstance, setEditingInstance] = useState<CoachInstance | null>(null);
+  const [instanceFormData, setInstanceFormData] = useState({
+    name: '',
+    instance_id: '',
+    api_key: '',
+    base_url: 'https://api.uazapi.com',
+    is_autonomous: false,
+    agent_personality: '',
+    coach_agent_id: '',
   });
 
   // Fetch coach agents
@@ -123,6 +160,21 @@ export default function CoachAgentsPage() {
     },
   });
 
+  // Fetch WhatsApp instances for coach
+  const { data: instances, isLoading: loadingInstances } = useQuery({
+    queryKey: ['coach-instances'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('uazapi_instances')
+        .select('*')
+        .eq('instance_type', 'coach')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as CoachInstance[];
+    },
+  });
+
   // Create/Update mutation
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<CoachAgent>) => {
@@ -169,6 +221,56 @@ export default function CoachAgentsPage() {
     },
   });
 
+  // Instance mutations
+  const saveInstanceMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (editingInstance) {
+        const { error } = await supabase
+          .from('uazapi_instances')
+          .update(data)
+          .eq('id', editingInstance.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('uazapi_instances')
+          .insert({
+            ...data,
+            instance_type: 'coach',
+            owner_id: isSupervisor ? user?.id : null,
+            created_by: user?.id,
+          });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coach-instances'] });
+      toast.success(editingInstance ? 'Instância atualizada!' : 'Instância criada!');
+      closeInstanceDialog();
+    },
+    onError: (error) => {
+      console.error('Erro ao salvar instância:', error);
+      toast.error('Erro ao salvar instância');
+    },
+  });
+
+  const deleteInstanceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('uazapi_instances')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coach-instances'] });
+      toast.success('Instância removida!');
+    },
+    onError: (error) => {
+      console.error('Erro ao remover instância:', error);
+      toast.error('Erro ao remover instância');
+    },
+  });
+
   const openEditDialog = (agent: CoachAgent) => {
     setEditingAgent(agent);
     setFormData({
@@ -195,6 +297,53 @@ export default function CoachAgentsPage() {
       active: true,
       condominium_id: '',
     });
+  };
+
+  // Instance dialog functions
+  const openEditInstanceDialog = (instance: CoachInstance) => {
+    setEditingInstance(instance);
+    setInstanceFormData({
+      name: instance.name,
+      instance_id: instance.instance_id,
+      api_key: instance.api_key,
+      base_url: instance.base_url,
+      is_autonomous: instance.is_autonomous || false,
+      agent_personality: instance.agent_personality || '',
+      coach_agent_id: '',
+    });
+    setIsInstanceDialogOpen(true);
+  };
+
+  const closeInstanceDialog = () => {
+    setIsInstanceDialogOpen(false);
+    setEditingInstance(null);
+    setInstanceFormData({
+      name: '',
+      instance_id: '',
+      api_key: '',
+      base_url: 'https://api.uazapi.com',
+      is_autonomous: false,
+      agent_personality: '',
+      coach_agent_id: '',
+    });
+  };
+
+  const handleInstanceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveInstanceMutation.mutate({
+      name: instanceFormData.name,
+      instance_id: instanceFormData.instance_id,
+      api_key: instanceFormData.api_key,
+      base_url: instanceFormData.base_url,
+      is_autonomous: instanceFormData.is_autonomous,
+      agent_personality: instanceFormData.agent_personality || null,
+    });
+  };
+
+  const canManageInstance = (instance: CoachInstance) => {
+    if (isAdmin) return true;
+    if (isSupervisor && (instance.owner_id === user?.id || instance.created_by === user?.id)) return true;
+    return false;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -224,22 +373,19 @@ export default function CoachAgentsPage() {
 
   return (
     <CorporateLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Coach de IA</h1>
-            <p className="text-muted-foreground">
-              Configure coaches personalizados para WhatsApp
-            </p>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => closeDialog()}>
-                <Plus className="mr-2 h-4 w-4" />
-                Novo Coach
-              </Button>
-            </DialogTrigger>
+      <PageContainer>
+        <PageHeader
+          icon={Bot}
+          title="Coach de IA"
+          description="Configure coaches personalizados e instâncias WhatsApp"
+          actions={
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => closeDialog()}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Novo Coach
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingAgent ? 'Editar Coach' : 'Novo Coach'}</DialogTitle>
@@ -345,7 +491,8 @@ export default function CoachAgentsPage() {
               </form>
             </DialogContent>
           </Dialog>
-        </div>
+        }
+      />
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -404,6 +551,10 @@ export default function CoachAgentsPage() {
             <TabsTrigger value="sessions">
               <MessageSquare className="mr-2 h-4 w-4" />
               Sessões
+            </TabsTrigger>
+            <TabsTrigger value="instances">
+              <Smartphone className="mr-2 h-4 w-4" />
+              Instâncias
             </TabsTrigger>
             <TabsTrigger value="config">
               <Settings className="mr-2 h-4 w-4" />
@@ -542,6 +693,229 @@ export default function CoachAgentsPage() {
             </Card>
           </TabsContent>
 
+          {/* Instances Tab */}
+          <TabsContent value="instances" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold">Instâncias WhatsApp</h3>
+                <p className="text-sm text-muted-foreground">
+                  {isAdmin 
+                    ? 'Gerencie todas as instâncias de WhatsApp para o Coach de IA' 
+                    : 'Configure sua instância de WhatsApp para o Coach de IA'}
+                </p>
+              </div>
+              <Dialog open={isInstanceDialogOpen} onOpenChange={setIsInstanceDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => closeInstanceDialog()}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nova Instância
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingInstance ? 'Editar Instância' : 'Nova Instância'}</DialogTitle>
+                    <DialogDescription>
+                      Configure uma instância WhatsApp para o Coach de IA
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleInstanceSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="inst-name">Nome da Instância</Label>
+                        <Input
+                          id="inst-name"
+                          value={instanceFormData.name}
+                          onChange={(e) => setInstanceFormData({ ...instanceFormData, name: e.target.value })}
+                          placeholder="Ex: Coach Principal"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="inst-id">ID da Instância (UAZAPI)</Label>
+                        <Input
+                          id="inst-id"
+                          value={instanceFormData.instance_id}
+                          onChange={(e) => setInstanceFormData({ ...instanceFormData, instance_id: e.target.value })}
+                          placeholder="instance_abc123"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {isAdmin && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="inst-url">URL Base</Label>
+                          <Input
+                            id="inst-url"
+                            value={instanceFormData.base_url}
+                            onChange={(e) => setInstanceFormData({ ...instanceFormData, base_url: e.target.value })}
+                            placeholder="https://api.uazapi.com"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="inst-key">API Key</Label>
+                          <Input
+                            id="inst-key"
+                            type="password"
+                            value={instanceFormData.api_key}
+                            onChange={(e) => setInstanceFormData({ ...instanceFormData, api_key: e.target.value })}
+                            placeholder="Sua API Key"
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="inst-personality">Personalidade do Agente (opcional)</Label>
+                      <Textarea
+                        id="inst-personality"
+                        value={instanceFormData.agent_personality}
+                        onChange={(e) => setInstanceFormData({ ...instanceFormData, agent_personality: e.target.value })}
+                        placeholder="Descreva como o agente deve se comportar nesta instância..."
+                        rows={3}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Personalidade específica para esta instância. Deixe vazio para usar o padrão do coach vinculado.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
+                      <Switch
+                        id="inst-autonomous"
+                        checked={instanceFormData.is_autonomous}
+                        onCheckedChange={(checked) => setInstanceFormData({ ...instanceFormData, is_autonomous: checked })}
+                      />
+                      <div className="flex-1">
+                        <Label htmlFor="inst-autonomous" className="flex items-center gap-2 cursor-pointer">
+                          <Zap className="h-4 w-4 text-yellow-500" />
+                          Modo Autônomo
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Quando ativo, o agente responde automaticamente sem intervenção humana
+                        </p>
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button type="button" variant="outline" onClick={closeInstanceDialog}>
+                        Cancelar
+                      </Button>
+                      <Button type="submit" disabled={saveInstanceMutation.isPending}>
+                        {saveInstanceMutation.isPending ? 'Salvando...' : 'Salvar'}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {loadingInstances ? (
+              <div className="text-center py-8">Carregando...</div>
+            ) : instances?.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Smartphone className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">Nenhuma instância configurada</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Crie sua primeira instância WhatsApp para o Coach de IA
+                  </p>
+                  <Button onClick={() => setIsInstanceDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar Instância
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {instances?.map((instance) => (
+                  <Card key={instance.id} className="relative">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="h-5 w-5" />
+                          <CardTitle className="text-lg">{instance.name}</CardTitle>
+                        </div>
+                        <div className="flex gap-1">
+                          {instance.is_autonomous && (
+                            <Badge variant="default" className="bg-yellow-500">
+                              <Zap className="h-3 w-3 mr-1" />
+                              Autônomo
+                            </Badge>
+                          )}
+                          <Badge variant={instance.status === 'connected' ? 'default' : 'secondary'}>
+                            <Power className="h-3 w-3 mr-1" />
+                            {instance.status === 'connected' ? 'Online' : 'Offline'}
+                          </Badge>
+                        </div>
+                      </div>
+                      <CardDescription className="flex items-center gap-1">
+                        <Link2 className="h-3 w-3" />
+                        {instance.instance_id}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        {instance.phone_number && (
+                          <p className="text-muted-foreground">
+                            📱 {instance.phone_number}
+                          </p>
+                        )}
+                        {instance.owner_id === user?.id && (
+                          <Badge variant="outline" className="text-xs">
+                            Minha instância
+                          </Badge>
+                        )}
+                        {isAdmin && instance.owner_id && instance.owner_id !== user?.id && (
+                          <Badge variant="outline" className="text-xs">
+                            Supervisor
+                          </Badge>
+                        )}
+                      </div>
+                      {canManageInstance(instance) && (
+                        <div className="flex gap-2 mt-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditInstanceDialog(instance)}
+                          >
+                            <Edit2 className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm('Remover esta instância?')) {
+                                deleteInstanceMutation.mutate(instance.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Remover
+                          </Button>
+                          {instance.qr_code && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                toast.info('QR Code disponível para conexão');
+                              }}
+                            >
+                              <QrCode className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
           {/* Config Tab */}
           <TabsContent value="config">
             <Card>
@@ -599,7 +973,7 @@ export default function CoachAgentsPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </PageContainer>
     </CorporateLayout>
   );
 }
