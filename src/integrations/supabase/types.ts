@@ -1823,6 +1823,7 @@ export type Database = {
           is_autonomous: boolean | null
           is_default: boolean | null
           name: string
+          owner_id: string | null
           phone_number: string | null
           qr_code: string | null
           status: string | null
@@ -1844,6 +1845,7 @@ export type Database = {
           is_autonomous?: boolean | null
           is_default?: boolean | null
           name: string
+          owner_id?: string | null
           phone_number?: string | null
           qr_code?: string | null
           status?: string | null
@@ -1865,6 +1867,7 @@ export type Database = {
           is_autonomous?: boolean | null
           is_default?: boolean | null
           name?: string
+          owner_id?: string | null
           phone_number?: string | null
           qr_code?: string | null
           status?: string | null
