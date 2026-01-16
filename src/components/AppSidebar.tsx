@@ -134,25 +134,35 @@ export function AppSidebar() {
       )}
     >
       {/* Header */}
-      <SidebarHeader className="border-b border-sidebar-border p-3">
+      <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className={cn(
-          "flex items-center",
+          "flex items-center gap-3",
           collapsed ? "justify-center" : "justify-between"
         )}>
           {!collapsed && (
-            <div className="flex items-center gap-2">
-              <img 
-                src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png"
-                alt="FFP Advogados"
-                className="h-8 w-auto brightness-0 invert"
-              />
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-sidebar-primary/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-sidebar-primary font-bold text-lg">F</span>
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-semibold text-sidebar-foreground truncate">FFP Advogados</span>
+                <span className="text-xs text-sidebar-muted truncate">Sistema de Gestão</span>
+              </div>
+            </div>
+          )}
+          {collapsed && (
+            <div className="w-9 h-9 rounded-lg bg-sidebar-primary/20 flex items-center justify-center">
+              <span className="text-sidebar-primary font-bold text-lg">F</span>
             </div>
           )}
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className={cn(
+              "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex-shrink-0",
+              collapsed && "hidden"
+            )}
           >
             <Menu className="h-5 w-5" />
           </Button>
