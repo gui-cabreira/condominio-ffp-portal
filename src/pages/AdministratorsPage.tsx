@@ -692,14 +692,12 @@ const AdministratorsPage = () => {
                 Nova Administradora
               </Button>
               <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-                  <DialogHeader className="shrink-0">
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
                     <DialogTitle>{editingAdmin ? 'Editar Administradora' : 'Nova Administradora'}</DialogTitle>
                     <DialogDescription>Preencha os dados da administradora</DialogDescription>
                   </DialogHeader>
-                  <ScrollArea className="flex-1 max-h-[calc(85vh-120px)] pr-4">
-                    <FormContent />
-                  </ScrollArea>
+                  <FormContent />
                 </DialogContent>
               </Dialog>
             </>
