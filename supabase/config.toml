@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.calculate-fees]
 verify_jwt = false
+
+[functions.qdrant-knowledge]
+verify_jwt = false
+
+[functions.uazapi-sse]
+verify_jwt = false
