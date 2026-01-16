@@ -16,10 +16,28 @@ import {
   MessageSquare, Send, Phone, Search, User, Building2, 
   Clock, CheckCheck, Check, AlertCircle, Bot, Zap, 
   FileText, DollarSign, Calendar, History, Sparkles,
-  Filter, RefreshCw, MoreVertical, Pause, Play
+  Filter, RefreshCw, MoreVertical, Pause, Play, Plus,
+  Settings, Wifi, WifiOff, QrCode, Trash2, ExternalLink
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Conversation {
   id: string;
@@ -76,13 +94,61 @@ interface ConversationContext {
   }>;
 }
 
+interface WhatsAppInstance {
+  id: string;
+  name: string;
+  instance_id: string;
+  api_key: string;
+  base_url: string;
+  status: string | null;
+  phone_number: string | null;
+  is_autonomous: boolean | null;
+  is_default: boolean | null;
+  instance_type: string | null;
+}
+
 export default function WhatsAppCentralPage() {
   const queryClient = useQueryClient();
+  const { user, userRoles } = useAuth();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messageInput, setMessageInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Instance dialog states
+  const [isInstanceDialogOpen, setIsInstanceDialogOpen] = useState(false);
+  const [editingInstance, setEditingInstance] = useState<WhatsAppInstance | null>(null);
+  const [instanceForm, setInstanceForm] = useState({
+    name: '',
+    instance_id: '',
+    api_key: '',
+    base_url: '',
+    is_autonomous: false,
+    is_default: false,
+    instance_type: 'cobranca',
+  });
+
+  const isAdmin = userRoles?.includes('admin');
+  const isSupervisor = userRoles?.includes('supervisor');
+
+  // Fetch WhatsApp instances
+  const { data: instances, isLoading: loadingInstances } = useQuery({
+    queryKey: ['whatsapp-instances'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('uazapi_instances')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as WhatsAppInstance[];
+    },
+  });
+
+  // Active instance (default or first one)
+  const activeInstance = instances?.find(i => i.is_default) || instances?.[0];
+  const hasConnectedInstance = instances && instances.length > 0 && instances.some(i => i.status === 'connected');
 
   // Fetch conversations
   const { data: conversations, isLoading: loadingConversations } = useQuery({
@@ -282,6 +348,141 @@ export default function WhatsAppCentralPage() {
     return <Badge variant={s.variant}>{s.label}</Badge>;
   };
 
+  // Instance mutations
+  const saveInstanceMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        name: instanceForm.name,
+        instance_id: instanceForm.instance_id,
+        api_key: instanceForm.api_key,
+        base_url: instanceForm.base_url || 'https://api.uazapi.com',
+        is_autonomous: instanceForm.is_autonomous,
+        is_default: instanceForm.is_default,
+        instance_type: instanceForm.instance_type,
+        created_by: user?.id,
+        owner_id: user?.id,
+      };
+
+      if (editingInstance) {
+        const { error } = await supabase
+          .from('uazapi_instances')
+          .update(payload)
+          .eq('id', editingInstance.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('uazapi_instances')
+          .insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(editingInstance ? 'Instância atualizada!' : 'Instância criada!');
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-instances'] });
+      closeInstanceDialog();
+    },
+    onError: (error) => {
+      console.error('Error saving instance:', error);
+      toast.error('Erro ao salvar instância');
+    },
+  });
+
+  const deleteInstanceMutation = useMutation({
+    mutationFn: async (instanceId: string) => {
+      const { error } = await supabase
+        .from('uazapi_instances')
+        .delete()
+        .eq('id', instanceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Instância removida');
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-instances'] });
+    },
+    onError: (error) => {
+      console.error('Error deleting instance:', error);
+      toast.error('Erro ao remover instância');
+    },
+  });
+
+  const openInstanceDialog = (instance?: WhatsAppInstance) => {
+    if (instance) {
+      setEditingInstance(instance);
+      setInstanceForm({
+        name: instance.name,
+        instance_id: instance.instance_id,
+        api_key: instance.api_key,
+        base_url: instance.base_url,
+        is_autonomous: instance.is_autonomous || false,
+        is_default: instance.is_default || false,
+        instance_type: instance.instance_type || 'cobranca',
+      });
+    } else {
+      setEditingInstance(null);
+      setInstanceForm({
+        name: '',
+        instance_id: '',
+        api_key: '',
+        base_url: '',
+        is_autonomous: false,
+        is_default: false,
+        instance_type: 'cobranca',
+      });
+    }
+    setIsInstanceDialogOpen(true);
+  };
+
+  const closeInstanceDialog = () => {
+    setIsInstanceDialogOpen(false);
+    setEditingInstance(null);
+  };
+
+  const handleInstanceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveInstanceMutation.mutate();
+  };
+
+  const getQRCode = async (instance: WhatsAppInstance) => {
+    try {
+      const response = await fetch(`${instance.base_url}/qrcode/${instance.instance_id}`, {
+        headers: {
+          'Authorization': `Bearer ${instance.api_key}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.qrcode) {
+          window.open(data.qrcode, '_blank');
+        } else {
+          toast.info('Instância já conectada ou QR Code não disponível');
+        }
+      } else {
+        toast.error('Erro ao obter QR Code');
+      }
+    } catch (error) {
+      console.error('Error getting QR code:', error);
+      toast.error('Erro ao conectar com o servidor');
+    }
+  };
+
+  const getInstanceStatusBadge = (status: string | null) => {
+    if (status === 'connected') {
+      return (
+        <Badge variant="default" className="gap-1 bg-green-500">
+          <Wifi className="h-3 w-3" />
+          Online
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="secondary" className="gap-1">
+        <WifiOff className="h-3 w-3" />
+        Offline
+      </Badge>
+    );
+  };
+
   return (
     <CorporateLayout>
       <div className="h-[calc(100vh-4rem)] flex flex-col">
@@ -300,6 +501,58 @@ export default function WhatsAppCentralPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Instance selector */}
+              {instances && instances.length > 0 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      {activeInstance?.status === 'connected' ? (
+                        <Wifi className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <WifiOff className="h-3 w-3 text-muted-foreground" />
+                      )}
+                      {activeInstance?.name || 'Selecionar Instância'}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    {instances.map((instance) => (
+                      <DropdownMenuItem
+                        key={instance.id}
+                        className="flex items-center justify-between"
+                        onClick={() => openInstanceDialog(instance)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {instance.status === 'connected' ? (
+                            <Wifi className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <WifiOff className="h-3 w-3 text-muted-foreground" />
+                          )}
+                          <span>{instance.name}</span>
+                        </div>
+                        {instance.is_default && (
+                          <Badge variant="outline" className="text-xs">Padrão</Badge>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                    <Separator className="my-1" />
+                    <DropdownMenuItem onClick={() => openInstanceDialog()}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nova Instância
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => openInstanceDialog()}
+                >
+                  <Plus className="h-4 w-4" />
+                  Conectar WhatsApp
+                </Button>
+              )}
+              
               <Badge variant="outline" className="gap-1">
                 <Bot className="h-3 w-3" />
                 IA Ativa
@@ -676,6 +929,150 @@ export default function WhatsAppCentralPage() {
           )}
         </div>
       </div>
+
+      {/* Instance Dialog */}
+      <Dialog open={isInstanceDialogOpen} onOpenChange={setIsInstanceDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingInstance ? 'Editar Instância WhatsApp' : 'Conectar WhatsApp'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingInstance 
+                ? 'Edite as configurações da instância'
+                : 'Configure uma nova instância WhatsApp para enviar e receber mensagens'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleInstanceSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="instance-name">Nome da Instância *</Label>
+              <Input
+                id="instance-name"
+                value={instanceForm.name}
+                onChange={(e) => setInstanceForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Ex: Cobrança Principal"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="instance-id">ID da Instância (UAZAPI) *</Label>
+              <Input
+                id="instance-id"
+                value={instanceForm.instance_id}
+                onChange={(e) => setInstanceForm(f => ({ ...f, instance_id: e.target.value }))}
+                placeholder="Ex: minha-instancia"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="api-key">API Key *</Label>
+              <Input
+                id="api-key"
+                type="password"
+                value={instanceForm.api_key}
+                onChange={(e) => setInstanceForm(f => ({ ...f, api_key: e.target.value }))}
+                placeholder="Sua chave de API"
+                required
+              />
+            </div>
+            
+            {isAdmin && (
+              <div className="space-y-2">
+                <Label htmlFor="base-url">URL do Servidor</Label>
+                <Input
+                  id="base-url"
+                  value={instanceForm.base_url}
+                  onChange={(e) => setInstanceForm(f => ({ ...f, base_url: e.target.value }))}
+                  placeholder="https://api.uazapi.com"
+                />
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="instance-type">Tipo de Instância</Label>
+              <select
+                id="instance-type"
+                value={instanceForm.instance_type}
+                onChange={(e) => setInstanceForm(f => ({ ...f, instance_type: e.target.value }))}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              >
+                <option value="cobranca">Cobrança</option>
+                <option value="atendimento">Atendimento</option>
+                <option value="coach">Coach IA</option>
+                <option value="notificacao">Notificação</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="is-autonomous">Modo Autônomo</Label>
+                <span className="text-xs text-muted-foreground">
+                  IA responde automaticamente
+                </span>
+              </div>
+              <Switch
+                id="is-autonomous"
+                checked={instanceForm.is_autonomous}
+                onCheckedChange={(checked) => setInstanceForm(f => ({ ...f, is_autonomous: checked }))}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="is-default">Instância Padrão</Label>
+                <span className="text-xs text-muted-foreground">
+                  Usar como principal
+                </span>
+              </div>
+              <Switch
+                id="is-default"
+                checked={instanceForm.is_default}
+                onCheckedChange={(checked) => setInstanceForm(f => ({ ...f, is_default: checked }))}
+              />
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              {editingInstance && (
+                <div className="flex gap-2 sm:mr-auto">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => getQRCode(editingInstance)}
+                  >
+                    <QrCode className="h-4 w-4 mr-1" />
+                    QR Code
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm('Remover esta instância?')) {
+                        deleteInstanceMutation.mutate(editingInstance.id);
+                        closeInstanceDialog();
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Remover
+                  </Button>
+                </div>
+              )}
+              <Button type="button" variant="outline" onClick={closeInstanceDialog}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={saveInstanceMutation.isPending}>
+                {saveInstanceMutation.isPending ? 'Salvando...' : editingInstance ? 'Salvar' : 'Conectar'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </CorporateLayout>
   );
 }
