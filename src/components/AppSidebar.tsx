@@ -52,7 +52,8 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: 'CRM Pipeline', url: '/portal/corporativo/crm', icon: Kanban },
       { title: 'CRM Atendimento', url: '/portal/corporativo/atendimento', icon: MessageSquare },
-      { title: 'Coach IA', url: '/portal/corporativo/coach-painel', icon: MessageSquare },
+      { title: 'WhatsApp IA', url: '/portal/corporativo/whatsapp', icon: MessageSquare },
+      { title: 'Agentes Coach', url: '/portal/corporativo/coach', icon: MessageSquare },
     ]
   },
   {
