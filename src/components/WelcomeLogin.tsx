@@ -182,19 +182,19 @@ export function WelcomeLogin({ userName, userEmail, avatarUrl, onComplete }: Wel
         </div>
 
         {/* Greeting */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-3">
           <h1
-            className={`text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-ffp-gold to-white bg-clip-text text-transparent transition-all duration-700 ${
+            className={`text-4xl md:text-5xl font-bold text-white transition-all duration-700 drop-shadow-lg ${
               showGreeting
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-4'
             }`}
           >
-            Bem-vindo de volta, {getFirstName(userName)}
+            Bem-vindo de volta, <span className="text-ffp-gold">{getFirstName(userName)}</span>
           </h1>
           
           <p
-            className={`text-lg text-ffp-gold transition-all duration-700 ${
+            className={`text-lg text-white/90 font-medium transition-all duration-700 ${
               showSubtext
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-4'
