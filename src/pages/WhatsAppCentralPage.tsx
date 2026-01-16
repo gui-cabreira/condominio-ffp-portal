@@ -115,14 +115,13 @@ export default function WhatsAppCentralPage() {
 
   const isAdmin = userRoles?.includes('admin');
 
-  // Fetch WhatsApp instances - with admin_field_01 populated
+  // Fetch WhatsApp instances - todas as instâncias
   const { data: instances, isLoading: loadingInstances } = useQuery({
     queryKey: ['whatsapp-instances'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('uazapi_instances')
         .select('*')
-        .not('admin_field_01', 'is', null)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -905,6 +904,42 @@ export default function WhatsAppCentralPage() {
                               <Brain className="h-4 w-4 mr-1" />
                               Base IA
                             </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem 
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={async () => {
+                                    if (!confirm('Tem certeza que deseja excluir esta instância?')) return;
+                                    try {
+                                      // Desconectar e excluir
+                                      await supabase.functions.invoke('uazapi-connect', {
+                                        body: {
+                                          action: 'disconnect',
+                                          instanceToken: instance.api_key,
+                                        },
+                                      });
+                                      // Remover do banco
+                                      await supabase
+                                        .from('uazapi_instances')
+                                        .delete()
+                                        .eq('id', instance.id);
+                                      queryClient.invalidateQueries({ queryKey: ['whatsapp-instances'] });
+                                      toast.success('Instância excluída');
+                                    } catch (err) {
+                                      toast.error('Erro ao excluir instância');
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </CardContent>

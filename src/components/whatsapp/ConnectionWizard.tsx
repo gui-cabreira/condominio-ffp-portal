@@ -56,31 +56,18 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
       // Gerar nome único para instância
       const instanceName = config.name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
       
-      // 1. Criar instância no servidor UAZAPI
+      // 1. Criar instância no servidor UAZAPI - passa adminFieldValue para salvar no banco
       const { data: createResult, error: createError } = await supabase.functions.invoke('uazapi-connect', {
         body: {
           action: 'create',
           instanceName,
           instanceType: config.operationType,
-          saveToDatabase: true,
-          displayName: config.name,
+          adminFieldValue: 'system', // Identificador para que a instância apareça na lista
         },
       });
 
       if (createError) throw createError;
       if (!createResult.success) throw new Error(createResult.error || 'Falha ao criar instância');
-
-      // 2. Criar configuração da instância
-      const { error: configError } = await supabase
-        .from('whatsapp_instance_config')
-        .insert({
-          instance_id: createResult.instance.id,
-          operation_type: config.operationType,
-          operation_mode: config.operationMode,
-          intentions: config.intentions,
-        });
-
-      if (configError) console.error('Erro ao salvar config:', configError);
 
       return createResult;
     },
@@ -133,7 +120,12 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
           },
         });
 
-        if (!error && data?.success && (data?.connected || data?.loggedIn || data?.status === 'open')) {
+        console.log('[ConnectionWizard] Status check response:', data);
+
+        // Verificar se realmente está conectado - precisa ser explicitamente true
+        const isConnected = data?.success && (data?.connected === true || data?.loggedIn === true || data?.status === 'open');
+        
+        if (!error && isConnected) {
           setIsConnected(true);
           setCheckingStatus(false);
           setStep('success');
