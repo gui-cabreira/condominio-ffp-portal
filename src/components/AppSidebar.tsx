@@ -1,7 +1,7 @@
 import { 
   Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, 
   Upload, UserPlus, Building, Server, MessageSquare, Cog, Headphones, 
-  Workflow, TrendingUp, Shield, ChevronDown, Kanban
+  Workflow, TrendingUp, Shield, ChevronDown, Kanban, Key
 } from 'lucide-react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -71,6 +71,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Workflow', url: '/portal/corporativo/workflow', icon: Workflow },
       { title: 'Parâmetros', url: '/portal/corporativo/parametros', icon: Settings },
       { title: 'Automação', url: '/portal/corporativo/automacao', icon: Server },
+      { title: 'Integrações', url: '/portal/corporativo/integracoes', icon: Key },
     ]
   },
   {

@@ -1668,6 +1668,95 @@ export type Database = {
           },
         ]
       }
+      integration_token_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          request_ip: string | null
+          request_payload: Json | null
+          response_status: number | null
+          token_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          request_ip?: string | null
+          request_payload?: Json | null
+          response_status?: number | null
+          token_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          request_ip?: string | null
+          request_payload?: Json | null
+          response_status?: number | null
+          token_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_token_logs_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "integration_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_tokens: {
+        Row: {
+          allowed_actions: string[] | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          name: string
+          token: string
+          token_prefix: string
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          allowed_actions?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          name: string
+          token: string
+          token_prefix: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          allowed_actions?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          name?: string
+          token?: string
+          token_prefix?: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       login_logs: {
         Row: {
           created_at: string
