@@ -32,52 +32,81 @@ Deno.serve(async (req) => {
       throw new Error('Phone e message são obrigatórios');
     }
 
-    // Configurações do UAZAPI
+    // Buscar configurações do servidor do banco de dados
+    const { data: serverConfig } = await supabase
+      .from('negotiation_parameters')
+      .select('parameter_key, parameter_value')
+      .in('parameter_key', ['whatsapp_server_url', 'whatsapp_admin_token']);
+    
+    let configServerUrl = '';
+    let configAdminToken = '';
+    
+    serverConfig?.forEach((param: any) => {
+      if (param.parameter_key === 'whatsapp_server_url') {
+        configServerUrl = param.parameter_value;
+      } else if (param.parameter_key === 'whatsapp_admin_token') {
+        configAdminToken = param.parameter_value;
+      }
+    });
+    
+    // Usar configurações do banco ou fallback para secrets
     const uazapiInstanceId = Deno.env.get('UAZAPI_INSTANCE_ID');
-    const uazapiToken = Deno.env.get('UAZAPI_TOKEN') || Deno.env.get('UAZAPI_API_KEY');
+    const uazapiToken = configAdminToken || Deno.env.get('UAZAPI_API_KEY');
+    const uazapiBaseUrl = configServerUrl || 'https://api.uazapi.com';
 
-    if (!uazapiInstanceId || !uazapiToken) {
-      throw new Error('UAZAPI não configurado. Defina UAZAPI_INSTANCE_ID e UAZAPI_TOKEN');
+    if (!uazapiToken) {
+      throw new Error('UAZAPI não configurado. Configure nas configurações do sistema ou defina UAZAPI_API_KEY');
     }
 
-    // Formatar número (garantir que tem @s.whatsapp.net)
-    const formattedPhone = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
+    // Formatar número (remover caracteres especiais, manter apenas números)
+    const cleanPhone = phone.replace(/\D/g, '');
+    const formattedPhone = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
 
     console.log(`📱 Enviando para: ${formattedPhone}`);
     console.log(`💬 Mensagem: ${message.substring(0, 50)}...`);
+    console.log(`🌐 Servidor: ${uazapiBaseUrl}`);
 
     // Construir payload para UAZAPI
     let payload: any = {
-      sessionId: uazapiInstanceId,
-      to: formattedPhone,
+      phone: cleanPhone,
+      message: message,
     };
 
-    // Se tem mídia, enviar como mensagem de mídia
+    // Se tem mídia, adicionar ao payload
     if (mediaUrl && mediaType) {
       payload = {
-        ...payload,
-        type: mediaType,
-        [mediaType]: {
-          url: mediaUrl,
-          caption: message
-        }
-      };
-    } else {
-      // Mensagem de texto simples
-      payload = {
-        ...payload,
-        type: 'text',
-        text: {
-          message: message
-        }
+        phone: cleanPhone,
+        caption: message,
+        url: mediaUrl,
       };
     }
 
     console.log('📦 Payload UAZAPI:', JSON.stringify(payload, null, 2));
 
-    // Enviar via UAZAPI
-    // API Endpoint: https://api.uazapi.com/v1/instance/send
-    const uazapiUrl = 'https://api.uazapi.com/v1/instance/send';
+    // Determinar endpoint baseado no tipo de mensagem
+    let endpoint = '/message/sendText';
+    if (mediaUrl && mediaType) {
+      switch (mediaType) {
+        case 'image':
+          endpoint = '/message/sendImage';
+          break;
+        case 'document':
+          endpoint = '/message/sendDocument';
+          break;
+        case 'audio':
+          endpoint = '/message/sendAudio';
+          break;
+        case 'video':
+          endpoint = '/message/sendVideo';
+          break;
+      }
+    }
+
+    // Montar URL completa
+    const instancePath = uazapiInstanceId ? `/${uazapiInstanceId}` : '';
+    const uazapiUrl = `${uazapiBaseUrl}${endpoint}${instancePath}`;
+
+    console.log(`🔗 URL: ${uazapiUrl}`);
 
     const response = await fetch(uazapiUrl, {
       method: 'POST',
@@ -90,6 +119,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`❌ UAZAPI error: ${response.status} - ${errorText}`);
       throw new Error(`UAZAPI error: ${response.status} - ${errorText}`);
     }
 
@@ -109,7 +139,6 @@ Deno.serve(async (req) => {
       conversation = existingConv;
     } else {
       // Buscar conversa pelo telefone
-      const cleanPhone = phone.replace(/\D/g, '');
       const { data: existingConv } = await supabase
         .from('whatsapp_conversations')
         .select('*')
@@ -148,10 +177,10 @@ Deno.serve(async (req) => {
         .from('whatsapp_messages')
         .insert({
           conversation_id: conversation.id,
-          uazapi_message_id: result.id || result.messageId || null,
+          uazapi_message_id: result.id || result.messageId || result.key?.id || null,
           direction: 'outbound',
-          sender_phone: uazapiInstanceId,
-          recipient_phone: phone,
+          sender_phone: uazapiInstanceId || 'system',
+          recipient_phone: cleanPhone,
           message_type: mediaType || 'text',
           content: message,
           media_url: mediaUrl || null,
@@ -175,11 +204,12 @@ Deno.serve(async (req) => {
         .insert({
           charge_id: chargeId,
           event_type: 'sent',
-          description: `Mensagem enviada via WhatsApp: ${message.substring(0, 50)}...`,
-          metadata: {
-            phone,
-            message_id: result.id || result.messageId,
+          event_data: {
+            channel: 'whatsapp',
+            phone: cleanPhone,
+            message_id: result.id || result.messageId || result.key?.id,
             conversation_id: conversation?.id,
+            message_preview: message.substring(0, 100),
           },
         });
     }
@@ -187,7 +217,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        messageId: result.id || result.messageId,
+        messageId: result.id || result.messageId || result.key?.id,
         conversationId: conversation?.id,
         result,
       }),

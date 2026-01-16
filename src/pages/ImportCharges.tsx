@@ -1,338 +1,732 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Download, FileText, CheckCircle, AlertCircle, X, Eye, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, Upload, User, Building2, Home, FileText, CheckCircle, Send, Loader2, Mail, MessageCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+
+interface Administrator {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface Condominium {
+  id: string;
+  name: string;
+  address: string | null;
+  administrator_id: string | null;
+}
+
+interface Unit {
+  id: string;
+  unit_number: string;
+  owner_name: string | null;
+  owner_email: string | null;
+  owner_phone: string | null;
+  condominium_id: string;
+}
+
 const ImportCharges = () => {
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadComplete, setUploadComplete] = useState(false);
-  const [activeTab, setActiveTab] = useState('upload');
+  // Step control
+  const [step, setStep] = useState(1);
+  
+  // Selections
+  const [selectedAdministrator, setSelectedAdministrator] = useState<string>('');
+  const [selectedCondominium, setSelectedCondominium] = useState<string>('');
+  const [selectedUnit, setSelectedUnit] = useState<string>('');
+  
+  // New unit form
+  const [showNewUnit, setShowNewUnit] = useState(false);
+  const [newUnitData, setNewUnitData] = useState({
+    unit_number: '',
+    owner_name: '',
+    owner_email: '',
+    owner_phone: '',
+  });
+  
+  // Charge data
+  const [chargeAmount, setChargeAmount] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [referenceMonth, setReferenceMonth] = useState('');
+  const [description, setDescription] = useState('');
+  
+  // Boleto file
+  const [boletoFile, setBoletoFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  // Sending state
+  const [isSending, setIsSending] = useState(false);
+  const [sendResult, setSendResult] = useState<{
+    success: boolean;
+    chargeId?: string;
+    whatsapp?: { success: boolean; error?: string };
+    email?: { success: boolean; error?: string };
+  } | null>(null);
 
-  // Dados mockados de importações
-  const importHistory = [{
-    id: 1,
-    fileName: 'cobrancas_janeiro_2024.xlsx',
-    date: '2024-01-15',
-    status: 'success',
-    processed: 120,
-    errors: 0,
-    total: 120
-  }, {
-    id: 2,
-    fileName: 'cobrancas_dezembro_2023.csv',
-    date: '2024-01-02',
-    status: 'warning',
-    processed: 85,
-    errors: 3,
-    total: 88
-  }, {
-    id: 3,
-    fileName: 'cobrancas_novembro_2023.xlsx',
-    date: '2023-12-01',
-    status: 'error',
-    processed: 12,
-    errors: 45,
-    total: 57
-  }];
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  // Fetch administrators
+  const { data: administrators = [] } = useQuery({
+    queryKey: ['administrators'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('administrators')
+        .select('id, name, email')
+        .eq('active', true)
+        .order('name');
+      if (error) throw error;
+      return data as Administrator[];
+    }
+  });
+
+  // Fetch condominiums based on selected administrator
+  const { data: condominiums = [] } = useQuery({
+    queryKey: ['condominiums', selectedAdministrator],
+    queryFn: async () => {
+      let query = supabase
+        .from('condominiums')
+        .select('id, name, address, administrator_id')
+        .order('name');
+      
+      if (selectedAdministrator) {
+        query = query.eq('administrator_id', selectedAdministrator);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as Condominium[];
+    },
+    enabled: !!selectedAdministrator
+  });
+
+  // Fetch units based on selected condominium
+  const { data: units = [] } = useQuery({
+    queryKey: ['units', selectedCondominium],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('units')
+        .select('id, unit_number, owner_name, owner_email, owner_phone, condominium_id')
+        .eq('condominium_id', selectedCondominium)
+        .order('unit_number');
+      if (error) throw error;
+      return data as Unit[];
+    },
+    enabled: !!selectedCondominium
+  });
+
+  // Get selected entities
+  const selectedAdminData = administrators.find(a => a.id === selectedAdministrator);
+  const selectedCondoData = condominiums.find(c => c.id === selectedCondominium);
+  const selectedUnitData = units.find(u => u.id === selectedUnit);
+
+  // Handle drag events
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        setBoletoFile(file);
+        toast.success(`Boleto "${file.name}" anexado com sucesso!`);
+      } else {
+        toast.error('Por favor, anexe apenas arquivos PDF');
+      }
+    }
+  }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
-      setIsUploading(true);
-      setUploadProgress(0);
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        setBoletoFile(file);
+        toast.success(`Boleto "${file.name}" anexado com sucesso!`);
+      } else {
+        toast.error('Por favor, anexe apenas arquivos PDF');
+      }
+    }
+  };
 
-      // Simular upload
-      const interval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setIsUploading(false);
-            setUploadComplete(true);
-            return 100;
+  // Handle registration and notification
+  const handleSubmit = async () => {
+    // Validate required fields
+    if (!selectedCondominium) {
+      toast.error('Selecione um condomínio');
+      return;
+    }
+
+    let unitId = selectedUnit;
+    
+    // If new unit, create it first
+    if (showNewUnit) {
+      if (!newUnitData.unit_number || !newUnitData.owner_name) {
+        toast.error('Preencha pelo menos unidade e nome do proprietário');
+        return;
+      }
+      
+      const { data: newUnit, error: unitError } = await supabase
+        .from('units')
+        .insert({
+          condominium_id: selectedCondominium,
+          unit_number: newUnitData.unit_number,
+          owner_name: newUnitData.owner_name,
+          owner_email: newUnitData.owner_email || null,
+          owner_phone: newUnitData.owner_phone || null,
+        })
+        .select()
+        .single();
+        
+      if (unitError) {
+        toast.error('Erro ao cadastrar unidade: ' + unitError.message);
+        return;
+      }
+      
+      unitId = newUnit.id;
+    }
+    
+    if (!unitId) {
+      toast.error('Selecione ou cadastre uma unidade');
+      return;
+    }
+
+    setIsSending(true);
+    setSendResult(null);
+
+    try {
+      // 1. Create charge
+      const amount = parseFloat(chargeAmount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+      
+      const { data: charge, error: chargeError } = await supabase
+        .from('charges')
+        .insert({
+          unit_id: unitId,
+          administrator_id: selectedAdministrator || null,
+          amount: amount,
+          due_date: dueDate || new Date().toISOString().split('T')[0],
+          reference_month: referenceMonth || null,
+          description: description || 'Cobrança condominial',
+          status: 'pending',
+          pipeline_stage: 'new',
+        })
+        .select()
+        .single();
+
+      if (chargeError) throw chargeError;
+
+      console.log('✅ Cobrança criada:', charge.id);
+
+      // 2. Upload boleto if provided
+      if (boletoFile) {
+        const fileName = `${charge.id}/${Date.now()}_${boletoFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('boletos')
+          .upload(fileName, boletoFile);
+
+        if (uploadError) {
+          console.error('Erro ao fazer upload do boleto:', uploadError);
+        } else {
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('boletos')
+            .getPublicUrl(fileName);
+
+          // Update charge with boleto URL
+          await supabase
+            .from('charges')
+            .update({ boleto_url: urlData.publicUrl })
+            .eq('id', charge.id);
+
+          console.log('✅ Boleto anexado:', urlData.publicUrl);
+        }
+      }
+
+      // 3. Add timeline event
+      await supabase
+        .from('charge_timeline')
+        .insert({
+          charge_id: charge.id,
+          event_type: 'created',
+          event_data: {
+            description: 'Cobrança cadastrada via importação manual',
+            boleto_attached: !!boletoFile,
           }
-          return prev + 10;
         });
-      }, 200);
+
+      // 4. Send notifications (WhatsApp + Email)
+      const { data: notificationResult, error: notificationError } = await supabase.functions.invoke('send-charge-notification', {
+        body: {
+          chargeId: charge.id,
+          channel: 'all',
+        }
+      });
+
+      if (notificationError) {
+        console.error('Erro ao enviar notificações:', notificationError);
+        setSendResult({
+          success: true,
+          chargeId: charge.id,
+          whatsapp: { success: false, error: notificationError.message },
+          email: { success: false, error: notificationError.message },
+        });
+      } else {
+        console.log('✅ Notificações enviadas:', notificationResult);
+        setSendResult({
+          success: true,
+          chargeId: charge.id,
+          whatsapp: notificationResult?.results?.whatsapp || { success: false, error: 'Não enviado' },
+          email: notificationResult?.results?.email || { success: false, error: 'Não enviado' },
+        });
+      }
+
+      toast.success('Cobrança cadastrada e notificações disparadas!');
+      
+    } catch (error: any) {
+      console.error('Erro:', error);
+      toast.error('Erro ao processar: ' + error.message);
+      setSendResult(null);
+    } finally {
+      setIsSending(false);
     }
   };
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <Badge className="bg-green-100 text-green-800">Sucesso</Badge>;
-      case 'warning':
-        return <Badge className="bg-yellow-100 text-yellow-800">Com Avisos</Badge>;
-      case 'error':
-        return <Badge className="bg-red-100 text-red-800">Erro</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">Processando</Badge>;
-    }
+
+  // Reset form
+  const handleReset = () => {
+    setStep(1);
+    setSelectedAdministrator('');
+    setSelectedCondominium('');
+    setSelectedUnit('');
+    setShowNewUnit(false);
+    setNewUnitData({ unit_number: '', owner_name: '', owner_email: '', owner_phone: '' });
+    setChargeAmount('');
+    setDueDate('');
+    setReferenceMonth('');
+    setDescription('');
+    setBoletoFile(null);
+    setSendResult(null);
   };
-  return <div className="min-h-screen bg-gray-50">
+
+  const canProceedToStep2 = selectedAdministrator && selectedCondominium;
+  const canProceedToStep3 = selectedUnit || (showNewUnit && newUnitData.unit_number && newUnitData.owner_name);
+
+  return (
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <header className="bg-card shadow-sm border-b">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link to="/portal/corporativo/dashboard" className="mr-4">
-                <ArrowLeft className="w-5 h-5 text-ffp-navy hover:text-ffp-gold" />
+            <div className="flex items-center gap-4">
+              <Link to="/portal/corporativo/dashboard">
+                <ArrowLeft className="w-5 h-5 text-muted-foreground hover:text-primary" />
               </Link>
-              
-              <h1 className="text-xl font-semibold text-ffp-navy">Importação de Cobranças</h1>
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">Cadastrar Inadimplente</h1>
+                <p className="text-sm text-muted-foreground">Cadastro individual com disparo automático</p>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline">
-                <Download className="w-4 h-4 mr-2" />
-                Template Excel
-              </Button>
-              <Link to="/portal/corporativo/cadastrar-inadimplente">
-                <Button className="bg-ffp-gold hover:bg-ffp-gold-dark text-ffp-navy">
-                  Cadastro Manual
-                </Button>
-              </Link>
+            
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant={step >= 1 ? 'default' : 'secondary'}>1. Seleção</Badge>
+              <span>→</span>
+              <Badge variant={step >= 2 ? 'default' : 'secondary'}>2. Unidade</Badge>
+              <span>→</span>
+              <Badge variant={step >= 3 ? 'default' : 'secondary'}>3. Boleto</Badge>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="upload">Importar Arquivo</TabsTrigger>
-            <TabsTrigger value="mapping">Mapeamento</TabsTrigger>
-            <TabsTrigger value="history">Histórico</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="upload">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Upload Area */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy">Upload de Arquivo</CardTitle>
-                  <CardDescription>
-                    Importe cobranças em lote através de arquivo Excel ou CSV
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {!uploadComplete ? <>
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <div className="space-y-2">
-                          <p className="text-lg font-medium">Arraste seu arquivo aqui</p>
-                          <p className="text-sm text-gray-600">ou clique para selecionar</p>
-                          <p className="text-xs text-gray-500">Suporta .xlsx, .xls, .csv (máx 10MB)</p>
-                        </div>
-                        <Input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} className="mt-4 cursor-pointer" />
-                      </div>
-
-                      {isUploading && <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Processando arquivo...</span>
-                            <span>{uploadProgress}%</span>
-                          </div>
-                          <Progress value={uploadProgress} className="h-2" />
-                        </div>}
-                    </> : <div className="text-center py-8">
-                      <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-green-700 mb-2">
-                        Arquivo processado com sucesso!
-                      </h3>
-                      <p className="text-gray-600 mb-6">
-                        120 registros encontrados, 115 válidos, 5 com erros
-                      </p>
-                      <div className="flex gap-2 justify-center">
-                        <Button onClick={() => setActiveTab('mapping')}>
-                          Revisar Mapeamento
-                        </Button>
-                        <Button variant="outline" onClick={() => {
-                      setUploadComplete(false);
-                      setUploadProgress(0);
-                    }}>
-                          Novo Upload
-                        </Button>
-                      </div>
-                    </div>}
-                </CardContent>
-              </Card>
-
-              {/* Instructions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-ffp-navy">Instruções de Importação</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-ffp-navy text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-                      <div>
-                        <p className="font-medium">Baixe o template</p>
-                        <p className="text-sm text-gray-600">Use nosso modelo para garantir a compatibilidade</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-ffp-navy text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-                      <div>
-                        <p className="font-medium">Preencha os dados</p>
-                        <p className="text-sm text-gray-600">Certifique-se de que todos os campos obrigatórios estão preenchidos</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-ffp-navy text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
-                      <div>
-                        <p className="font-medium">Faça o upload</p>
-                        <p className="text-sm text-gray-600">Arraste o arquivo ou selecione-o</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-ffp-navy text-white rounded-full flex items-center justify-center text-sm font-bold">4</div>
-                      <div>
-                        <p className="font-medium">Revise o mapeamento</p>
-                        <p className="text-sm text-gray-600">Confirme se os campos foram identificados corretamente</p>
-                      </div>
-                    </div>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {sendResult ? (
+          // Result Screen
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader className="text-center">
+              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+              <CardTitle className="text-2xl">Cobrança Cadastrada!</CardTitle>
+              <CardDescription>
+                O inadimplente foi cadastrado e as notificações foram disparadas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Summary */}
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Administradora:</span>
+                  <span className="font-medium">{selectedAdminData?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Condomínio:</span>
+                  <span className="font-medium">{selectedCondoData?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Unidade:</span>
+                  <span className="font-medium">
+                    {showNewUnit ? newUnitData.unit_number : selectedUnitData?.unit_number}
+                  </span>
+                </div>
+                {chargeAmount && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Valor:</span>
+                    <span className="font-medium">{chargeAmount}</span>
                   </div>
+                )}
+              </div>
 
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-2">Campos Obrigatórios:</h4>
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      <li>• Nome do devedor</li>
-                      <li>• CPF/CNPJ</li>
-                      <li>• Condomínio</li>
-                      <li>• Unidade</li>
-                      <li>• Valor original</li>
-                      <li>• Data de vencimento</li>
-                    </ul>
+              {/* Notification Status */}
+              <div className="space-y-3">
+                <h4 className="font-medium">Status das Notificações:</h4>
+                
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5 text-green-600" />
+                    <span>WhatsApp</span>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                  {sendResult.whatsapp?.success ? (
+                    <Badge variant="default" className="bg-green-100 text-green-800">Enviado</Badge>
+                  ) : (
+                    <Badge variant="destructive">{sendResult.whatsapp?.error || 'Falhou'}</Badge>
+                  )}
+                </div>
+                
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-blue-600" />
+                    <span>Email</span>
+                  </div>
+                  {sendResult.email?.success ? (
+                    <Badge variant="default" className="bg-green-100 text-green-800">Enviado</Badge>
+                  ) : (
+                    <Badge variant="destructive">{sendResult.email?.error || 'Falhou'}</Badge>
+                  )}
+                </div>
+              </div>
 
-          <TabsContent value="mapping">
-            <Card>
+              <Separator />
+
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={handleReset}>
+                  Cadastrar Outro
+                </Button>
+                <Link to="/portal/corporativo/pipeline" className="flex-1">
+                  <Button className="w-full">
+                    Ver no Pipeline
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Step 1: Administrator & Condominium */}
+            <Card className={step === 1 ? 'ring-2 ring-primary' : ''}>
               <CardHeader>
-                <CardTitle className="text-ffp-navy">Mapeamento de Campos</CardTitle>
-                <CardDescription>
-                  Confirme se os campos do arquivo foram identificados corretamente
-                </CardDescription>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Building2 className="w-5 h-5" />
+                  1. Administradora e Condomínio
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[{
-                  field: 'Nome',
-                  mapped: 'NOME_COMPLETO',
-                  status: 'success'
-                }, {
-                  field: 'CPF',
-                  mapped: 'DOCUMENTO',
-                  status: 'success'
-                }, {
-                  field: 'Condomínio',
-                  mapped: 'CONDOMINIO_NOME',
-                  status: 'success'
-                }, {
-                  field: 'Unidade',
-                  mapped: 'APARTAMENTO',
-                  status: 'success'
-                }, {
-                  field: 'Valor',
-                  mapped: 'VALOR_ORIGINAL',
-                  status: 'success'
-                }, {
-                  field: 'Vencimento',
-                  mapped: 'DATA_VENC',
-                  status: 'warning'
-                }, {
-                  field: 'Telefone',
-                  mapped: 'CONTATO',
-                  status: 'success'
-                }, {
-                  field: 'Email',
-                  mapped: null,
-                  status: 'error'
-                }].map((item, index) => <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium">{item.field}</span>
-                        {item.status === 'success' && <CheckCircle className="w-4 h-4 text-green-500" />}
-                        {item.status === 'warning' && <AlertCircle className="w-4 h-4 text-yellow-500" />}
-                        {item.status === 'error' && <X className="w-4 h-4 text-red-500" />}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">
-                          {item.mapped || 'Não mapeado'}
-                        </span>
-                        <Button variant="outline" size="sm">Alterar</Button>
-                      </div>
-                    </div>)}
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Administradora</Label>
+                  <Select 
+                    value={selectedAdministrator} 
+                    onValueChange={(v) => {
+                      setSelectedAdministrator(v);
+                      setSelectedCondominium('');
+                      setSelectedUnit('');
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {administrators.map((admin) => (
+                        <SelectItem key={admin.id} value={admin.id}>
+                          {admin.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="flex justify-between mt-6">
-                  <Button variant="outline" onClick={() => setActiveTab('upload')}>
-                    Voltar
-                  </Button>
-                  <Button className="bg-ffp-navy hover:bg-ffp-navy-dark text-white">
-                    Importar Dados
-                  </Button>
+                <div className="space-y-2">
+                  <Label>Condomínio</Label>
+                  <Select 
+                    value={selectedCondominium} 
+                    onValueChange={(v) => {
+                      setSelectedCondominium(v);
+                      setSelectedUnit('');
+                    }}
+                    disabled={!selectedAdministrator}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {condominiums.map((condo) => (
+                        <SelectItem key={condo.id} value={condo.id}>
+                          {condo.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                {canProceedToStep2 && (
+                  <Button 
+                    className="w-full mt-4" 
+                    onClick={() => setStep(2)}
+                  >
+                    Próximo
+                  </Button>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="history">
-            <Card>
+            {/* Step 2: Unit/Owner */}
+            <Card className={step === 2 ? 'ring-2 ring-primary' : ''}>
               <CardHeader>
-                <CardTitle className="text-ffp-navy">Histórico de Importações</CardTitle>
-                <CardDescription>
-                  Visualize todas as importações realizadas
-                </CardDescription>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <User className="w-5 h-5" />
+                  2. Unidade / Proprietário
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {importHistory.map(item => <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <FileSpreadsheet className="w-8 h-8 text-green-600" />
-                        <div>
-                          <p className="font-medium">{item.fileName}</p>
-                          <p className="text-sm text-gray-600">
-                            {new Date(item.date).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
+              <CardContent className="space-y-4">
+                {!showNewUnit ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Selecionar Unidade Existente</Label>
+                      <Select 
+                        value={selectedUnit} 
+                        onValueChange={setSelectedUnit}
+                        disabled={!selectedCondominium}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {units.map((unit) => (
+                            <SelectItem key={unit.id} value={unit.id}>
+                              {unit.unit_number} - {unit.owner_name || 'Sem nome'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {selectedUnitData && (
+                      <div className="p-3 bg-muted/50 rounded-lg text-sm space-y-1">
+                        <p><strong>Nome:</strong> {selectedUnitData.owner_name || '-'}</p>
+                        <p><strong>Email:</strong> {selectedUnitData.owner_email || '-'}</p>
+                        <p><strong>Telefone:</strong> {selectedUnitData.owner_phone || '-'}</p>
+                      </div>
+                    )}
+
+                    <Separator />
+                    
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      onClick={() => setShowNewUnit(true)}
+                      disabled={!selectedCondominium}
+                    >
+                      + Cadastrar Nova Unidade
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label>Número/Identificação da Unidade *</Label>
+                        <Input
+                          value={newUnitData.unit_number}
+                          onChange={(e) => setNewUnitData({ ...newUnitData, unit_number: e.target.value })}
+                          placeholder="Ex: Apto 101, Bloco A"
+                        />
                       </div>
                       
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-sm">
-                            {item.processed}/{item.total} processados
-                          </p>
-                          {item.errors > 0 && <p className="text-sm text-red-600">
-                              {item.errors} erros
-                            </p>}
-                        </div>
-                        
-                        {getStatusBadge(item.status)}
-                        
-                        <div className="flex gap-1">
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Download className="w-4 h-4" />
-                          </Button>
-                        </div>
+                      <div className="space-y-2">
+                        <Label>Nome do Proprietário *</Label>
+                        <Input
+                          value={newUnitData.owner_name}
+                          onChange={(e) => setNewUnitData({ ...newUnitData, owner_name: e.target.value })}
+                          placeholder="Nome completo"
+                        />
                       </div>
-                    </div>)}
-                </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Email</Label>
+                        <Input
+                          type="email"
+                          value={newUnitData.owner_email}
+                          onChange={(e) => setNewUnitData({ ...newUnitData, owner_email: e.target.value })}
+                          placeholder="email@exemplo.com"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>WhatsApp</Label>
+                        <Input
+                          value={newUnitData.owner_phone}
+                          onChange={(e) => setNewUnitData({ ...newUnitData, owner_phone: e.target.value })}
+                          placeholder="5511999999999"
+                        />
+                      </div>
+                    </div>
+
+                    <Button 
+                      variant="ghost" 
+                      className="w-full" 
+                      onClick={() => setShowNewUnit(false)}
+                    >
+                      ← Voltar para seleção
+                    </Button>
+                  </>
+                )}
+
+                {canProceedToStep3 && step === 2 && (
+                  <Button 
+                    className="w-full mt-4" 
+                    onClick={() => setStep(3)}
+                  >
+                    Próximo
+                  </Button>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+
+            {/* Step 3: Boleto & Send */}
+            <Card className={step === 3 ? 'ring-2 ring-primary' : ''}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="w-5 h-5" />
+                  3. Boleto e Disparo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Optional charge details */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Valor</Label>
+                    <Input
+                      value={chargeAmount}
+                      onChange={(e) => setChargeAmount(e.target.value)}
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Vencimento</Label>
+                    <Input
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Mês de Referência</Label>
+                  <Input
+                    value={referenceMonth}
+                    onChange={(e) => setReferenceMonth(e.target.value)}
+                    placeholder="Ex: Janeiro/2025"
+                  />
+                </div>
+
+                <Separator />
+
+                {/* Drop Zone */}
+                <div
+                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+                    isDragging 
+                      ? 'border-primary bg-primary/10' 
+                      : boletoFile 
+                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20' 
+                        : 'border-muted-foreground/30 hover:border-primary'
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById('boleto-input')?.click()}
+                >
+                  {boletoFile ? (
+                    <>
+                      <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                      <p className="font-medium text-green-700 dark:text-green-400">{boletoFile.name}</p>
+                      <p className="text-sm text-muted-foreground">Clique para trocar</p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                      <p className="font-medium">Arraste o boleto aqui</p>
+                      <p className="text-sm text-muted-foreground">ou clique para selecionar</p>
+                      <p className="text-xs text-muted-foreground mt-1">Apenas PDF</p>
+                    </>
+                  )}
+                  <input
+                    id="boleto-input"
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Info about notification */}
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg text-sm space-y-1">
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                    <AlertCircle className="w-4 h-4" />
+                    <span className="font-medium">Ao finalizar:</span>
+                  </div>
+                  <ul className="text-muted-foreground ml-6 list-disc">
+                    <li>WhatsApp será enviado automaticamente</li>
+                    <li>Email será enviado automaticamente</li>
+                    <li>Cobrança entrará no Pipeline de CRM</li>
+                  </ul>
+                </div>
+
+                {/* Submit */}
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handleSubmit}
+                  disabled={isSending || !canProceedToStep3}
+                >
+                  {isSending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Cadastrar e Disparar
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default ImportCharges;
