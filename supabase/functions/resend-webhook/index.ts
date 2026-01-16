@@ -20,7 +20,7 @@ serve(async (req) => {
     const body = await req.text()
     const payload = JSON.parse(body)
 
-    console.log('Webhook recebido do Resend:', payload.type)
+    console.log('📬 Webhook recebido do Resend:', payload.type)
 
     // Verificar se é um evento relacionado a emails
     if (!payload.type || !payload.type.startsWith('email.')) {
@@ -45,74 +45,105 @@ serve(async (req) => {
       )
     }
 
-    // Buscar convite pelo email_id
-    const { data: invitation, error: fetchError } = await supabaseClient
+    // === ATUALIZAR EMAIL_TRACKING (nova tabela geral) ===
+    const { data: existingTracking } = await supabaseClient
+      .from('email_tracking')
+      .select('id, tracking_events')
+      .eq('email_id', emailId)
+      .single()
+
+    // Mapear evento para coluna de timestamp
+    const trackingUpdates: Record<string, any> = {}
+    const eventMapping: Record<string, string> = {
+      'email.sent': 'sent_at',
+      'email.delivered': 'delivered_at',
+      'email.opened': 'opened_at',
+      'email.clicked': 'clicked_at',
+      'email.bounced': 'bounced_at',
+      'email.complained': 'complained_at',
+      'email.unsubscribed': 'unsubscribed_at',
+    }
+
+    if (eventMapping[eventType]) {
+      trackingUpdates[eventMapping[eventType]] = eventTime
+    }
+
+    if (existingTracking) {
+      // Atualizar registro existente
+      const currentEvents = existingTracking.tracking_events || []
+      const newEvent = { type: eventType, timestamp: eventTime, data: payload.data }
+
+      await supabaseClient
+        .from('email_tracking')
+        .update({
+          ...trackingUpdates,
+          tracking_events: [...currentEvents, newEvent],
+          updated_at: eventTime
+        })
+        .eq('id', existingTracking.id)
+
+      console.log('✅ Email tracking atualizado:', emailId)
+    } else {
+      // Criar novo registro se não existir
+      await supabaseClient
+        .from('email_tracking')
+        .insert({
+          email_id: emailId,
+          recipient: payload.data.to?.[0] || '',
+          subject: payload.data.subject || '',
+          email_type: 'notification',
+          ...trackingUpdates,
+          tracking_events: [{ type: eventType, timestamp: eventTime, data: payload.data }]
+        })
+
+      console.log('✅ Novo email tracking criado:', emailId)
+    }
+
+    // === ATUALIZAR USER_INVITATIONS (se for um convite) ===
+    const { data: invitation } = await supabaseClient
       .from('user_invitations')
       .select('*')
       .eq('email_id', emailId)
       .single()
 
-    if (fetchError || !invitation) {
-      console.log('Convite não encontrado para email_id:', emailId)
-      // Não retornar erro, pode ser email de outro sistema
-      return new Response(
-        JSON.stringify({ message: 'Invitation not found, ignoring event' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    if (invitation) {
+      console.log('Convite encontrado:', invitation.id)
+
+      const updates: any = {
+        tracking_events: [
+          ...(invitation.tracking_events || []),
+          { type: eventType, timestamp: eventTime, data: payload.data }
+        ]
+      }
+
+      switch (eventType) {
+        case 'email.sent':
+          updates.sent_at = eventTime
+          break
+        case 'email.delivered':
+          updates.delivered_at = eventTime
+          break
+        case 'email.opened':
+          if (!invitation.opened_at) updates.opened_at = eventTime
+          break
+        case 'email.clicked':
+          if (!invitation.clicked_at) updates.clicked_at = eventTime
+          break
+        case 'email.bounced':
+          updates.bounced_at = eventTime
+          break
+        case 'email.complained':
+          updates.complained_at = eventTime
+          break
+      }
+
+      await supabaseClient
+        .from('user_invitations')
+        .update(updates)
+        .eq('id', invitation.id)
+
+      console.log('✅ Convite atualizado:', invitation.id)
     }
-
-    console.log('Convite encontrado:', invitation.id)
-
-    // Preparar atualização baseada no tipo de evento
-    const updates: any = {
-      tracking_events: [
-        ...(invitation.tracking_events || []),
-        {
-          type: eventType,
-          timestamp: eventTime,
-          data: payload.data
-        }
-      ]
-    }
-
-    // Atualizar timestamps específicos
-    switch (eventType) {
-      case 'email.sent':
-        updates.sent_at = eventTime
-        break
-      case 'email.delivered':
-        updates.delivered_at = eventTime
-        break
-      case 'email.opened':
-        if (!invitation.opened_at) { // Só registra primeira abertura
-          updates.opened_at = eventTime
-        }
-        break
-      case 'email.clicked':
-        if (!invitation.clicked_at) { // Só registra primeiro clique
-          updates.clicked_at = eventTime
-        }
-        break
-      case 'email.bounced':
-        updates.bounced_at = eventTime
-        break
-      case 'email.complained':
-        updates.complained_at = eventTime
-        break
-    }
-
-    // Atualizar convite
-    const { error: updateError } = await supabaseClient
-      .from('user_invitations')
-      .update(updates)
-      .eq('id', invitation.id)
-
-    if (updateError) {
-      console.error('Erro ao atualizar convite:', updateError)
-      throw updateError
-    }
-
-    console.log('Convite atualizado com sucesso:', invitation.id, 'Evento:', eventType)
 
     // Registrar log no sistema
     await supabaseClient
@@ -120,11 +151,11 @@ serve(async (req) => {
       .insert({
         event_type: `resend_${eventType.replace('email.', '')}`,
         event_category: 'webhook',
-        description: `Webhook Resend: ${eventType} para ${invitation.email}`,
+        description: `Webhook Resend: ${eventType} para email ${emailId}`,
         metadata: {
-          invitation_id: invitation.id,
           email_id: emailId,
           event_type: eventType,
+          invitation_id: invitation?.id,
           event_data: payload.data
         }
       })
@@ -132,13 +163,14 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        invitation_id: invitation.id,
-        event: eventType
+        email_id: emailId,
+        event: eventType,
+        invitation_updated: !!invitation
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Erro no webhook do Resend:', error)
+    console.error('❌ Erro no webhook do Resend:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

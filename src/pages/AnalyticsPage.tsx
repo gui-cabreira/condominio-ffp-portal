@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMonthlyData, useStatusData, useCommunicationData, useConversionFunnel } from '@/hooks/useDashboardData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { TrendingUp, DollarSign, Users, CheckCircle } from 'lucide-react';
+import { EmailTrackingDashboard } from '@/components/EmailTrackingDashboard';
 
 const AnalyticsPage = () => {
   const { data: monthlyData, isLoading: monthlyLoading } = useMonthlyData();
@@ -46,6 +47,9 @@ const AnalyticsPage = () => {
         </h1>
         <p className="text-muted-foreground mt-1">Análises detalhadas e métricas de performance</p>
       </div>
+
+      {/* Dashboard de Email Tracking */}
+      <EmailTrackingDashboard />
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
