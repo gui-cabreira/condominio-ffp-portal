@@ -289,6 +289,127 @@ export type Database = {
           },
         ]
       }
+      ai_knowledge_base: {
+        Row: {
+          administrator_id: string | null
+          content: string
+          created_at: string | null
+          embedding_id: string | null
+          id: string
+          instance_id: string | null
+          is_vectorized: boolean | null
+          metadata: Json | null
+          source_id: string | null
+          source_type: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          administrator_id?: string | null
+          content: string
+          created_at?: string | null
+          embedding_id?: string | null
+          id?: string
+          instance_id?: string | null
+          is_vectorized?: boolean | null
+          metadata?: Json | null
+          source_id?: string | null
+          source_type?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          administrator_id?: string | null
+          content?: string
+          created_at?: string | null
+          embedding_id?: string | null
+          id?: string
+          instance_id?: string | null
+          is_vectorized?: boolean | null
+          metadata?: Json | null
+          source_id?: string | null
+          source_type?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_base_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_knowledge_base_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "uazapi_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_learning_history: {
+        Row: {
+          answer: string
+          conversation_id: string | null
+          feedback: string | null
+          id: string
+          instance_id: string | null
+          is_approved: boolean | null
+          learned_at: string | null
+          message_id: string | null
+          quality_score: number | null
+          question: string
+        }
+        Insert: {
+          answer: string
+          conversation_id?: string | null
+          feedback?: string | null
+          id?: string
+          instance_id?: string | null
+          is_approved?: boolean | null
+          learned_at?: string | null
+          message_id?: string | null
+          quality_score?: number | null
+          question: string
+        }
+        Update: {
+          answer?: string
+          conversation_id?: string | null
+          feedback?: string | null
+          id?: string
+          instance_id?: string | null
+          is_approved?: boolean | null
+          learned_at?: string | null
+          message_id?: string | null
+          quality_score?: number | null
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_learning_history_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_learning_history_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "uazapi_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_learning_history_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_actions: {
         Row: {
           action_type: string
@@ -2157,12 +2278,73 @@ export type Database = {
           },
         ]
       }
+      whatsapp_instance_config: {
+        Row: {
+          ai_personality: string | null
+          auto_learn: boolean | null
+          away_message: string | null
+          blacklist: string[] | null
+          created_at: string | null
+          daily_message_limit: number | null
+          id: string
+          instance_id: string | null
+          intentions: string[] | null
+          operation_mode: string | null
+          operation_type: string | null
+          updated_at: string | null
+          whitelist: string[] | null
+          working_hours: Json | null
+        }
+        Insert: {
+          ai_personality?: string | null
+          auto_learn?: boolean | null
+          away_message?: string | null
+          blacklist?: string[] | null
+          created_at?: string | null
+          daily_message_limit?: number | null
+          id?: string
+          instance_id?: string | null
+          intentions?: string[] | null
+          operation_mode?: string | null
+          operation_type?: string | null
+          updated_at?: string | null
+          whitelist?: string[] | null
+          working_hours?: Json | null
+        }
+        Update: {
+          ai_personality?: string | null
+          auto_learn?: boolean | null
+          away_message?: string | null
+          blacklist?: string[] | null
+          created_at?: string | null
+          daily_message_limit?: number | null
+          id?: string
+          instance_id?: string | null
+          intentions?: string[] | null
+          operation_mode?: string | null
+          operation_type?: string | null
+          updated_at?: string | null
+          whitelist?: string[] | null
+          working_hours?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_instance_config_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: true
+            referencedRelation: "uazapi_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_messages: {
         Row: {
+          archived_at: string | null
           caption: string | null
           content: string | null
           conversation_id: string
           created_at: string | null
+          deleted_at: string | null
           delivered_at: string | null
           direction: string
           error_message: string | null
@@ -2176,12 +2358,15 @@ export type Database = {
           sender_phone: string | null
           status: string | null
           uazapi_message_id: string | null
+          used_for_training: boolean | null
         }
         Insert: {
+          archived_at?: string | null
           caption?: string | null
           content?: string | null
           conversation_id: string
           created_at?: string | null
+          deleted_at?: string | null
           delivered_at?: string | null
           direction?: string
           error_message?: string | null
@@ -2195,12 +2380,15 @@ export type Database = {
           sender_phone?: string | null
           status?: string | null
           uazapi_message_id?: string | null
+          used_for_training?: boolean | null
         }
         Update: {
+          archived_at?: string | null
           caption?: string | null
           content?: string | null
           conversation_id?: string
           created_at?: string | null
+          deleted_at?: string | null
           delivered_at?: string | null
           direction?: string
           error_message?: string | null
@@ -2214,6 +2402,7 @@ export type Database = {
           sender_phone?: string | null
           status?: string | null
           uazapi_message_id?: string | null
+          used_for_training?: boolean | null
         }
         Relationships: [
           {

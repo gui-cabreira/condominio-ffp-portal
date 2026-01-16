@@ -17,7 +17,7 @@ import {
   Clock, CheckCheck, Check, AlertCircle, Bot, Zap, 
   FileText, DollarSign, Calendar, History, Sparkles,
   Filter, RefreshCw, MoreVertical, Pause, Play, Plus,
-  Settings, Wifi, WifiOff, QrCode, Trash2, ExternalLink
+  Settings, Wifi, WifiOff, QrCode, Trash2, ExternalLink, Brain, BookOpen
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -38,6 +38,9 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
+import { ConnectionWizard } from '@/components/whatsapp/ConnectionWizard';
+import { KnowledgeBase } from '@/components/whatsapp/KnowledgeBase';
+import { ConversationActions } from '@/components/whatsapp/ConversationActions';
 
 interface Conversation {
   id: string;
