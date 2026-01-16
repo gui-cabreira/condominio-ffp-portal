@@ -1419,6 +1419,51 @@ export type Database = {
         }
         Relationships: []
       }
+      message_templates: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          subject: string | null
+          template_type: string
+          updated_at: string | null
+          variables: string[] | null
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          subject?: string | null
+          template_type?: string
+          updated_at?: string | null
+          variables?: string[] | null
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          subject?: string | null
+          template_type?: string
+          updated_at?: string | null
+          variables?: string[] | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           charge_id: string | null
@@ -1764,49 +1809,67 @@ export type Database = {
       }
       uazapi_instances: {
         Row: {
+          admin_field_01: string | null
+          admin_field_02: string | null
+          agent_personality: string | null
           api_key: string
+          auto_reply_delay_ms: number | null
           base_url: string
           created_at: string
           created_by: string | null
           id: string
           instance_id: string
           instance_type: string | null
+          is_autonomous: boolean | null
           is_default: boolean | null
           name: string
           phone_number: string | null
           qr_code: string | null
           status: string | null
           updated_at: string
+          webhook_events: Json | null
         }
         Insert: {
+          admin_field_01?: string | null
+          admin_field_02?: string | null
+          agent_personality?: string | null
           api_key: string
+          auto_reply_delay_ms?: number | null
           base_url?: string
           created_at?: string
           created_by?: string | null
           id?: string
           instance_id: string
           instance_type?: string | null
+          is_autonomous?: boolean | null
           is_default?: boolean | null
           name: string
           phone_number?: string | null
           qr_code?: string | null
           status?: string | null
           updated_at?: string
+          webhook_events?: Json | null
         }
         Update: {
+          admin_field_01?: string | null
+          admin_field_02?: string | null
+          agent_personality?: string | null
           api_key?: string
+          auto_reply_delay_ms?: number | null
           base_url?: string
           created_at?: string
           created_by?: string | null
           id?: string
           instance_id?: string
           instance_type?: string | null
+          is_autonomous?: boolean | null
           is_default?: boolean | null
           name?: string
           phone_number?: string | null
           qr_code?: string | null
           status?: string | null
           updated_at?: string
+          webhook_events?: Json | null
         }
         Relationships: []
       }
