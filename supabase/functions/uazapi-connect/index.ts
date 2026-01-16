@@ -5,14 +5,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Configuração intrínseca do servidor UAZAPI - NÃO expor ao usuário
+const UAZAPI_SERVER_URL = "https://appnow.uazapi.com";
+const UAZAPI_ADMIN_TOKEN = "online";
+
 interface ConnectRequest {
-  action: 'create' | 'connect' | 'status' | 'disconnect' | 'list';
+  action: 'create' | 'connect' | 'status' | 'disconnect' | 'list' | 'sync';
   instanceName?: string;
   instanceId?: string;
-  phone?: string; // Para gerar paircode ao invés de QR
-  baseUrl?: string;
-  adminToken?: string;
+  phone?: string;
   instanceToken?: string;
+  adminFieldValue?: string; // Valor para admin_field_01 (identifica quem pode ver)
 }
 
 Deno.serve(async (req) => {
@@ -27,48 +30,17 @@ Deno.serve(async (req) => {
     );
 
     const body: ConnectRequest = await req.json();
-    const { action, instanceName, instanceId, phone, baseUrl, adminToken, instanceToken } = body;
+    const { action, instanceName, instanceId, phone, instanceToken, adminFieldValue } = body;
 
     console.log(`[UAZAPI] Action: ${action}, instanceName: ${instanceName}, instanceId: ${instanceId}`);
 
-    // Buscar configurações globais se não fornecidas
-    let serverUrl = baseUrl;
-    let serverAdminToken = adminToken;
-
-    if (!serverUrl || !serverAdminToken) {
-      const { data: params } = await supabase
-        .from('negotiation_parameters')
-        .select('parameter_key, parameter_value')
-        .in('parameter_key', ['whatsapp_server_url', 'whatsapp_admin_token']);
-
-      if (params) {
-        for (const p of params) {
-          if (p.parameter_key === 'whatsapp_server_url') serverUrl = p.parameter_value;
-          if (p.parameter_key === 'whatsapp_admin_token') serverAdminToken = p.parameter_value;
-        }
-      }
-    }
-
-    if (!serverUrl) {
-      return new Response(
-        JSON.stringify({ error: 'URL do servidor WhatsApp não configurada' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Garantir que a URL não termina com /
-    serverUrl = serverUrl.replace(/\/$/, '');
+    // Sempre usar servidor intrínseco - não aceitar do usuário
+    const serverUrl = UAZAPI_SERVER_URL;
+    const serverAdminToken = UAZAPI_ADMIN_TOKEN;
 
     switch (action) {
       case 'create': {
         // Criar nova instância via admin token
-        if (!serverAdminToken) {
-          return new Response(
-            JSON.stringify({ error: 'Admin token não configurado' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
         if (!instanceName) {
           return new Response(
             JSON.stringify({ error: 'Nome da instância é obrigatório' }),
@@ -100,12 +72,28 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Retornar dados da instância criada
+        // Salvar no banco com admin_field_01 se fornecido
+        const instance = createData.instance || {};
+        const token = createData.token || instance.token;
+        
+        if (adminFieldValue) {
+          await supabase
+            .from('uazapi_instances')
+            .insert({
+              instance_id: instance.id || instance.name || instanceName,
+              name: instanceName,
+              api_key: token,
+              base_url: serverUrl,
+              admin_field_01: adminFieldValue,
+              status: 'disconnected',
+            });
+        }
+
         return new Response(
           JSON.stringify({
             success: true,
-            instance: createData.instance,
-            token: createData.token || createData.instance?.token,
+            instance: instance,
+            token: token,
             message: createData.response || 'Instância criada com sucesso',
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -125,10 +113,8 @@ Deno.serve(async (req) => {
 
         const connectBody: Record<string, string> = {};
         if (phone) {
-          // Se passar phone, gera código de pareamento (8 dígitos)
           connectBody.phone = phone.replace(/\D/g, '');
         }
-        // Se não passar phone, gera QR code
 
         const connectResponse = await fetch(`${serverUrl}/instance/connect`, {
           method: 'POST',
@@ -149,7 +135,6 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Extrair QR code ou paircode
         const instance = connectData.instance || {};
         return new Response(
           JSON.stringify({
@@ -165,7 +150,6 @@ Deno.serve(async (req) => {
       }
 
       case 'status': {
-        // Verificar status da instância
         if (!instanceToken) {
           return new Response(
             JSON.stringify({ error: 'Token da instância é obrigatório' }),
@@ -212,7 +196,6 @@ Deno.serve(async (req) => {
       }
 
       case 'disconnect': {
-        // Desconectar instância
         if (!instanceToken) {
           return new Response(
             JSON.stringify({ error: 'Token da instância é obrigatório' }),
@@ -242,15 +225,8 @@ Deno.serve(async (req) => {
       }
 
       case 'list': {
-        // Listar todas as instâncias (admin)
-        if (!serverAdminToken) {
-          return new Response(
-            JSON.stringify({ error: 'Admin token não configurado' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        console.log(`[UAZAPI] Listando instâncias`);
+        // Listar todas as instâncias do servidor (admin interno apenas)
+        console.log(`[UAZAPI] Listando instâncias do servidor`);
 
         const listResponse = await fetch(`${serverUrl}/instance/all`, {
           method: 'GET',
@@ -272,6 +248,55 @@ Deno.serve(async (req) => {
           JSON.stringify({
             success: true,
             instances: Array.isArray(listData) ? listData : [],
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'sync': {
+        // Sincronizar instâncias do servidor para o banco
+        console.log(`[UAZAPI] Sincronizando instâncias`);
+
+        if (!adminFieldValue) {
+          return new Response(
+            JSON.stringify({ error: 'adminFieldValue é obrigatório para sincronização' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const listResponse = await fetch(`${serverUrl}/instance/all`, {
+          method: 'GET',
+          headers: {
+            'admintoken': serverAdminToken,
+          },
+        });
+
+        const serverInstances = await listResponse.json();
+        console.log(`[UAZAPI] Instâncias do servidor:`, JSON.stringify(serverInstances).substring(0, 500));
+
+        const syncedInstances = [];
+        for (const inst of serverInstances || []) {
+          const { data, error } = await supabase
+            .from('uazapi_instances')
+            .upsert({
+              instance_id: inst.id || inst.name,
+              name: inst.name,
+              api_key: inst.token,
+              base_url: serverUrl,
+              admin_field_01: adminFieldValue,
+              status: inst.status === 'CONNECTED' ? 'connected' : 'disconnected',
+            }, { onConflict: 'instance_id' })
+            .select();
+          
+          if (data) syncedInstances.push(data[0]);
+          if (error) console.error('[UAZAPI] Erro ao sincronizar:', error);
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            synced: syncedInstances.length,
+            instances: syncedInstances,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );

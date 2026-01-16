@@ -123,7 +123,6 @@ export default function WhatsAppCentralPage() {
     name: '',
     instance_id: '',
     api_key: '',
-    base_url: '',
     is_autonomous: false,
     is_default: false,
     instance_type: 'cobranca',
@@ -141,13 +140,14 @@ export default function WhatsAppCentralPage() {
   const isAdmin = userRoles?.includes('admin');
   const isSupervisor = userRoles?.includes('supervisor');
 
-  // Fetch WhatsApp instances
+  // Fetch WhatsApp instances - APENAS as que têm admin_field_01 preenchido
   const { data: instances, isLoading: loadingInstances } = useQuery({
     queryKey: ['whatsapp-instances'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('uazapi_instances')
         .select('*')
+        .not('admin_field_01', 'is', null)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -364,10 +364,11 @@ export default function WhatsAppCentralPage() {
         name: instanceForm.name,
         instance_id: instanceForm.instance_id,
         api_key: instanceForm.api_key,
-        base_url: instanceForm.base_url || 'https://api.uazapi.com',
+        base_url: 'https://appnow.uazapi.com', // Servidor fixo, não expor ao usuário
         is_autonomous: instanceForm.is_autonomous,
         is_default: instanceForm.is_default,
         instance_type: instanceForm.instance_type,
+        admin_field_01: user?.id, // Marca como visível para este admin
         created_by: user?.id,
         owner_id: user?.id,
       };
@@ -421,7 +422,6 @@ export default function WhatsAppCentralPage() {
         name: instance.name,
         instance_id: instance.instance_id,
         api_key: instance.api_key,
-        base_url: instance.base_url,
         is_autonomous: instance.is_autonomous || false,
         is_default: instance.is_default || false,
         instance_type: instance.instance_type || 'cobranca',
@@ -432,7 +432,6 @@ export default function WhatsAppCentralPage() {
         name: '',
         instance_id: '',
         api_key: '',
-        base_url: '',
         is_autonomous: false,
         is_default: false,
         instance_type: 'cobranca',
@@ -453,7 +452,7 @@ export default function WhatsAppCentralPage() {
     saveInstanceMutation.mutate();
   };
 
-  // Criar instância no servidor UAZAPI
+  // Criar instância no servidor UAZAPI (servidor intrínseco)
   const createInstanceOnServer = async () => {
     if (!instanceForm.name) {
       toast.error('Nome da instância é obrigatório');
@@ -466,7 +465,7 @@ export default function WhatsAppCentralPage() {
         body: {
           action: 'create',
           instanceName: instanceForm.name.toLowerCase().replace(/\s+/g, '-'),
-          baseUrl: instanceForm.base_url || undefined,
+          adminFieldValue: user?.id, // Marca como visível para este usuário
         },
       });
 
@@ -482,6 +481,7 @@ export default function WhatsAppCentralPage() {
       }));
 
       toast.success('Instância criada no servidor! Agora conecte ao WhatsApp.');
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-instances'] });
     } catch (error: any) {
       console.error('Error creating instance:', error);
       toast.error(error.message || 'Erro ao criar instância no servidor');
@@ -504,7 +504,6 @@ export default function WhatsAppCentralPage() {
         body: {
           action: 'connect',
           instanceToken: instanceForm.api_key,
-          baseUrl: instanceForm.base_url || undefined,
           phone: usePaircode ? phoneForPaircode.replace(/\D/g, '') : undefined,
         },
       });
@@ -520,7 +519,6 @@ export default function WhatsAppCentralPage() {
 
       if (data.connected) {
         toast.success('WhatsApp conectado!');
-        // Atualizar status no banco
         if (editingInstance) {
           await supabase
             .from('uazapi_instances')
@@ -546,7 +544,6 @@ export default function WhatsAppCentralPage() {
         body: {
           action: 'status',
           instanceToken: instanceForm.api_key,
-          baseUrl: instanceForm.base_url || undefined,
         },
       });
 
@@ -561,7 +558,6 @@ export default function WhatsAppCentralPage() {
 
       if (data.connected) {
         toast.success('WhatsApp conectado!');
-        // Atualizar status no banco
         if (editingInstance) {
           await supabase
             .from('uazapi_instances')
@@ -1203,17 +1199,8 @@ export default function WhatsAppCentralPage() {
               </div>
             )}
             
-            {isAdmin && (
-              <div className="space-y-2">
-                <Label htmlFor="base-url">URL do Servidor</Label>
-                <Input
-                  id="base-url"
-                  value={instanceForm.base_url}
-                  onChange={(e) => setInstanceForm(f => ({ ...f, base_url: e.target.value }))}
-                  placeholder="https://api.uazapi.com"
-                />
-              </div>
-            )}
+            
+            {/* URL do servidor é intrínseca, não mostrar ao usuário */}
             
             <div className="space-y-2">
               <Label htmlFor="instance-type">Tipo de Instância</Label>
