@@ -21,7 +21,6 @@ type WizardStep = 'config' | 'qrcode' | 'success';
 
 interface InstanceConfig {
   name: string;
-  clientId: string;
   operationType: 'cobranca' | 'atendimento' | 'coach';
   operationMode: 'autonomous' | 'notifications' | 'hybrid';
   intentions: string[];
@@ -45,25 +44,11 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
   
   const [config, setConfig] = useState<InstanceConfig>({
     name: '',
-    clientId: '',
     operationType: 'cobranca',
     operationMode: 'autonomous',
     intentions: ['cobranca'],
   });
 
-  // Buscar administradoras/clientes
-  const { data: administrators } = useQuery({
-    queryKey: ['administrators-for-whatsapp'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('administrators')
-        .select('id, name, fantasy_name')
-        .eq('active', true)
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
 
   // Mutation para criar instância
   const createInstanceMutation = useMutation({
@@ -76,7 +61,6 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
         body: {
           action: 'create',
           instanceName,
-          clientId: config.clientId,
           instanceType: config.operationType,
           saveToDatabase: true,
           displayName: config.name,
@@ -205,7 +189,6 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
     setCheckingStatus(false);
     setConfig({
       name: '',
-      clientId: '',
       operationType: 'cobranca',
       operationMode: 'autonomous',
       intentions: ['cobranca'],
@@ -214,7 +197,7 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
     if (isConnected) onSuccess?.();
   };
 
-  const isConfigValid = config.name.trim() && config.clientId && config.intentions.length > 0;
+  const isConfigValid = config.name.trim() && config.intentions.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -241,28 +224,6 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
               />
             </div>
 
-            {/* Administradora (gerencia múltiplos condomínios) */}
-            <div className="space-y-2">
-              <Label>Administradora</Label>
-              <Select 
-                value={config.clientId} 
-                onValueChange={(v) => setConfig(prev => ({ ...prev, clientId: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a administradora" />
-                </SelectTrigger>
-                <SelectContent>
-                  {administrators?.map((admin) => (
-                    <SelectItem key={admin.id} value={admin.id}>
-                      {admin.fantasy_name || admin.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                A instância atenderá todos os condomínios desta administradora
-              </p>
-            </div>
 
             {/* Tipo de Operação */}
             <div className="space-y-3">
