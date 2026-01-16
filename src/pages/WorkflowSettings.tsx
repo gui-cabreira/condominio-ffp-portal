@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Save, Eye, EyeOff, CheckCircle, Server, Smartphone, RefreshCw, Plus, Trash2, Bot, Zap } from 'lucide-react';
+import { Settings, Key, Save, Eye, EyeOff, CheckCircle, Server, Smartphone, RefreshCw, Plus, Trash2, Bot, Zap, Shield, User } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 interface WhatsAppInstance {
   id: string;
@@ -23,9 +24,15 @@ interface WhatsAppInstance {
   admin_field_01: string | null;
   admin_field_02: string | null;
   created_at: string;
+  owner_id: string | null;
+  created_by: string | null;
 }
 
 const WorkflowSettings = () => {
+  const { user, userRoles } = useAuth();
+  const isAdmin = userRoles.includes('admin');
+  const isSupervisor = userRoles.includes('supervisor');
+  
   const [serverUrl, setServerUrl] = useState('https://appnow.uazapi.com');
   const [adminToken, setAdminToken] = useState('');
   const [showToken, setShowToken] = useState(false);
@@ -71,6 +78,7 @@ const WorkflowSettings = () => {
 
   const fetchInstances = async () => {
     try {
+      // RLS já filtra automaticamente baseado no role do usuário
       const { data, error } = await supabase
         .from('uazapi_instances')
         .select('*')
@@ -81,6 +89,13 @@ const WorkflowSettings = () => {
     } catch (error) {
       console.error('Error fetching instances:', error);
     }
+  };
+
+  // Verifica se o usuário pode editar/deletar uma instância
+  const canManageInstance = (instance: WhatsAppInstance) => {
+    if (isAdmin) return true;
+    if (isSupervisor && (instance.owner_id === user?.id || instance.created_by === user?.id)) return true;
+    return false;
   };
 
   const saveSettings = async () => {
@@ -192,8 +207,9 @@ const WorkflowSettings = () => {
 
       const data = await response.json();
 
-      // Save to database
+      // Save to database - supervisor cria com owner_id, admin pode criar sem
       const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
       
       await supabase
         .from('uazapi_instances')
@@ -208,7 +224,8 @@ const WorkflowSettings = () => {
           admin_field_02: newAdminField02 || instanceId,
           webhook_events: webhookEvents,
           status: 'disconnected',
-          created_by: userData.user?.id
+          created_by: userId,
+          owner_id: isSupervisor ? userId : null // Supervisor é dono da própria instância
         });
 
       toast.success('Instância criada! Escaneie o QR Code para conectar.');
@@ -226,11 +243,17 @@ const WorkflowSettings = () => {
   };
 
   const deleteInstance = async (instance: WhatsAppInstance) => {
+    // Verificar permissão
+    if (!canManageInstance(instance)) {
+      toast.error('Você não tem permissão para excluir esta instância');
+      return;
+    }
+    
     if (!confirm('Tem certeza que deseja excluir esta instância?')) return;
 
     try {
-      // Delete from server
-      if (serverUrl && adminToken) {
+      // Delete from server (apenas admin pode)
+      if (isAdmin && serverUrl && adminToken) {
         await fetch(`${serverUrl}/instance/delete/${instance.instance_id}`, {
           method: 'DELETE',
           headers: {
@@ -313,78 +336,101 @@ const WorkflowSettings = () => {
           Configurações
         </h1>
         <p className="text-muted-foreground mt-1">
-          Configure o servidor de mensagens e gerencie instâncias
+          {isAdmin 
+            ? 'Configure o servidor de mensagens e gerencie instâncias'
+            : 'Gerencie sua instância WhatsApp'
+          }
         </p>
       </div>
 
-      {/* Server Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Server className="w-5 h-5" />
-            Servidor de Mensagens
-          </CardTitle>
-          <CardDescription>
-            Configure a conexão com o servidor WhatsApp
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="serverUrl">URL do Servidor</Label>
-              <Input
-                id="serverUrl"
-                value={serverUrl}
-                onChange={(e) => setServerUrl(e.target.value)}
-                placeholder="https://seu-servidor.com"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="adminToken">Admin Token</Label>
-              <div className="relative">
+      {/* Role indicator */}
+      <div className="flex items-center gap-2">
+        <Badge variant={isAdmin ? 'default' : 'secondary'} className="flex items-center gap-1">
+          {isAdmin ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
+          {isAdmin ? 'Administrador' : 'Supervisor'}
+        </Badge>
+        {isAdmin && (
+          <span className="text-xs text-muted-foreground">
+            Acesso completo a todas as instâncias
+          </span>
+        )}
+        {isSupervisor && (
+          <span className="text-xs text-muted-foreground">
+            Você pode criar sua instância pessoal e ver instâncias autônomas
+          </span>
+        )}
+      </div>
+
+      {/* Server Configuration - APENAS ADMIN */}
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="w-5 h-5" />
+              Servidor de Mensagens
+            </CardTitle>
+            <CardDescription>
+              Configure a conexão com o servidor WhatsApp
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="serverUrl">URL do Servidor</Label>
                 <Input
-                  id="adminToken"
-                  type={showToken ? 'text' : 'password'}
-                  value={adminToken}
-                  onChange={(e) => setAdminToken(e.target.value)}
-                  placeholder="Token de administrador"
-                  className="pr-10"
+                  id="serverUrl"
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  placeholder="https://seu-servidor.com"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowToken(!showToken)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="adminToken">Admin Token</Label>
+                <div className="relative">
+                  <Input
+                    id="adminToken"
+                    type={showToken ? 'text' : 'password'}
+                    value={adminToken}
+                    onChange={(e) => setAdminToken(e.target.value)}
+                    placeholder="Token de administrador"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex gap-2">
-            <Button onClick={saveSettings} disabled={saving}>
-              {saving ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Salvar Configurações
-            </Button>
-            
-            {serverUrl && adminToken && (
-              <Button variant="outline" onClick={syncInstances} disabled={loadingInstances}>
-                {loadingInstances ? (
+            <div className="flex gap-2">
+              <Button onClick={saveSettings} disabled={saving}>
+                {saving ? (
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <Save className="w-4 h-4 mr-2" />
                 )}
-                Sincronizar Instâncias
+                Salvar Configurações
               </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              
+              {serverUrl && adminToken && (
+                <Button variant="outline" onClick={syncInstances} disabled={loadingInstances}>
+                  {loadingInstances ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  Sincronizar Instâncias
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Separator />
 
@@ -504,40 +550,56 @@ const WorkflowSettings = () => {
               <Card key={instance.id}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{instance.name}</CardTitle>
-                      <CardDescription>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg truncate">{instance.name}</CardTitle>
+                      <CardDescription className="truncate">
                         {instance.phone_number || instance.instance_id}
                       </CardDescription>
                     </div>
-                    <Badge variant={instance.status === 'connected' ? 'default' : 'secondary'}>
-                      {instance.status === 'connected' ? (
-                        <><CheckCircle className="w-3 h-3 mr-1" /> Conectado</>
-                      ) : (
-                        'Desconectado'
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant={instance.status === 'connected' ? 'default' : 'secondary'}>
+                        {instance.status === 'connected' ? (
+                          <><CheckCircle className="w-3 h-3 mr-1" /> Conectado</>
+                        ) : (
+                          'Desconectado'
+                        )}
+                      </Badge>
+                      {/* Indicador de ownership */}
+                      {instance.owner_id === user?.id && (
+                        <Badge variant="outline" className="text-xs">
+                          <User className="w-3 h-3 mr-1" />
+                          Minha
+                        </Badge>
                       )}
-                    </Badge>
+                      {isAdmin && instance.owner_id && instance.owner_id !== user?.id && (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          Supervisor
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {getTypeBadge(instance.instance_type, instance.is_autonomous)}
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {instance.status !== 'connected' && (
+                    {instance.status !== 'connected' && canManageInstance(instance) && (
                       <Button size="sm" variant="outline" onClick={() => getQRCode(instance)}>
                         QR Code
                       </Button>
                     )}
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="text-destructive"
-                      onClick={() => deleteInstance(instance)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {canManageInstance(instance) && (
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="text-destructive"
+                        onClick={() => deleteInstance(instance)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
