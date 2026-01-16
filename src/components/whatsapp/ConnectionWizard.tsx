@@ -241,15 +241,15 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
               />
             </div>
 
-            {/* Cliente/Administradora */}
+            {/* Administradora (gerencia múltiplos condomínios) */}
             <div className="space-y-2">
-              <Label>Cliente / Administradora</Label>
+              <Label>Administradora</Label>
               <Select 
                 value={config.clientId} 
                 onValueChange={(v) => setConfig(prev => ({ ...prev, clientId: v }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
+                  <SelectValue placeholder="Selecione a administradora" />
                 </SelectTrigger>
                 <SelectContent>
                   {administrators?.map((admin) => (
@@ -259,6 +259,9 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                A instância atenderá todos os condomínios desta administradora
+              </p>
             </div>
 
             {/* Tipo de Operação */}
