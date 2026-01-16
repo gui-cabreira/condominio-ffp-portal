@@ -145,20 +145,7 @@ serve(async (req) => {
       console.log('✅ Convite atualizado:', invitation.id)
     }
 
-    // Registrar log no sistema
-    await supabaseClient
-      .from('system_logs')
-      .insert({
-        event_type: `resend_${eventType.replace('email.', '')}`,
-        event_category: 'webhook',
-        description: `Webhook Resend: ${eventType} para email ${emailId}`,
-        metadata: {
-          email_id: emailId,
-          event_type: eventType,
-          invitation_id: invitation?.id,
-          event_data: payload.data
-        }
-      })
+    console.log('🎉 Webhook processado com sucesso - Event:', eventType, 'Email:', emailId)
 
     return new Response(
       JSON.stringify({ 
