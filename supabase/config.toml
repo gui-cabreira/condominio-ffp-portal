@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.uazapi-webhook]
 verify_jwt = false
 
+[functions.uazapi-connect]
+verify_jwt = false
+
 [functions.send-whatsapp-message]
 verify_jwt = false
 
