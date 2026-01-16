@@ -43,6 +43,7 @@ import ProfileCompletion from "./pages/ProfileCompletion";
 import SetupAdmin from "./pages/SetupAdmin";
 import { CorporateLayout } from "./components/CorporateLayout";
 import AtendimentoPage from "./pages/AtendimentoPage";
+import IntegrationSettingsPage from "./pages/IntegrationSettingsPage";
 import CRMPipelinePage from "./pages/CRMPipelinePage";
 
 const queryClient = new QueryClient({
@@ -218,6 +219,13 @@ const App = () => {
               <AuthGuard requiredRole="admin">
                 <CorporateLayout>
                   <CRMPipelinePage />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/integracoes" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <IntegrationSettingsPage />
                 </CorporateLayout>
               </AuthGuard>
             } />

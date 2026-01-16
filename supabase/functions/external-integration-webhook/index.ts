@@ -11,31 +11,61 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Initialize Supabase with service role key for RLS bypass
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  // Get request IP for logging
+  const requestIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+
   try {
-    // Validate API Key
+    // Validate API Key from database
     const apiKey = req.headers.get('x-api-key');
-    const expectedApiKey = Deno.env.get('EXTERNAL_INTEGRATION_API_KEY');
     
-    if (!expectedApiKey) {
-      console.error('EXTERNAL_INTEGRATION_API_KEY not configured');
+    if (!apiKey) {
+      console.warn('Missing API key');
       return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    if (!apiKey || apiKey !== expectedApiKey) {
-      console.warn('Invalid or missing API key');
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - Invalid API key' }),
+        JSON.stringify({ error: 'Unauthorized - Missing API key' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Initialize Supabase with service role key for RLS bypass
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Check token in database
+    const { data: tokenData, error: tokenError } = await supabase
+      .from('integration_tokens')
+      .select('id, name, is_active, expires_at, allowed_actions, usage_count')
+      .eq('token', apiKey)
+      .single();
+
+    if (tokenError || !tokenData) {
+      // Fallback to env variable for backwards compatibility
+      const legacyApiKey = Deno.env.get('EXTERNAL_INTEGRATION_API_KEY');
+      if (!legacyApiKey || apiKey !== legacyApiKey) {
+        console.warn('Invalid API key');
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized - Invalid API key' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      // Validate token from database
+      if (!tokenData.is_active) {
+        console.warn(`Token ${tokenData.name} is disabled`);
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized - Token is disabled' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (tokenData.expires_at && new Date(tokenData.expires_at) < new Date()) {
+        console.warn(`Token ${tokenData.name} has expired`);
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized - Token has expired' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     const body = await req.json();
     const { action, data } = body;
@@ -47,7 +77,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Processing action: ${action}`);
+    // Check if action is allowed for this token
+    if (tokenData && tokenData.allowed_actions && !tokenData.allowed_actions.includes(action)) {
+      console.warn(`Action ${action} not allowed for token ${tokenData.name}`);
+      
+      // Log the failed attempt
+      await supabase.from('integration_token_logs').insert({
+        token_id: tokenData.id,
+        action,
+        request_ip: requestIp,
+        request_payload: { action, data_keys: Object.keys(data) },
+        response_status: 403,
+        error_message: `Action ${action} not allowed`
+      });
+
+      return new Response(
+        JSON.stringify({ error: `Action '${action}' is not allowed for this token` }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Processing action: ${action} from token: ${tokenData?.name || 'legacy'}`);
 
     let result;
 
@@ -85,6 +135,25 @@ Deno.serve(async (req) => {
           JSON.stringify({ error: `Unknown action: ${action}` }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
+    }
+
+    // Update token usage stats and log success
+    if (tokenData) {
+      await supabase
+        .from('integration_tokens')
+        .update({ 
+          last_used_at: new Date().toISOString(),
+          usage_count: (tokenData.usage_count || 0) + 1
+        })
+        .eq('id', tokenData.id);
+
+      await supabase.from('integration_token_logs').insert({
+        token_id: tokenData.id,
+        action,
+        request_ip: requestIp,
+        request_payload: { action, data_summary: Array.isArray(data) ? `${data.length} items` : 'single item' },
+        response_status: 200
+      });
     }
 
     return new Response(
