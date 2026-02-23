@@ -65,6 +65,9 @@ Deno.serve(async (req) => {
       case 'dispute':
         actionResult = await handleDispute(supabase, context, intent);
         break;
+      case 'request_human':
+        actionResult = await handleRequestHuman(supabase, context, intent);
+        break;
       case 'general':
       default:
         actionResult = await handleGeneral(supabase, context, intent);
@@ -241,6 +244,7 @@ Tipos de intenção:
 - ask_question: Fazer pergunta sobre a cobrança
 - upload_proof: Enviar comprovante de pagamento
 - dispute: Contestar a cobrança
+- request_human: Pedir para falar com um atendente humano
 - general: Conversa geral ou saudação`;
 
   try {
@@ -303,6 +307,10 @@ function identifyIntentSimple(message: string) {
 
   if (/não devo|não reconheço|contestar|errado|incorreto/i.test(msgLower)) {
     return { type: 'dispute', confidence: 0.7, entities: {} };
+  }
+
+  if (/humano|atendente|pessoa|falar com alguém|falar com alguem|operador|suporte humano|transferir/i.test(msgLower)) {
+    return { type: 'request_human', confidence: 0.9, entities: {} };
   }
 
   if (/\?|quando|quanto|qual|como/i.test(msgLower)) {
@@ -553,6 +561,69 @@ async function handleGeneral(supabase: any, context: ConversationContext, intent
   };
 }
 
+// Handler: Solicitar atendente humano
+async function handleRequestHuman(supabase: any, context: ConversationContext, intent: any) {
+  console.log('🧑 Escalando para atendente humano...');
+
+  // Marcar conversa como escalada
+  await supabase
+    .from('whatsapp_conversations')
+    .update({
+      status: 'escalated',
+      tags: [...(context.conversation.tags || []), 'escalado_humano'],
+    })
+    .eq('id', context.conversation.id);
+
+  // Buscar histórico resumido
+  const messagesSummary = context.lastMessages
+    .reverse()
+    .map((m: any) => `[${m.direction === 'inbound' ? 'Cliente' : 'Bot'}] ${m.content?.substring(0, 100) || '(mídia)'}`)
+    .join('\n');
+
+  // Notificar todos os admins e assistants
+  const { data: adminUsers } = await supabase
+    .from('user_roles')
+    .select('user_id')
+    .in('role', ['admin', 'assistant']);
+
+  if (adminUsers && adminUsers.length > 0) {
+    const notifications = adminUsers.map((u: any) => ({
+      user_id: u.user_id,
+      title: '🧑 Solicitação de Atendente Humano',
+      message: `O contato ${context.conversation.contact_name || context.conversation.phone_number} solicitou falar com um atendente.\n\nUnidade: ${context.unit?.unit_number || 'N/D'}\nCondomínio: ${context.unit?.condominiums?.name || 'N/D'}\n\nÚltimas mensagens:\n${messagesSummary}`,
+      type: 'warning',
+      category: 'whatsapp',
+      action_url: '/portal/corporativo/atendimento',
+      metadata: {
+        conversation_id: context.conversation.id,
+        phone: context.conversation.phone_number,
+        contact_name: context.conversation.contact_name,
+      }
+    }));
+
+    await supabase.from('notifications').insert(notifications);
+  }
+
+  // Registrar timeline se houver cobrança
+  if (context.charges.length > 0) {
+    await supabase
+      .from('charge_timeline')
+      .insert({
+        charge_id: context.charges[0].id,
+        event_type: 'escalated_to_human',
+        event_data: {
+          phone: context.conversation.phone_number,
+          reason: 'customer_request',
+        },
+      });
+  }
+
+  return {
+    action: 'escalated_to_human',
+    escalated: true,
+  };
+}
+
 // Gerar resposta usando Lovable AI
 async function generateResponse(
   context: ConversationContext,
@@ -682,6 +753,12 @@ function generateResponseSimple(
         awaiting: null,
       };
 
+    case 'escalated_to_human':
+      return {
+        text: `🧑 Entendido! Estou transferindo você para um de nossos atendentes.\n\n📞 Um especialista irá entrar em contato em breve com todo o histórico da nossa conversa.\n\nObrigado pela paciência! 🙏`,
+        awaiting: null,
+      };
+
     default:
       if (context.charges.length > 0) {
         return {
@@ -776,6 +853,7 @@ async function logChargeTimeline(
     confirm_payment: 'payment_confirmed',
     upload_proof: 'proof_received',
     dispute: 'disputed',
+    request_human: 'escalated_to_human',
   };
 
   const eventType = eventTypeMap[intent.type] || 'interaction';

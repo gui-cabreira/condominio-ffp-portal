@@ -308,6 +308,82 @@ const AtendimentoPage = () => {
     }
   };
 
+  const applyWorkflow = async () => {
+    if (!selectedConversation) return;
+
+    const pendingCharge = selectedConversation.charges?.find(c => c.status === 'pending' || c.status === 'overdue');
+    if (!pendingCharge) {
+      toast({
+        title: 'Sem cobrança vinculada',
+        description: 'Vincule uma unidade com cobranças pendentes primeiro.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setSending(true);
+    try {
+      // Buscar workflows ativos
+      // @ts-ignore - deep type instantiation
+      const { data: workflows, error: wfError } = await (supabase as any)
+        .from('workflows')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (wfError) throw wfError;
+
+      if (!workflows || workflows.length === 0) {
+        toast({
+          title: 'Sem workflow',
+          description: 'Nenhum workflow ativo encontrado. Crie um em Configurações > Workflow.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const workflow = workflows[0];
+
+      // Criar execução do workflow
+      const { data: execution, error: execError } = await supabase
+        .from('workflow_executions')
+        .insert({
+          workflow_id: workflow.id,
+          charge_id: pendingCharge.id,
+          status: 'pending',
+          started_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (execError) throw execError;
+
+      // Chamar edge function para executar
+      const { error: invokeError } = await supabase.functions.invoke('execute-workflow', {
+        body: { executionId: execution.id }
+      });
+
+      if (invokeError) {
+        console.error('Erro ao executar workflow:', invokeError);
+      }
+
+      toast({
+        title: 'Workflow aplicado',
+        description: `Workflow "${workflow.name}" iniciado para esta cobrança`
+      });
+    } catch (error) {
+      console.error('Error applying workflow:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao aplicar workflow',
+        variant: 'destructive'
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
   const filteredConversations = conversations.filter(c => 
     c.phone_number?.includes(searchTerm) || 
     c.contact_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -345,6 +421,7 @@ const AtendimentoPage = () => {
     { type: 'calculate_fees', label: 'Calcular Juros', description: 'Calcula valor atualizado', icon: <Calculator className="h-4 w-4" /> },
     { type: 'propose_negotiation', label: 'Propor Acordo', description: 'Oferece parcelamento', icon: <DollarSign className="h-4 w-4" /> },
     { type: 'request_proof', label: 'Pedir Comprovante', description: 'Solicita comprovante', icon: <Upload className="h-4 w-4" /> },
+    { type: 'escalate_human', label: 'Escalar p/ Humano', description: 'Transferir para atendente', icon: <User className="h-4 w-4" /> },
   ];
 
   const totalDebt = selectedConversation?.charges?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
@@ -562,6 +639,15 @@ const AtendimentoPage = () => {
               <Button variant="outline" size="sm" onClick={() => triggerAgentAction('propose_negotiation')}>
                 <DollarSign className="h-4 w-4 mr-1" />
                 Negociar
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={applyWorkflow}
+                disabled={sending}
+              >
+                <Play className="h-4 w-4 mr-1" />
+                Aplicar Workflow
               </Button>
             </div>
 
