@@ -115,8 +115,59 @@ export default function WhatsAppCentralPage() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<WhatsAppInstance | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const isAdmin = userRoles?.includes('admin');
+
+  // Sync conversations from UAZAPI
+  const handleSyncConversations = async () => {
+    if (!activeInstance || isSyncing) return;
+    setIsSyncing(true);
+    try {
+      toast.info('Sincronizando conversas do WhatsApp...');
+      
+      // Step 1: Sync chats list
+      const { data: chatResult, error: chatError } = await supabase.functions.invoke('uazapi-sse', {
+        body: { action: 'sync_chats', instanceToken: activeInstance.api_key, limit: 200 },
+      });
+
+      if (chatError) throw chatError;
+
+      const syncedChats = chatResult?.synced || 0;
+      const updatedChats = chatResult?.updated || 0;
+      const totalChats = chatResult?.total || 0;
+
+      toast.success(`Sincronizado: ${syncedChats} novas conversas, ${updatedChats} atualizadas (${totalChats} total)`);
+
+      // Step 2: Sync recent messages for each conversation
+      const { data: conversations } = await supabase
+        .from('whatsapp_conversations')
+        .select('phone_number')
+        .order('last_message_at', { ascending: false })
+        .limit(20);
+
+      if (conversations && conversations.length > 0) {
+        let totalImported = 0;
+        for (const conv of conversations) {
+          const { data: msgResult } = await supabase.functions.invoke('uazapi-sse', {
+            body: { action: 'sync_messages', instanceToken: activeInstance.api_key, phone: conv.phone_number, limit: 30 },
+          });
+          totalImported += msgResult?.imported || 0;
+        }
+        if (totalImported > 0) {
+          toast.success(`${totalImported} mensagens importadas`);
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-messages'] });
+    } catch (err) {
+      console.error('Sync error:', err);
+      toast.error('Erro ao sincronizar conversas');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Fetch WhatsApp instances - todas as instâncias
   const { data: instances, isLoading: loadingInstances } = useQuery({
@@ -506,6 +557,19 @@ export default function WhatsAppCentralPage() {
               <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries()}>
                 <RefreshCw className="h-4 w-4" />
               </Button>
+              {activeInstance?.status === 'connected' && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSyncConversations}
+                  disabled={isSyncing}
+                  title="Importar conversas do WhatsApp"
+                  className="gap-1"
+                >
+                  <History className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Sync...' : 'Sync'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -548,8 +612,22 @@ export default function WhatsAppCentralPage() {
                     <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
                 ) : filteredConversations?.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    Nenhuma conversa encontrada
+                  <div className="text-center py-8 space-y-3">
+                    <p className="text-muted-foreground text-sm">
+                      Nenhuma conversa encontrada
+                    </p>
+                    {activeInstance?.status === 'connected' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSyncConversations}
+                        disabled={isSyncing}
+                        className="gap-2"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                        {isSyncing ? 'Sincronizando...' : 'Importar do WhatsApp'}
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="divide-y">
