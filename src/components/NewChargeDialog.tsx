@@ -1,16 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Plus, Upload } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Upload, DollarSign, Calculator } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PhoneInput } from '@/components/forms/PhoneInput';
 import { CPFInput } from '@/components/forms/CPFInput';
 import { AddressForm, AddressData } from '@/components/forms/AddressForm';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CurrencyInput } from '@/components/forms/CurrencyInput';
 
 interface NewChargeDialogProps {
   open: boolean;
@@ -73,6 +76,9 @@ export function NewChargeDialog({
     description: '',
   });
   const [autoNotify, setAutoNotify] = useState(true);
+  const [enableFees, setEnableFees] = useState(false);
+  const [feesRate, setFeesRate] = useState(10);
+  const [interestRate, setInterestRate] = useState(2);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -95,6 +101,14 @@ export function NewChargeDialog({
       console.error('Error loading workflows:', error);
     }
   };
+
+  const calculatedFees = useMemo(() => {
+    if (!enableFees || !chargeData.amount) return { fees: 0, interest: 0, total: chargeData.amount };
+    const fees = chargeData.amount * (feesRate / 100);
+    const interest = chargeData.amount * (interestRate / 100);
+    const total = chargeData.amount + fees + interest;
+    return { fees, interest, total };
+  }, [chargeData.amount, enableFees, feesRate, interestRate]);
 
   const filteredCondominiums = selectedAdministrator
     ? condominiums.filter(c => c.administrator_id === selectedAdministrator)
@@ -179,6 +193,7 @@ export function NewChargeDialog({
       }
 
       // Criar cobrança
+      const finalAmount = enableFees ? calculatedFees.total : chargeData.amount;
       const { data: chargeResult, error: chargeError } = await supabase
         .from('charges')
         .insert([{
@@ -189,6 +204,11 @@ export function NewChargeDialog({
           description: chargeData.description || null,
           administrator_id: selectedAdministrator,
           workflow_id: selectedWorkflow || null,
+          fees_rate: enableFees ? feesRate : null,
+          interest_rate: enableFees ? interestRate : null,
+          fine_amount: enableFees ? calculatedFees.fees : null,
+          interest_amount: enableFees ? calculatedFees.interest : null,
+          total_with_fees: enableFees ? finalAmount : null,
         }])
         .select()
         .single();
@@ -272,6 +292,9 @@ export function NewChargeDialog({
       });
       setChargeData({ amount: 0, due_date: '', reference_month: '', description: '' });
       setBoletoFile(null);
+      setEnableFees(false);
+      setFeesRate(10);
+      setInterestRate(2);
       onOpenChange(false);
       onSuccess();
     } catch (error) {
@@ -416,24 +439,7 @@ export function NewChargeDialog({
 
           {/* Etapa 3: Cadastrar Nova Unidade */}
           {step === 3 && showNewUnit && (
-            <div className="space-y-6">
-              <Card className="bg-muted/30">
-                <CardHeader>
-                  <CardTitle className="text-base">Anexar Boleto (Opcional)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Input
-                    id="boleto_upload"
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => setBoletoFile(e.target.files?.[0] || null)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Anexe o boleto para pré-preencher dados automaticamente (funcionalidade futura)
-                  </p>
-                </CardContent>
-              </Card>
-
+             <div className="space-y-6">
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Dados da Unidade</h3>
                 
@@ -515,38 +521,120 @@ export function NewChargeDialog({
 
           {/* Etapa 4: Dados da Cobrança */}
           {step === 4 && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Resumo da seleção */}
               <Card className="bg-muted/50">
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-sm">Resumo</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div>
-                    <span className="font-medium">Administradora:</span> {getSelectedAdministratorName()}
-                  </div>
-                  <div>
-                    <span className="font-medium">Condomínio:</span> {getSelectedCondominiumName()}
-                  </div>
-                  <div>
-                    <span className="font-medium">Unidade:</span> {getSelectedUnitInfo()}
-                  </div>
+                <CardContent className="space-y-1 text-sm">
+                  <div><span className="font-medium">Administradora:</span> {getSelectedAdministratorName()}</div>
+                  <div><span className="font-medium">Condomínio:</span> {getSelectedCondominiumName()}</div>
+                  <div><span className="font-medium">Unidade:</span> {getSelectedUnitInfo()}</div>
                 </CardContent>
               </Card>
 
-              {/* Dados da cobrança */}
+              {/* Anexar Boleto */}
+              <Card className="bg-muted/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Anexar Boleto / Cobrança
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Input
+                    id="boleto_upload"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => setBoletoFile(e.target.files?.[0] || null)}
+                  />
+                  {boletoFile && (
+                    <div className="flex items-center gap-2 p-2 bg-primary/5 rounded-md mt-2 text-sm">
+                      <Upload className="h-4 w-4 text-primary" />
+                      <span>{boletoFile.name}</span>
+                      <Button variant="ghost" size="sm" className="ml-auto h-6 px-2 text-xs" onClick={() => setBoletoFile(null)}>
+                        Remover
+                      </Button>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Aceita PDF, JPG ou PNG
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Valor da Cobrança */}
               <div>
-                <Label htmlFor="amount">Valor da Cobrança *</Label>
-                <Input
+                <Label htmlFor="amount">Valor Principal *</Label>
+                <CurrencyInput
                   id="amount"
-                  type="number"
-                  step="0.01"
                   value={chargeData.amount}
-                  onChange={(e) => setChargeData({ ...chargeData, amount: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00"
-                  required
+                  onValueChange={(val) => setChargeData({ ...chargeData, amount: val })}
+                  showIcon
                 />
               </div>
+
+              {/* Cálculos Adicionais */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Cálculos Adicionais</Label>
+                  <p className="text-xs text-muted-foreground">Incluir honorários e juros</p>
+                </div>
+                <Switch checked={enableFees} onCheckedChange={setEnableFees} />
+              </div>
+
+              {enableFees && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="fees_rate">Honorários (%)</Label>
+                      <Input
+                        id="fees_rate"
+                        type="number"
+                        value={feesRate}
+                        onChange={(e) => setFeesRate(parseFloat(e.target.value) || 0)}
+                        min="0" max="100"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="interest_rate">Juros ao Mês (%)</Label>
+                      <Input
+                        id="interest_rate"
+                        type="number"
+                        value={interestRate}
+                        onChange={(e) => setInterestRate(parseFloat(e.target.value) || 0)}
+                        min="0" max="100"
+                      />
+                    </div>
+                  </div>
+
+                  <Card className="bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800">
+                    <CardContent className="pt-4 space-y-2">
+                      <div className="flex items-center gap-2 mb-3">
+                        <DollarSign className="h-5 w-5 text-primary" />
+                        <span className="font-semibold">Cálculo Automático</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Valor Principal:</span>
+                        <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(chargeData.amount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Honorários ({feesRate}%):</span>
+                        <span className="text-orange-600">+ {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedFees.fees)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Juros ({interestRate}%):</span>
+                        <span className="text-orange-600">+ {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedFees.interest)}</span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between font-semibold text-primary">
+                        <span>Valor Total:</span>
+                        <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedFees.total)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
 
               <div>
                 <Label htmlFor="due_date">Data de Vencimento *</Label>
@@ -580,31 +668,32 @@ export function NewChargeDialog({
               </div>
 
               <div>
-                <Label htmlFor="workflow">Workflow de Cobrança</Label>
-                <select
-                  id="workflow"
-                  className="w-full p-2 border rounded-md bg-background"
-                  value={selectedWorkflow}
-                  onChange={(e) => setSelectedWorkflow(e.target.value)}
-                >
-                  <option value="">Selecione um workflow (opcional)</option>
-                  {workflows.map((workflow) => (
-                    <option key={workflow.id} value={workflow.id}>
-                      {workflow.name}
-                    </option>
-                  ))}
-                </select>
+                <Label>Workflow de Cobrança</Label>
+                <Select value={selectedWorkflow} onValueChange={setSelectedWorkflow}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um workflow (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {workflows.map((workflow) => (
+                      <SelectItem key={workflow.id} value={workflow.id}>
+                        {workflow.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground mt-1">
                   O workflow define as etapas automáticas de cobrança
                 </p>
               </div>
 
-              {boletoFile && (
-                <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-                  <Upload className="h-4 w-4" />
-                  <span className="text-sm">{boletoFile.name}</span>
+              {/* Auto notificação */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Notificar automaticamente</Label>
+                  <p className="text-xs text-muted-foreground">Enviar email e WhatsApp ao devedor</p>
                 </div>
-              )}
+                <Switch checked={autoNotify} onCheckedChange={setAutoNotify} />
+              </div>
             </div>
           )}
           </div>
