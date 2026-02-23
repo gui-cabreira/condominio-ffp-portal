@@ -136,6 +136,44 @@ export default function WhatsAppCentralPage() {
   const activeInstance = selectedInstance || instances?.find(i => i.is_default) || instances?.[0];
   const hasConnectedInstance = instances && instances.length > 0 && instances.some(i => i.status === 'connected');
 
+  // Sync instance status from UAZAPI on load
+  useEffect(() => {
+    if (!instances || instances.length === 0) return;
+    
+    const syncInstanceStatus = async (instance: WhatsAppInstance) => {
+      try {
+        const { data } = await supabase.functions.invoke('uazapi-connect', {
+          body: { action: 'status', instanceToken: instance.api_key },
+        });
+        
+        if (data?.success) {
+          const newStatus = data.connected && data.loggedIn ? 'connected' : 'disconnected';
+          const newPhone = data.phone || null;
+          const newName = data.profileName || instance.name;
+          
+          // Update DB if status changed
+          if (newStatus !== instance.status || newPhone !== instance.phone_number || newName !== instance.name) {
+            await supabase
+              .from('uazapi_instances')
+              .update({ 
+                status: newStatus, 
+                phone_number: newPhone,
+                name: newName,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', instance.id);
+            
+            queryClient.invalidateQueries({ queryKey: ['whatsapp-instances'] });
+          }
+        }
+      } catch (err) {
+        console.error('Error syncing instance status:', err);
+      }
+    };
+
+    instances.forEach(syncInstanceStatus);
+  }, [instances?.length]);
+
   // Fetch conversations
   const { data: conversations, isLoading: loadingConversations } = useQuery({
     queryKey: ['whatsapp-conversations', filterStatus],
@@ -409,10 +447,15 @@ export default function WhatsAppCentralPage() {
                       ) : (
                         <WifiOff className="h-3 w-3 text-muted-foreground" />
                       )}
-                      {activeInstance?.name || 'Selecionar'}
+                      <span className="max-w-[150px] truncate">{activeInstance?.name || 'Selecionar'}</span>
+                      {activeInstance?.phone_number && (
+                        <span className="text-muted-foreground text-xs">
+                          ({activeInstance.phone_number.replace(/(\d{2})(\d{2})(\d{5})(\d{4})/, '+$1 ($2) $3-$4')})
+                        </span>
+                      )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuContent align="end" className="w-72">
                     {instances.map((instance) => (
                       <DropdownMenuItem
                         key={instance.id}
@@ -425,7 +468,12 @@ export default function WhatsAppCentralPage() {
                           ) : (
                             <WifiOff className="h-3 w-3 text-muted-foreground" />
                           )}
-                          <span>{instance.name}</span>
+                          <div className="flex flex-col">
+                            <span className="text-sm">{instance.name}</span>
+                            {instance.phone_number && (
+                              <span className="text-xs text-muted-foreground">{instance.phone_number}</span>
+                            )}
+                          </div>
                         </div>
                         {instance.is_default && (
                           <Badge variant="outline" className="text-xs">Padrão</Badge>
