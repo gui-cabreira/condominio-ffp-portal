@@ -39,12 +39,72 @@ Deno.serve(async (req) => {
     // 1. Buscar contexto da conversa
     const context = await gatherContext(supabase, conversationId, phone);
 
-    // 2. Identificar intenção usando Lovable AI
-    const intent = await identifyIntent(message, context);
+    // 2. Identificar intenção usando Lovable AI com scoring e pipeline
+    const intent = await identifyIntentWithScoring(message, context);
 
-    console.log(`🎯 Intenção identificada: ${intent.type}`);
+    console.log(`🎯 Intenção identificada: ${intent.type} (score: ${intent.recovery_score})`);
 
-    // 3. Executar ação baseada na intenção
+    // 3. Log intent to coaching_intents
+    const previousStage = context.charges[0]?.pipeline_stage || 'novo';
+    
+    // 4. Auto-move pipeline based on intent
+    const newStage = determineNewPipelineStage(intent, previousStage);
+    
+    if (newStage !== previousStage && context.charges.length > 0) {
+      await supabase
+        .from('charges')
+        .update({ 
+          pipeline_stage: newStage,
+          ai_intent: intent.type,
+          ai_intent_confidence: intent.confidence,
+          ai_recovery_score: intent.recovery_score,
+          intended_payment_date: intent.entities?.payment_date || null,
+          last_intent_at: new Date().toISOString(),
+        })
+        .eq('id', context.charges[0].id);
+      
+      console.log(`📊 Pipeline movido: ${previousStage} → ${newStage}`);
+    } else if (context.charges.length > 0) {
+      // Update AI fields even without stage change
+      await supabase
+        .from('charges')
+        .update({
+          ai_intent: intent.type,
+          ai_intent_confidence: intent.confidence,
+          ai_recovery_score: intent.recovery_score,
+          intended_payment_date: intent.entities?.payment_date || null,
+          last_intent_at: new Date().toISOString(),
+        })
+        .eq('id', context.charges[0].id);
+    }
+
+    // Update conversation AI fields
+    await supabase
+      .from('whatsapp_conversations')
+      .update({
+        ai_intent: intent.type,
+        ai_intent_confidence: intent.confidence,
+        ai_recovery_score: intent.recovery_score,
+        intended_payment_date: intent.entities?.payment_date || null,
+      })
+      .eq('id', conversationId);
+
+    // Log to coaching_intents
+    await supabase
+      .from('coaching_intents')
+      .insert({
+        conversation_id: conversationId,
+        phone_number: phone,
+        intent_type: intent.type,
+        confidence: intent.confidence,
+        entities: intent.entities || {},
+        message_content: message.substring(0, 500),
+        action_taken: null, // will be updated below
+        pipeline_stage_before: previousStage,
+        pipeline_stage_after: newStage,
+      });
+
+    // 5. Executar ação baseada na intenção
     let actionResult;
     switch (intent.type) {
       case 'request_boleto':
@@ -55,6 +115,9 @@ Deno.serve(async (req) => {
         break;
       case 'confirm_payment':
         actionResult = await handleConfirmPayment(supabase, context, intent);
+        break;
+      case 'payment_intent':
+        actionResult = await handlePaymentIntent(supabase, context, intent);
         break;
       case 'ask_question':
         actionResult = await handleQuestion(supabase, context, intent);
@@ -74,24 +137,25 @@ Deno.serve(async (req) => {
         break;
     }
 
-    // 4. Gerar resposta usando Lovable AI
+    // 6. Gerar resposta usando Lovable AI
     const response = await generateResponse(context, intent, actionResult);
 
     console.log(`💬 Resposta: ${response.text}`);
 
-    // 5. Enviar resposta via WhatsApp
+    // 7. Enviar resposta via WhatsApp
     await sendWhatsAppMessage(supabase, conversationId, phone, response.text);
 
-    // 6. Atualizar estado da conversa
+    // 8. Atualizar estado da conversa
     await updateConversationState(supabase, conversationId, {
       lastIntent: intent.type,
       lastAction: actionResult.action,
       awaiting: response.awaiting || null,
+      recoveryScore: intent.recovery_score,
     });
 
-    // 7. Registrar interação no timeline da cobrança
+    // 9. Registrar interação no timeline da cobrança
     if (context.charges.length > 0) {
-      await logChargeTimeline(supabase, context.charges[0].id, intent, actionResult);
+      await logChargeTimeline(supabase, context.charges[0].id, intent, actionResult, newStage);
     }
 
     return new Response(
@@ -100,6 +164,8 @@ Deno.serve(async (req) => {
         intent: intent.type,
         response: response.text,
         action: actionResult.action,
+        pipelineStage: newStage,
+        recoveryScore: intent.recovery_score,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
@@ -112,6 +178,38 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// Determine new pipeline stage based on intent
+function determineNewPipelineStage(intent: any, currentStage: string): string {
+  const stageMap: Record<string, string> = {
+    'request_boleto': 'contato_realizado',
+    'request_negotiation': 'negociando',
+    'confirm_payment': 'pagamento_confirmado',
+    'payment_intent': 'negociando',
+    'upload_proof': 'comprovante_recebido',
+    'dispute': 'contestado',
+    'request_human': 'escalado',
+  };
+
+  const newStage = stageMap[intent.type];
+  if (!newStage) return currentStage;
+
+  // Don't go backwards in pipeline (ordered stages)
+  const stageOrder = [
+    'novo', 'contato_realizado', 'negociando', 'pagamento_confirmado',
+    'comprovante_recebido', 'pago', 'contestado', 'escalado'
+  ];
+  
+  const currentIdx = stageOrder.indexOf(currentStage);
+  const newIdx = stageOrder.indexOf(newStage);
+  
+  // Allow moving forward, or to special stages (contestado, escalado)
+  if (newIdx > currentIdx || ['contestado', 'escalado'].includes(newStage)) {
+    return newStage;
+  }
+  
+  return currentStage;
+}
 
 // Buscar contexto da conversa
 async function gatherContext(
@@ -208,44 +306,64 @@ async function gatherContext(
   };
 }
 
-// Identificar intenção usando Lovable AI
-async function identifyIntent(message: string, context: ConversationContext) {
-  console.log('🔍 Identificando intenção com Lovable AI...');
+// Identify intent with recovery scoring using Lovable AI
+async function identifyIntentWithScoring(message: string, context: ConversationContext) {
+  console.log('🔍 Identificando intenção com scoring...');
 
   const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
   if (!lovableApiKey) {
     console.warn('⚠️ Lovable API key não configurada, usando regex simples');
-    return identifyIntentSimple(message);
+    const simpleIntent = identifyIntentSimple(message);
+    return { ...simpleIntent, recovery_score: 50 };
   }
 
-  const systemPrompt = `Você é um assistente especializado em identificar a intenção de mensagens de condôminos inadimplentes.
+  const conversationHistory = context.lastMessages
+    .reverse()
+    .slice(-5)
+    .map((m: any) => `[${m.direction === 'inbound' ? 'Cliente' : 'Bot'}]: ${m.content?.substring(0, 150) || '(mídia)'}`)
+    .join('\n');
+
+  const systemPrompt = `Você é um analisador de intenções de conversas de cobrança de condomínio.
 
 Contexto do condômino:
 - Unidade: ${context.unit?.unit_number || 'Não identificada'}
 - Condomínio: ${context.unit?.condominiums?.name || 'Não identificado'}
 - Cobranças pendentes: ${context.charges.length}
 - Total devido: R$ ${context.charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0).toFixed(2)}
+- Estágio atual: ${context.charges[0]?.pipeline_stage || 'novo'}
 
-Identifique a intenção da mensagem e retorne APENAS um JSON neste formato:
+Histórico recente:
+${conversationHistory}
+
+Analise a mensagem e retorne APENAS um JSON:
 {
-  "type": "request_boleto|request_negotiation|confirm_payment|ask_question|upload_proof|dispute|general",
+  "type": "request_boleto|request_negotiation|confirm_payment|payment_intent|ask_question|upload_proof|dispute|request_human|general",
   "confidence": 0.0-1.0,
+  "recovery_score": 0-100,
   "entities": {
     "amount": "valor mencionado se houver",
-    "date": "data mencionada se houver",
+    "payment_date": "YYYY-MM-DD se mencionou data de pagamento",
     "installments": "número de parcelas se houver"
   }
 }
 
-Tipos de intenção:
-- request_boleto: Solicitar novo boleto ou segunda via
-- request_negotiation: Pedir parcelamento ou negociação
-- confirm_payment: Informar que pagou ou vai pagar
-- ask_question: Fazer pergunta sobre a cobrança
-- upload_proof: Enviar comprovante de pagamento
-- dispute: Contestar a cobrança
-- request_human: Pedir para falar com um atendente humano
-- general: Conversa geral ou saudação`;
+Tipos:
+- request_boleto: Solicitar boleto/segunda via
+- request_negotiation: Pedir parcelamento/negociação
+- confirm_payment: Diz que JÁ pagou
+- payment_intent: Diz que VAI pagar (data futura) - "vou pagar sexta", "pago semana que vem"
+- ask_question: Pergunta sobre cobrança
+- upload_proof: Enviar comprovante
+- dispute: Contestar cobrança
+- request_human: Pedir atendente humano
+- general: Conversa geral
+
+recovery_score (0-100):
+- 0-20: Contestação, recusa, hostilidade
+- 20-40: Sem engajamento, respostas curtas
+- 40-60: Fazendo perguntas, algum interesse
+- 60-80: Negociando, pedindo boleto, mencionando pagamento
+- 80-100: Confirmou pagamento, enviou comprovante, aceitou acordo`;
 
   try {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -260,59 +378,64 @@ Tipos de intenção:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message },
         ],
-        temperature: 0.3,
+        temperature: 0.2,
       }),
     });
 
     if (!response.ok) {
       console.error('Erro na API Lovable:', response.status);
-      return identifyIntentSimple(message);
+      const simpleIntent = identifyIntentSimple(message);
+      return { ...simpleIntent, recovery_score: 50 };
     }
 
     const data = await response.json();
     const content = data.choices[0]?.message?.content || '';
     
-    // Extrair JSON da resposta
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        type: parsed.type || 'general',
+        confidence: parsed.confidence || 0.5,
+        recovery_score: parsed.recovery_score || 50,
+        entities: parsed.entities || {},
+      };
     }
     
-    return identifyIntentSimple(message);
+    const simpleIntent = identifyIntentSimple(message);
+    return { ...simpleIntent, recovery_score: 50 };
   } catch (error) {
     console.error('Erro ao usar Lovable AI, usando fallback:', error);
-    return identifyIntentSimple(message);
+    const simpleIntent = identifyIntentSimple(message);
+    return { ...simpleIntent, recovery_score: 50 };
   }
 }
 
-// Identificar intenção usando regex simples (fallback)
+// Identify intent simple (fallback)
 function identifyIntentSimple(message: string) {
   const msgLower = message.toLowerCase();
 
   if (/boleto|segunda via|gerar novo|enviar boleto/i.test(msgLower)) {
     return { type: 'request_boleto', confidence: 0.8, entities: {} };
   }
-
   if (/parcelar|parcela|negociar|acordo|desconto/i.test(msgLower)) {
     return { type: 'request_negotiation', confidence: 0.8, entities: {} };
   }
-
   if (/paguei|já paguei|pagamento realizado|transferência|pix feito/i.test(msgLower)) {
     return { type: 'confirm_payment', confidence: 0.8, entities: {} };
   }
-
+  if (/vou pagar|pago amanhã|pago segunda|pago sexta|pretendo pagar|vou quitar/i.test(msgLower)) {
+    return { type: 'payment_intent', confidence: 0.7, entities: {} };
+  }
   if (/comprovante|recibo|enviei|segue anexo/i.test(msgLower)) {
     return { type: 'upload_proof', confidence: 0.7, entities: {} };
   }
-
   if (/não devo|não reconheço|contestar|errado|incorreto/i.test(msgLower)) {
     return { type: 'dispute', confidence: 0.7, entities: {} };
   }
-
   if (/humano|atendente|pessoa|falar com alguém|falar com alguem|operador|suporte humano|transferir/i.test(msgLower)) {
     return { type: 'request_human', confidence: 0.9, entities: {} };
   }
-
   if (/\?|quando|quanto|qual|como/i.test(msgLower)) {
     return { type: 'ask_question', confidence: 0.6, entities: {} };
   }
@@ -320,20 +443,38 @@ function identifyIntentSimple(message: string) {
   return { type: 'general', confidence: 0.5, entities: {} };
 }
 
+// Handler: Payment Intent (new - "vou pagar")
+async function handlePaymentIntent(supabase: any, context: ConversationContext, intent: any) {
+  console.log('📅 Registrando intenção de pagamento...');
+
+  const paymentDate = intent.entities?.payment_date;
+
+  // Update conversation with intent
+  await supabase
+    .from('whatsapp_conversations')
+    .update({
+      status: 'waiting',
+      awaiting_response_type: 'payment_confirmation',
+      intended_payment_date: paymentDate || null,
+    })
+    .eq('id', context.conversation.id);
+
+  return {
+    action: 'payment_intent_registered',
+    paymentDate,
+  };
+}
+
 // Handler: Solicitar boleto
 async function handleRequestBoleto(supabase: any, context: ConversationContext, intent: any) {
   console.log('📄 Gerando novo boleto...');
 
   if (context.charges.length === 0) {
-    return {
-      action: 'no_charges',
-      message: 'Não encontramos cobranças pendentes para sua unidade.',
-    };
+    return { action: 'no_charges', message: 'Não encontramos cobranças pendentes para sua unidade.' };
   }
 
   const charge = context.charges[0];
 
-  // Criar solicitação de boleto
   const { data: boletoRequest, error } = await supabase
     .from('boleto_requests')
     .insert({
@@ -347,13 +488,9 @@ async function handleRequestBoleto(supabase: any, context: ConversationContext, 
 
   if (error) {
     console.error('Erro ao criar solicitação de boleto:', error);
-    return {
-      action: 'error',
-      message: 'Erro ao processar solicitação de boleto.',
-    };
+    return { action: 'error', message: 'Erro ao processar solicitação de boleto.' };
   }
 
-  // Calcular valor atualizado
   const today = new Date();
   const dueDate = new Date(charge.due_date);
   let totalAmount = parseFloat(charge.amount);
@@ -362,8 +499,8 @@ async function handleRequestBoleto(supabase: any, context: ConversationContext, 
 
   if (today > dueDate) {
     const daysLate = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-    fineAmount = totalAmount * 0.02; // 2% multa
-    interestAmount = totalAmount * (0.01 * (daysLate / 30)); // 1% ao mês
+    fineAmount = totalAmount * 0.02;
+    interestAmount = totalAmount * (0.01 * (daysLate / 30));
     totalAmount = totalAmount + fineAmount + interestAmount;
   }
 
@@ -385,32 +522,25 @@ async function handleRequestNegotiation(supabase: any, context: ConversationCont
   console.log('💰 Processando solicitação de negociação...');
 
   if (context.charges.length === 0) {
-    return {
-      action: 'no_charges',
-      message: 'Não encontramos cobranças pendentes para sua unidade.',
-    };
+    return { action: 'no_charges', message: 'Não encontramos cobranças pendentes para sua unidade.' };
   }
 
-  // Buscar parâmetros de negociação
   const { data: params } = await supabase
     .from('negotiation_parameters')
     .select('*');
 
   const paramMap: Record<string, string> = {};
-  params?.forEach((p: any) => {
-    paramMap[p.parameter_key] = p.parameter_value;
-  });
+  params?.forEach((p: any) => { paramMap[p.parameter_key] = p.parameter_value; });
 
   const maxDiscount = parseFloat(paramMap['max_discount'] || '10');
   const maxInstallments = parseInt(paramMap['max_installments'] || '6');
 
   const totalDebt = context.charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
   const installments = Math.min(intent.entities?.installments || 3, maxInstallments);
-  const discountPercent = Math.min(5, maxDiscount); // 5% de desconto padrão
+  const discountPercent = Math.min(5, maxDiscount);
   const discountedAmount = totalDebt * (1 - discountPercent / 100);
   const installmentValue = discountedAmount / installments;
 
-  // Criar proposta de negociação
   const { data: negotiation } = await supabase
     .from('negotiation_history')
     .insert({
@@ -450,9 +580,7 @@ async function handleConfirmPayment(supabase: any, context: ConversationContext,
     })
     .eq('id', context.conversation.id);
 
-  return {
-    action: 'waiting_proof',
-  };
+  return { action: 'waiting_proof' };
 }
 
 // Handler: Responder pergunta
@@ -479,7 +607,6 @@ async function handleQuestion(supabase: any, context: ConversationContext, inten
 async function handleUploadProof(supabase: any, context: ConversationContext, intent: any, conversationId: string) {
   console.log('📎 Processando comprovante de pagamento...');
 
-  // Buscar última mensagem com mídia
   const { data: mediaMessages } = await supabase
     .from('whatsapp_messages')
     .select('*')
@@ -491,7 +618,6 @@ async function handleUploadProof(supabase: any, context: ConversationContext, in
   if (mediaMessages && mediaMessages.length > 0 && context.charges.length > 0) {
     const mediaMessage = mediaMessages[0];
     
-    // Criar registro de comprovante
     await supabase
       .from('payment_proofs')
       .insert({
@@ -503,7 +629,6 @@ async function handleUploadProof(supabase: any, context: ConversationContext, in
         status: 'pending',
       });
 
-    // Atualizar conversa
     await supabase
       .from('whatsapp_conversations')
       .update({
@@ -513,9 +638,7 @@ async function handleUploadProof(supabase: any, context: ConversationContext, in
       .eq('id', conversationId);
   }
 
-  return {
-    action: 'proof_received',
-  };
+  return { action: 'proof_received' };
 }
 
 // Handler: Contestação
@@ -535,7 +658,6 @@ async function handleDispute(supabase: any, context: ConversationContext, intent
       });
   }
 
-  // Escalar para atendimento humano
   await supabase
     .from('whatsapp_conversations')
     .update({
@@ -544,16 +666,12 @@ async function handleDispute(supabase: any, context: ConversationContext, intent
     })
     .eq('id', context.conversation.id);
 
-  return {
-    action: 'dispute_registered',
-    escalated: true,
-  };
+  return { action: 'dispute_registered', escalated: true };
 }
 
 // Handler: Conversa geral
 async function handleGeneral(supabase: any, context: ConversationContext, intent: any) {
   console.log('💬 Conversa geral...');
-
   return {
     action: 'general_response',
     hasCharges: context.charges.length > 0,
@@ -565,7 +683,6 @@ async function handleGeneral(supabase: any, context: ConversationContext, intent
 async function handleRequestHuman(supabase: any, context: ConversationContext, intent: any) {
   console.log('🧑 Escalando para atendente humano...');
 
-  // Marcar conversa como escalada
   await supabase
     .from('whatsapp_conversations')
     .update({
@@ -574,13 +691,11 @@ async function handleRequestHuman(supabase: any, context: ConversationContext, i
     })
     .eq('id', context.conversation.id);
 
-  // Buscar histórico resumido
   const messagesSummary = context.lastMessages
     .reverse()
     .map((m: any) => `[${m.direction === 'inbound' ? 'Cliente' : 'Bot'}] ${m.content?.substring(0, 100) || '(mídia)'}`)
     .join('\n');
 
-  // Notificar todos os admins e assistants
   const { data: adminUsers } = await supabase
     .from('user_roles')
     .select('user_id')
@@ -604,7 +719,6 @@ async function handleRequestHuman(supabase: any, context: ConversationContext, i
     await supabase.from('notifications').insert(notifications);
   }
 
-  // Registrar timeline se houver cobrança
   if (context.charges.length > 0) {
     await supabase
       .from('charge_timeline')
@@ -618,10 +732,7 @@ async function handleRequestHuman(supabase: any, context: ConversationContext, i
       });
   }
 
-  return {
-    action: 'escalated_to_human',
-    escalated: true,
-  };
+  return { action: 'escalated_to_human', escalated: true };
 }
 
 // Gerar resposta usando Lovable AI
@@ -722,6 +833,15 @@ function generateResponseSimple(
         awaiting: 'proof',
       };
 
+    case 'payment_intent_registered':
+      const dateMsg = actionResult.paymentDate 
+        ? `Registramos que você pretende pagar em ${actionResult.paymentDate}. ` 
+        : '';
+      return {
+        text: `📅 ${dateMsg}Agradecemos o compromisso!\n\nAssim que realizar o pagamento, nos envie o comprovante para darmos baixa. 🙏`,
+        awaiting: 'payment_confirmation',
+      };
+
     case 'proof_received':
       return {
         text: `📎 *Comprovante Recebido!*\n\nObrigado por enviar. Estamos analisando e em breve confirmaremos a quitação.\n\n🕐 Prazo: até 24 horas úteis`,
@@ -784,11 +904,7 @@ async function sendWhatsAppMessage(
 
   try {
     const { error } = await supabase.functions.invoke('send-whatsapp-message', {
-      body: {
-        phone,
-        message: text,
-        conversationId,
-      },
+      body: { phone, message: text, conversationId },
     });
 
     if (error) {
@@ -796,7 +912,6 @@ async function sendWhatsAppMessage(
       return;
     }
 
-    // Salvar mensagem enviada
     await supabase
       .from('whatsapp_messages')
       .insert({
@@ -809,7 +924,6 @@ async function sendWhatsAppMessage(
         status: 'sent',
       });
 
-    // Atualizar conversa
     await supabase
       .from('whatsapp_conversations')
       .update({
@@ -845,12 +959,14 @@ async function logChargeTimeline(
   supabase: any,
   chargeId: string,
   intent: any,
-  actionResult: any
+  actionResult: any,
+  newStage: string
 ) {
   const eventTypeMap: Record<string, string> = {
     request_boleto: 'boleto_requested',
     request_negotiation: 'negotiation_started',
     confirm_payment: 'payment_confirmed',
+    payment_intent: 'payment_intent_registered',
     upload_proof: 'proof_received',
     dispute: 'disputed',
     request_human: 'escalated_to_human',
@@ -866,7 +982,10 @@ async function logChargeTimeline(
       event_data: {
         intent: intent.type,
         confidence: intent.confidence,
+        recovery_score: intent.recovery_score,
         action: actionResult.action,
+        pipeline_stage: newStage,
+        payment_date: intent.entities?.payment_date || null,
       },
     });
 }

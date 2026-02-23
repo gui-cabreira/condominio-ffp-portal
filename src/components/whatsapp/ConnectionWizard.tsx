@@ -21,16 +21,26 @@ type WizardStep = 'config' | 'qrcode' | 'success';
 
 interface InstanceConfig {
   name: string;
-  operationType: 'cobranca' | 'atendimento' | 'coach';
+  operationType: 'cobranca' | 'atendimento' | 'vendas' | 'suporte_interno' | 'coach';
   operationMode: 'autonomous' | 'notifications' | 'hybrid';
   intentions: string[];
 }
+
+const AGENT_TYPES = [
+  { id: 'cobranca', label: 'Cobrança', description: 'Negociação e recuperação de dívidas' },
+  { id: 'atendimento', label: 'Atendimento', description: 'Suporte geral ao condômino' },
+  { id: 'vendas', label: 'Vendas/Captação', description: 'Captação de novos clientes' },
+  { id: 'suporte_interno', label: 'Suporte Interno', description: 'Suporte a colaboradores' },
+  { id: 'coach', label: 'Coach IA', description: 'Coaching personalizado' },
+];
 
 const INTENTIONS = [
   { id: 'cobranca', label: 'Cobrança e Negociação' },
   { id: 'atendimento', label: 'Atendimento ao Morador' },
   { id: 'boletos', label: 'Envio de Boletos' },
   { id: 'notificacoes', label: 'Notificações Gerais' },
+  { id: 'vendas', label: 'Vendas e Captação' },
+  { id: 'suporte', label: 'Suporte Interno' },
 ];
 
 export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWizardProps) {
@@ -223,26 +233,22 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
             </div>
 
 
-            {/* Tipo de Operação */}
+            {/* Tipo de Agente */}
             <div className="space-y-3">
-              <Label>Tipo de Operação</Label>
+              <Label>Tipo de Agente</Label>
               <RadioGroup 
                 value={config.operationType} 
                 onValueChange={(v: any) => setConfig(prev => ({ ...prev, operationType: v }))}
-                className="flex gap-4"
+                className="grid gap-2"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="cobranca" id="cobranca" />
-                  <Label htmlFor="cobranca" className="cursor-pointer">Cobrança</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="atendimento" id="atendimento" />
-                  <Label htmlFor="atendimento" className="cursor-pointer">Atendimento</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="coach" id="coach" />
-                  <Label htmlFor="coach" className="cursor-pointer">Coach IA</Label>
-                </div>
+                {AGENT_TYPES.map((type) => (
+                  <div key={type.id} className="flex items-center space-x-2">
+                    <RadioGroupItem value={type.id} id={type.id} />
+                    <Label htmlFor={type.id} className="cursor-pointer">
+                      {type.label} <span className="text-muted-foreground text-sm">({type.description})</span>
+                    </Label>
+                  </div>
+                ))}
               </RadioGroup>
             </div>
 
