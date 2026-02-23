@@ -5,59 +5,62 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+/**
+ * Webhook handler para UAZAPI v2
+ * 
+ * Formato do evento UAZAPI v2:
+ * {
+ *   "event": "messages" | "messages_update" | "connection" | ...,
+ *   "instance": "instance_id",
+ *   "data": { ... payload específico do evento }
+ * }
+ */
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🔔 UAZAPI Webhook recebido');
+    console.log('🔔 UAZAPI v2 Webhook recebido');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const payload = await req.json();
-    console.log('📦 Payload:', JSON.stringify(payload, null, 2));
-
-    // Logar webhook para auditoria
-    const { error: logError } = await supabase
-      .from('whatsapp_webhooks_log')
-      .insert({
-        event_type: payload.event || 'unknown',
-        instance_id: payload.instanceId,
-        phone_number: payload.data?.key?.remoteJid?.replace('@s.whatsapp.net', ''),
-        payload: payload,
-        processed: false
-      });
-
-    if (logError) {
-      console.error('❌ Erro ao logar webhook:', logError);
-    }
+    console.log('📦 Event:', payload.event, '| Instance:', payload.instance);
 
     const eventType = payload.event;
-    
+    const instanceId = payload.instance;
+    const data = payload.data;
+
+    // Logar webhook para auditoria
+    await supabase
+      .from('whatsapp_webhooks_log')
+      .insert({
+        event_type: eventType || 'unknown',
+        instance_id: instanceId,
+        phone_number: extractPhoneFromData(data, eventType),
+        payload: payload,
+        processed: false,
+      });
+
     switch (eventType) {
-      case 'messages':           // CRÍTICO - Evento principal UAZAPI
-      case 'message.received':
-      case 'messages.upsert':
+      case 'messages':
         console.log('💬 Nova mensagem recebida');
-        await handleIncomingMessage(supabase, payload);
+        await handleIncomingMessage(supabase, instanceId, data);
         break;
-      
+
       case 'messages_update':
-      case 'message.status':
-      case 'messages.update':
         console.log('✅ Status de mensagem atualizado');
-        await handleMessageStatus(supabase, payload);
+        await handleMessageStatus(supabase, data);
         break;
-      
+
       case 'connection':
-      case 'connection.update':
         console.log('🔌 Status de conexão atualizado');
-        await handleConnectionUpdate(supabase, payload);
+        await handleConnectionUpdate(supabase, instanceId, data);
         break;
-      
+
       default:
         console.log('ℹ️ Evento não tratado:', eventType);
     }
@@ -65,17 +68,15 @@ Deno.serve(async (req) => {
     // Marcar como processado
     await supabase
       .from('whatsapp_webhooks_log')
-      .update({ 
-        processed: true,
-        processed_at: new Date().toISOString()
-      })
+      .update({ processed: true, processed_at: new Date().toISOString() })
+      .eq('instance_id', instanceId)
       .eq('event_type', eventType)
       .eq('processed', false)
       .order('created_at', { ascending: false })
       .limit(1);
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Webhook processado' }),
+      JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
 
@@ -88,77 +89,101 @@ Deno.serve(async (req) => {
   }
 });
 
-async function handleIncomingMessage(supabase: any, payload: any) {
-  try {
-    const data = payload.data;
-    const remoteJid = data.key?.remoteJid;
-    const messageId = data.key?.id;
-    const fromMe = data.key?.fromMe;
-    const pushName = data.pushName;
+function extractPhoneFromData(data: any, eventType: string): string | null {
+  if (!data) return null;
+  
+  // UAZAPI v2 message format
+  if (data.chatid) {
+    return data.chatid.replace('@s.whatsapp.net', '').replace('@g.us', '');
+  }
+  if (data.sender) {
+    return data.sender.replace('@s.whatsapp.net', '').replace('@g.us', '');
+  }
+  // Fallback: try key format
+  if (data.key?.remoteJid) {
+    return data.key.remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');
+  }
+  return null;
+}
 
-    const phoneNumber = remoteJid?.replace('@s.whatsapp.net', '').replace('@g.us', '');
+async function handleIncomingMessage(supabase: any, instanceId: string, data: any) {
+  try {
+    // UAZAPI v2 message format - pode vir como Message schema
+    const chatId = data.chatid || data.key?.remoteJid || '';
+    const messageId = data.messageid || data.id || data.key?.id || '';
+    const fromMe = data.fromMe ?? data.key?.fromMe ?? false;
+    const isGroup = data.isGroup ?? chatId.includes('@g.us');
+    const senderName = data.senderName || data.pushName || '';
+
+    const phoneNumber = chatId.replace('@s.whatsapp.net', '').replace('@g.us', '');
 
     // Ignorar mensagens de grupos e mensagens enviadas por nós
-    if (remoteJid?.includes('@g.us') || fromMe) {
+    if (isGroup || fromMe) {
       console.log('↩️ Mensagem ignorada (grupo ou enviada por nós)');
       return;
     }
 
-    // Extrair conteúdo da mensagem
-    let messageContent = '';
+    // Extrair conteúdo - UAZAPI v2 usa campo "text" e "messageType"
+    let messageContent = data.text || '';
     let messageType = 'text';
-    let mediaUrl = null;
+    let mediaUrl = data.fileURL || null;
     let mimetype = null;
     let caption = null;
 
-    const message = data.message;
+    const msgType = data.messageType || '';
     
-    if (message?.conversation) {
-      messageContent = message.conversation;
-      messageType = 'text';
-    } else if (message?.extendedTextMessage) {
-      messageContent = message.extendedTextMessage.text;
-      messageType = 'text';
-    } else if (message?.imageMessage) {
+    if (msgType === 'imageMessage' || msgType === 'image') {
       messageType = 'image';
-      mediaUrl = message.imageMessage.url || payload.mediaUrl;
-      mimetype = message.imageMessage.mimetype;
-      caption = message.imageMessage.caption || '';
-      messageContent = caption;
-    } else if (message?.documentMessage) {
+      caption = messageContent;
+      messageContent = caption || '[Imagem]';
+    } else if (msgType === 'documentMessage' || msgType === 'document') {
       messageType = 'document';
-      mediaUrl = message.documentMessage.url || payload.mediaUrl;
-      mimetype = message.documentMessage.mimetype;
-      caption = message.documentMessage.caption || message.documentMessage.fileName || '';
-      messageContent = caption;
-    } else if (message?.audioMessage) {
+      caption = messageContent;
+      messageContent = caption || '[Documento]';
+    } else if (msgType === 'audioMessage' || msgType === 'audio' || msgType === 'ptt') {
       messageType = 'audio';
-      mediaUrl = message.audioMessage.url || payload.mediaUrl;
-      mimetype = message.audioMessage.mimetype;
-      messageContent = '[Áudio]';
-    } else if (message?.videoMessage) {
+      messageContent = messageContent || '[Áudio]';
+    } else if (msgType === 'videoMessage' || msgType === 'video') {
       messageType = 'video';
-      mediaUrl = message.videoMessage.url || payload.mediaUrl;
-      mimetype = message.videoMessage.mimetype;
-      caption = message.videoMessage.caption || '';
+      caption = messageContent;
       messageContent = caption || '[Vídeo]';
-    } else if (message?.stickerMessage) {
+    } else if (msgType === 'stickerMessage' || msgType === 'sticker') {
       messageType = 'sticker';
       messageContent = '[Figurinha]';
-    } else if (message?.locationMessage) {
+    } else if (msgType === 'locationMessage' || msgType === 'location') {
       messageType = 'location';
-      messageContent = `[Localização: ${message.locationMessage.degreesLatitude}, ${message.locationMessage.degreesLongitude}]`;
-    } else if (message?.contactMessage) {
+      messageContent = '[Localização]';
+    } else if (msgType === 'contactMessage' || msgType === 'contact') {
       messageType = 'contact';
-      messageContent = `[Contato: ${message.contactMessage.displayName}]`;
+      messageContent = '[Contato]';
+    } else if (msgType === 'conversation' || msgType === 'extendedTextMessage') {
+      messageType = 'text';
+      // messageContent já está definido via data.text
     }
 
-    console.log(`📱 De: ${phoneNumber} (${pushName})`);
-    console.log(`💬 Tipo: ${messageType}`);
-    console.log(`📝 Conteúdo: ${messageContent}`);
+    // Se text está vazio mas tem content (fallback)
+    if (!messageContent && data.content) {
+      if (typeof data.content === 'string') {
+        messageContent = data.content;
+      }
+    }
+
+    // Fallback: tentar formato antigo do baileys (data.message)
+    if (!messageContent && data.message) {
+      const msg = data.message;
+      if (msg.conversation) messageContent = msg.conversation;
+      else if (msg.extendedTextMessage) messageContent = msg.extendedTextMessage.text;
+      else if (msg.imageMessage) { messageType = 'image'; messageContent = msg.imageMessage.caption || '[Imagem]'; mediaUrl = msg.imageMessage.url; }
+      else if (msg.documentMessage) { messageType = 'document'; messageContent = msg.documentMessage.caption || msg.documentMessage.fileName || '[Documento]'; mediaUrl = msg.documentMessage.url; }
+      else if (msg.audioMessage) { messageType = 'audio'; messageContent = '[Áudio]'; mediaUrl = msg.audioMessage.url; }
+      else if (msg.videoMessage) { messageType = 'video'; messageContent = msg.videoMessage.caption || '[Vídeo]'; mediaUrl = msg.videoMessage.url; }
+    }
+
+    console.log(`📱 De: ${phoneNumber} (${senderName})`);
+    console.log(`💬 Tipo: ${messageType} | Conteúdo: ${messageContent?.substring(0, 80)}`);
 
     // Buscar ou criar conversa
-    let { data: conversation, error: convError } = await supabase
+    let { data: conversation } = await supabase
       .from('whatsapp_conversations')
       .select('*')
       .eq('phone_number', phoneNumber)
@@ -167,22 +192,17 @@ async function handleIncomingMessage(supabase: any, payload: any) {
       .limit(1)
       .maybeSingle();
 
-    if (convError) {
-      console.error('❌ Erro ao buscar conversa:', convError);
-    }
-
     if (!conversation) {
-      // Criar nova conversa
       const { data: newConv, error: createError } = await supabase
         .from('whatsapp_conversations')
         .insert({
           phone_number: phoneNumber,
-          contact_name: pushName,
+          contact_name: senderName,
           status: 'active',
           last_message_at: new Date().toISOString(),
           last_message_from: 'customer',
-          last_message_preview: messageContent.substring(0, 100),
-          unread_count: 1
+          last_message_preview: (messageContent || '').substring(0, 100),
+          unread_count: 1,
         })
         .select()
         .single();
@@ -191,20 +211,18 @@ async function handleIncomingMessage(supabase: any, payload: any) {
         console.error('❌ Erro ao criar conversa:', createError);
         return;
       }
-
       conversation = newConv;
       console.log('✅ Nova conversa criada:', conversation.id);
     } else {
-      // Atualizar conversa existente
       await supabase
         .from('whatsapp_conversations')
         .update({
-          contact_name: pushName || conversation.contact_name,
+          contact_name: senderName || conversation.contact_name,
           last_message_at: new Date().toISOString(),
           last_message_from: 'customer',
-          last_message_preview: messageContent.substring(0, 100),
+          last_message_preview: (messageContent || '').substring(0, 100),
           unread_count: (conversation.unread_count || 0) + 1,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', conversation.id);
     }
@@ -217,7 +235,7 @@ async function handleIncomingMessage(supabase: any, payload: any) {
         uazapi_message_id: messageId,
         direction: 'inbound',
         sender_phone: phoneNumber,
-        recipient_phone: payload.instanceId || 'system',
+        recipient_phone: instanceId || 'system',
         message_type: messageType,
         content: messageContent,
         media_url: mediaUrl,
@@ -225,9 +243,10 @@ async function handleIncomingMessage(supabase: any, payload: any) {
         caption: caption,
         status: 'received',
         metadata: {
-          pushName,
-          rawMessage: message
-        }
+          senderName,
+          messageType: msgType,
+          wasSentByApi: data.wasSentByApi || false,
+        },
       })
       .select()
       .single();
@@ -236,10 +255,9 @@ async function handleIncomingMessage(supabase: any, payload: any) {
       console.error('❌ Erro ao salvar mensagem:', msgError);
       return;
     }
-
     console.log('✅ Mensagem salva:', savedMessage.id);
 
-    // Notificar operadores sobre nova mensagem
+    // Notificar operadores
     try {
       const { data: adminUsers } = await supabase
         .from('user_roles')
@@ -249,14 +267,13 @@ async function handleIncomingMessage(supabase: any, payload: any) {
       if (adminUsers && adminUsers.length > 0) {
         const notifs = adminUsers.map((u: any) => ({
           user_id: u.user_id,
-          title: `Nova mensagem de ${pushName || phoneNumber}`,
-          message: messageContent.substring(0, 100) || '[Mídia]',
+          title: `Nova mensagem de ${senderName || phoneNumber}`,
+          message: (messageContent || '[Mídia]').substring(0, 100),
           type: 'info',
           category: 'whatsapp',
           action_url: '/portal/corporativo/atendimento',
-          metadata: { conversation_id: conversation.id, phone: phoneNumber }
+          metadata: { conversation_id: conversation.id, phone: phoneNumber },
         }));
-
         await supabase.from('notifications').insert(notifs);
         console.log('🔔 Notificações criadas para', adminUsers.length, 'operadores');
       }
@@ -264,13 +281,10 @@ async function handleIncomingMessage(supabase: any, payload: any) {
       console.error('⚠️ Erro ao criar notificações:', notifError);
     }
 
-    // Verificar se é comprovante de pagamento (imagem ou documento)
+    // Verificar comprovante de pagamento
     if (['image', 'document'].includes(messageType) && mediaUrl) {
       console.log('📎 Possível comprovante detectado');
-      
-      // Se a conversa está aguardando comprovante, criar registro
       if (conversation.awaiting_response_type === 'proof' || conversation.status === 'waiting_proof') {
-        // Buscar cobrança associada
         const { data: charge } = await supabase
           .from('charges')
           .select('id')
@@ -281,37 +295,34 @@ async function handleIncomingMessage(supabase: any, payload: any) {
           .maybeSingle();
 
         if (charge) {
-          await supabase
-            .from('payment_proofs')
-            .insert({
-              charge_id: charge.id,
-              conversation_id: conversation.id,
-              message_id: savedMessage.id,
-              file_url: mediaUrl,
-              file_type: mimetype,
-              status: 'pending'
-            });
-
-          console.log('✅ Comprovante registrado para análise');
+          await supabase.from('payment_proofs').insert({
+            charge_id: charge.id,
+            conversation_id: conversation.id,
+            message_id: savedMessage.id,
+            file_url: mediaUrl,
+            file_type: mimetype,
+            status: 'pending',
+          });
+          console.log('✅ Comprovante registrado');
         }
       }
     }
 
-    // Invocar LangGraph agent para processar mensagem
+    // Invocar LangGraph agent
     console.log('🤖 Invocando LangGraph Agent...');
     const { data: agentResponse, error: agentError } = await supabase.functions.invoke('langgraph-agent', {
       body: {
         conversationId: conversation.id,
         phone: phoneNumber,
         message: messageContent,
-        messageType: messageType
-      }
+        messageType,
+      },
     });
 
     if (agentError) {
       console.error('❌ Erro ao invocar agent:', agentError);
     } else {
-      console.log('✅ Agent processou mensagem:', agentResponse);
+      console.log('✅ Agent processou mensagem');
     }
 
   } catch (error) {
@@ -319,85 +330,80 @@ async function handleIncomingMessage(supabase: any, payload: any) {
   }
 }
 
-async function handleMessageStatus(supabase: any, payload: any) {
+async function handleMessageStatus(supabase: any, data: any) {
   try {
-    const data = payload.data;
-    const messageId = data.key?.id || data.id;
-    const status = data.status || data.update?.status;
+    // UAZAPI v2: data contém messageid e status
+    const messageId = data.messageid || data.id || data.key?.id;
+    const status = data.status;
+
+    if (!messageId) {
+      console.log('⚠️ Status update sem messageId');
+      return;
+    }
 
     console.log(`📊 Status da mensagem ${messageId}: ${status}`);
 
     let ourStatus = 'sent';
-    let updateFields: any = {};
+    const updateFields: Record<string, string> = {};
 
-    switch (status) {
-      case 'DELIVERY_ACK':
-      case 'DELIVERED':
-      case 2:
-        ourStatus = 'delivered';
-        updateFields.delivered_at = new Date().toISOString();
-        break;
-      case 'READ':
-      case 'PLAYED':
-      case 3:
-      case 4:
-        ourStatus = 'read';
-        updateFields.read_at = new Date().toISOString();
-        break;
-      case 'ERROR':
-      case 'FAILED':
-      case 5:
-        ourStatus = 'failed';
-        updateFields.error_message = data.error || 'Falha no envio';
-        break;
-      default:
-        ourStatus = 'sent';
+    // UAZAPI v2 status values
+    const statusStr = String(status).toLowerCase();
+    if (statusStr === 'delivered' || statusStr === 'delivery_ack' || status === 2) {
+      ourStatus = 'delivered';
+      updateFields.delivered_at = new Date().toISOString();
+    } else if (statusStr === 'read' || statusStr === 'played' || status === 3 || status === 4) {
+      ourStatus = 'read';
+      updateFields.read_at = new Date().toISOString();
+    } else if (statusStr === 'error' || statusStr === 'failed' || status === 5) {
+      ourStatus = 'failed';
+      updateFields.error_message = data.error || 'Falha no envio';
+    } else if (statusStr === 'deleted') {
+      ourStatus = 'deleted';
     }
 
-    const { error } = await supabase
+    await supabase
       .from('whatsapp_messages')
-      .update({
-        status: ourStatus,
-        ...updateFields
-      })
+      .update({ status: ourStatus, ...updateFields })
       .eq('uazapi_message_id', messageId);
 
-    if (error) {
-      console.error('❌ Erro ao atualizar status:', error);
-      return;
-    }
-
-    console.log('✅ Status atualizado no banco de dados');
-
+    console.log('✅ Status atualizado');
   } catch (error) {
     console.error('❌ Erro ao processar status:', error);
   }
 }
 
-async function handleConnectionUpdate(supabase: any, payload: any) {
+async function handleConnectionUpdate(supabase: any, instanceId: string, data: any) {
   try {
-    const instanceId = payload.instanceId;
-    const state = payload.data?.state || payload.state;
-    const qrCode = payload.data?.qr || payload.qr;
+    // UAZAPI v2 connection event
+    const state = data.state || data.status;
+    const qrCode = data.qr || data.qrcode;
 
-    console.log(`🔌 Instância ${instanceId}: ${state}`);
+    console.log(`🔌 Instância ${instanceId}: state=${state}`);
 
-    const updateData: any = {
-      status: state === 'open' ? 'connected' : 'disconnected',
-      updated_at: new Date().toISOString()
+    const updateData: Record<string, unknown> = {
+      status: state === 'open' || state === 'connected' ? 'connected' : 'disconnected',
+      updated_at: new Date().toISOString(),
     };
 
     if (qrCode) {
       updateData.qr_code = qrCode;
     }
 
-    await supabase
+    // Tentar atualizar por instance_id
+    const { error } = await supabase
       .from('uazapi_instances')
       .update(updateData)
       .eq('instance_id', instanceId);
 
-    console.log('✅ Status da instância atualizado');
+    if (error) {
+      console.error('❌ Erro ao atualizar instância por instance_id, tentando por name...');
+      await supabase
+        .from('uazapi_instances')
+        .update(updateData)
+        .eq('name', instanceId);
+    }
 
+    console.log('✅ Status da instância atualizado');
   } catch (error) {
     console.error('❌ Erro ao atualizar conexão:', error);
   }

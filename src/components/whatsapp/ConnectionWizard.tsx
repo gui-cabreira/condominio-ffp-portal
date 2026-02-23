@@ -172,6 +172,19 @@ export function ConnectionWizard({ open, onOpenChange, onSuccess }: ConnectionWi
         clearInterval(interval);
         setCheckingStatus(false);
         
+        if (connected) {
+          // Configurar webhook automaticamente após conexão
+          try {
+            console.log('[ConnectionWizard] Configurando webhook automaticamente...');
+            await supabase.functions.invoke('uazapi-connect', {
+              body: { action: 'setup-webhook', instanceToken },
+            });
+            console.log('[ConnectionWizard] Webhook configurado!');
+          } catch (e) {
+            console.error('[ConnectionWizard] Erro ao configurar webhook:', e);
+          }
+        }
+        
         if (!connected && attempts >= maxAttempts) {
           toast.error('Tempo esgotado. Tente novamente.');
         }
