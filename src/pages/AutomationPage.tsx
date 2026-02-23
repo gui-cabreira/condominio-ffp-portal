@@ -1,11 +1,14 @@
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Bot, MessageSquare, FileText, CheckCircle, Clock, XCircle, Settings } from 'lucide-react';
+import { Bot, MessageSquare, FileText, CheckCircle, Clock, XCircle, Settings, ExternalLink } from 'lucide-react';
+import { useMessageTemplates } from '@/hooks/useMessageTemplates';
 
 const AutomationPage = () => {
+  const { data: templates } = useMessageTemplates();
   const automationStats = [
     { title: 'Automações Ativas', value: '12', icon: Bot, color: 'text-green-600' },
     { title: 'Mensagens Agendadas', value: '48', icon: MessageSquare, color: 'text-blue-600' },
@@ -113,25 +116,43 @@ const AutomationPage = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Templates de Mensagens
-            </CardTitle>
-            <CardDescription>Personalize templates de comunicação automática</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Templates de Mensagens
+                </CardTitle>
+                <CardDescription>Templates cadastrados para comunicação automática</CardDescription>
+              </div>
+              <Link to="/portal/corporativo/whatsapp">
+                <Button variant="outline" size="sm" className="gap-1">
+                  <ExternalLink className="h-3 w-3" />
+                  Gerenciar
+                </Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-start">
-              Template de Cobrança WhatsApp
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              Template de Lembrete Email
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              Template de Segunda Via
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              Template de Confirmação
-            </Button>
+            {!templates || templates.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum template cadastrado. 
+                <Link to="/portal/corporativo/whatsapp" className="text-primary ml-1 underline">Criar templates</Link>
+              </p>
+            ) : (
+              templates.slice(0, 5).map((t) => (
+                <div key={t.id} className="flex items-center justify-between p-2 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    {t.template_type === 'whatsapp' ? (
+                      <MessageSquare className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <FileText className="h-4 w-4 text-blue-600" />
+                    )}
+                    <span className="text-sm">{t.name}</span>
+                  </div>
+                  <Badge variant="outline" className="text-xs">{t.category || t.template_type}</Badge>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
