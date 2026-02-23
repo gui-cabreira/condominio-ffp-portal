@@ -1,7 +1,7 @@
 import { 
   Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, 
   Upload, UserPlus, Building, Server, MessageSquare, Cog, Headphones, 
-  Workflow, TrendingUp, Shield, ChevronDown, Kanban, Key
+  Workflow, TrendingUp, Shield, ChevronDown, Kanban, Key, Bell
 } from 'lucide-react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -22,6 +22,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface MenuCategory {
   label: string;
@@ -80,6 +81,7 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: 'Usuários', url: '/portal/corporativo/usuarios', icon: Users },
       { title: 'Aprovar Usuários', url: '/portal/corporativo/aprovar-usuarios', icon: UserPlus },
+      { title: 'Notificações', url: '/portal/corporativo/notificacoes', icon: Bell },
       { title: 'Sistema', url: '/portal/corporativo/sistema', icon: Server },
     ]
   },
@@ -156,6 +158,7 @@ export function AppSidebar() {
               <span className="text-sidebar-primary font-bold text-lg">F</span>
             </div>
           )}
+          <NotificationBell />
           <Button
             variant="ghost"
             size="icon"

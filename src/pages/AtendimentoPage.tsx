@@ -267,14 +267,24 @@ const AtendimentoPage = () => {
   const sendChargeDetails = async () => {
     if (!selectedConversation) return;
 
+    // Verificar se há cobranças pendentes vinculadas
+    const pendingCharge = selectedConversation.charges?.find(c => c.status === 'pending' || c.status === 'overdue');
+    
+    if (!pendingCharge) {
+      toast({
+        title: 'Sem cobrança vinculada',
+        description: 'Não há cobranças pendentes para esta conversa. Vincule uma unidade com cobranças primeiro.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setSending(true);
     try {
       const { error } = await supabase.functions.invoke('send-charge-notification', {
         body: {
-          phone: selectedConversation.phone_number,
-          conversationId: selectedConversation.id,
-          unitId: selectedConversation.unit_id,
-          type: 'details'
+          chargeId: pendingCharge.id,
+          channel: 'whatsapp'
         }
       });
 
@@ -282,7 +292,7 @@ const AtendimentoPage = () => {
 
       toast({
         title: 'Cobrança enviada',
-        description: 'Os detalhes da cobrança foram enviados'
+        description: 'Os detalhes da cobrança foram enviados via WhatsApp'
       });
 
       await loadMessages(selectedConversation.id);

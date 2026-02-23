@@ -45,6 +45,7 @@ import { CorporateLayout } from "./components/CorporateLayout";
 import AtendimentoPage from "./pages/AtendimentoPage";
 import IntegrationSettingsPage from "./pages/IntegrationSettingsPage";
 import CRMPipelinePage from "./pages/CRMPipelinePage";
+import NotificationsPage from "./pages/NotificationsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -226,6 +227,13 @@ const App = () => {
               <AuthGuard requiredRole="admin">
                 <CorporateLayout>
                   <IntegrationSettingsPage />
+                </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/notificacoes" element={
+              <AuthGuard requiredRole="admin">
+                <CorporateLayout>
+                  <NotificationsPage />
                 </CorporateLayout>
               </AuthGuard>
             } />

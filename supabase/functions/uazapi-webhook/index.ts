@@ -239,6 +239,31 @@ async function handleIncomingMessage(supabase: any, payload: any) {
 
     console.log('✅ Mensagem salva:', savedMessage.id);
 
+    // Notificar operadores sobre nova mensagem
+    try {
+      const { data: adminUsers } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['admin', 'assistant']);
+
+      if (adminUsers && adminUsers.length > 0) {
+        const notifs = adminUsers.map((u: any) => ({
+          user_id: u.user_id,
+          title: `Nova mensagem de ${pushName || phoneNumber}`,
+          message: messageContent.substring(0, 100) || '[Mídia]',
+          type: 'info',
+          category: 'whatsapp',
+          action_url: '/portal/corporativo/atendimento',
+          metadata: { conversation_id: conversation.id, phone: phoneNumber }
+        }));
+
+        await supabase.from('notifications').insert(notifs);
+        console.log('🔔 Notificações criadas para', adminUsers.length, 'operadores');
+      }
+    } catch (notifError) {
+      console.error('⚠️ Erro ao criar notificações:', notifError);
+    }
+
     // Verificar se é comprovante de pagamento (imagem ou documento)
     if (['image', 'document'].includes(messageType) && mediaUrl) {
       console.log('📎 Possível comprovante detectado');
