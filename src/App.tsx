@@ -46,6 +46,7 @@ import AtendimentoPage from "./pages/AtendimentoPage";
 import IntegrationSettingsPage from "./pages/IntegrationSettingsPage";
 import CRMPipelinePage from "./pages/CRMPipelinePage";
 import NotificationsPage from "./pages/NotificationsPage";
+import CoachDashboardPage from "./pages/CoachDashboardPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -235,6 +236,11 @@ const App = () => {
                 <CorporateLayout>
                   <NotificationsPage />
                 </CorporateLayout>
+              </AuthGuard>
+            } />
+            <Route path="/portal/corporativo/coach" element={
+              <AuthGuard requiredRole="admin">
+                <CoachDashboardPage />
               </AuthGuard>
             } />
             <Route path="/aceitar-convite" element={<AcceptInvitation />} />

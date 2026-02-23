@@ -840,6 +840,9 @@ export type Database = {
         Row: {
           administrator_id: string | null
           agreement_id: string | null
+          ai_intent: string | null
+          ai_intent_confidence: number | null
+          ai_recovery_score: number | null
           amount: number
           attorney_fees: number | null
           boleto_barcode: string | null
@@ -856,9 +859,11 @@ export type Database = {
           fine_amount: number | null
           id: string
           installment_number: number | null
+          intended_payment_date: string | null
           interest_amount: number | null
           interest_rate: number | null
           last_contact_at: string | null
+          last_intent_at: string | null
           metadata: Json | null
           next_action_at: string | null
           next_action_description: string | null
@@ -876,6 +881,9 @@ export type Database = {
         Insert: {
           administrator_id?: string | null
           agreement_id?: string | null
+          ai_intent?: string | null
+          ai_intent_confidence?: number | null
+          ai_recovery_score?: number | null
           amount: number
           attorney_fees?: number | null
           boleto_barcode?: string | null
@@ -892,9 +900,11 @@ export type Database = {
           fine_amount?: number | null
           id?: string
           installment_number?: number | null
+          intended_payment_date?: string | null
           interest_amount?: number | null
           interest_rate?: number | null
           last_contact_at?: string | null
+          last_intent_at?: string | null
           metadata?: Json | null
           next_action_at?: string | null
           next_action_description?: string | null
@@ -912,6 +922,9 @@ export type Database = {
         Update: {
           administrator_id?: string | null
           agreement_id?: string | null
+          ai_intent?: string | null
+          ai_intent_confidence?: number | null
+          ai_recovery_score?: number | null
           amount?: number
           attorney_fees?: number | null
           boleto_barcode?: string | null
@@ -928,9 +941,11 @@ export type Database = {
           fine_amount?: number | null
           id?: string
           installment_number?: number | null
+          intended_payment_date?: string | null
           interest_amount?: number | null
           interest_rate?: number | null
           last_contact_at?: string | null
+          last_intent_at?: string | null
           metadata?: Json | null
           next_action_at?: string | null
           next_action_description?: string | null
@@ -1186,6 +1201,66 @@ export type Database = {
             columns: ["coach_agent_id"]
             isOneToOne: false
             referencedRelation: "coach_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coaching_intents: {
+        Row: {
+          action_taken: string | null
+          confidence: number | null
+          conversation_id: string | null
+          created_at: string
+          entities: Json | null
+          id: string
+          intent_type: string
+          message_content: string | null
+          phone_number: string
+          pipeline_stage_after: string | null
+          pipeline_stage_before: string | null
+          session_id: string | null
+        }
+        Insert: {
+          action_taken?: string | null
+          confidence?: number | null
+          conversation_id?: string | null
+          created_at?: string
+          entities?: Json | null
+          id?: string
+          intent_type: string
+          message_content?: string | null
+          phone_number: string
+          pipeline_stage_after?: string | null
+          pipeline_stage_before?: string | null
+          session_id?: string | null
+        }
+        Update: {
+          action_taken?: string | null
+          confidence?: number | null
+          conversation_id?: string | null
+          created_at?: string
+          entities?: Json | null
+          id?: string
+          intent_type?: string
+          message_content?: string | null
+          phone_number?: string
+          pipeline_stage_after?: string | null
+          pipeline_stage_before?: string | null
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_intents_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coaching_intents_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "coaching_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -2571,6 +2646,9 @@ export type Database = {
       }
       whatsapp_conversations: {
         Row: {
+          ai_intent: string | null
+          ai_intent_confidence: number | null
+          ai_recovery_score: number | null
           assigned_to: string | null
           awaiting_response_type: string | null
           charge_id: string | null
@@ -2578,6 +2656,7 @@ export type Database = {
           contact_name: string | null
           created_at: string | null
           id: string
+          intended_payment_date: string | null
           last_message_at: string | null
           last_message_from: string | null
           last_message_preview: string | null
@@ -2590,6 +2669,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          ai_intent?: string | null
+          ai_intent_confidence?: number | null
+          ai_recovery_score?: number | null
           assigned_to?: string | null
           awaiting_response_type?: string | null
           charge_id?: string | null
@@ -2597,6 +2679,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string | null
           id?: string
+          intended_payment_date?: string | null
           last_message_at?: string | null
           last_message_from?: string | null
           last_message_preview?: string | null
@@ -2609,6 +2692,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          ai_intent?: string | null
+          ai_intent_confidence?: number | null
+          ai_recovery_score?: number | null
           assigned_to?: string | null
           awaiting_response_type?: string | null
           charge_id?: string | null
@@ -2616,6 +2702,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string | null
           id?: string
+          intended_payment_date?: string | null
           last_message_at?: string | null
           last_message_from?: string | null
           last_message_preview?: string | null
