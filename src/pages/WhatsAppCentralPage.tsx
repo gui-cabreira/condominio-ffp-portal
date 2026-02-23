@@ -140,7 +140,6 @@ export default function WhatsAppCentralPage() {
       let query = supabase
         .from('whatsapp_conversations')
         .select('*')
-        .is('archived_at', null)
         .order('last_message_at', { ascending: false });
 
       if (filterStatus !== 'all') {
