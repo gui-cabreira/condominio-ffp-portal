@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useMessageTemplatesByType } from '@/hooks/useMessageTemplates';
 import { ArrowLeft, Plus, Save, Play, MessageCircle, Mail, FileText, Clock, Settings2, Wand2, Copy, Download, Upload, RotateCw, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -346,89 +347,8 @@ const WorkflowConfig = () => {
     },
   ];
 
-  // Templates de mensagem pré-definidos
-  const messageTemplates = {
-    whatsapp: [
-      {
-        name: 'Primeiro Contato - Amigável',
-        content: `Olá {nome}! 😊
-
-Seu boleto do condomínio no valor de {valor} vence em {dias} dias.
-
-📱 Acesse facilmente: {link}
-
-Qualquer dúvida, estou aqui para ajudar!`,
-        variables: ['nome', 'valor', 'dias', 'link']
-      },
-      {
-        name: 'Lembrete - Vencimento Próximo',
-        content: `Oi {nome}! ⏰
-
-Lembrete: seu boleto de {valor} vence amanhã.
-
-💳 Pague agora: {link}
-
-Evite juros e mantenha sua situação em dia! 👍`,
-        variables: ['nome', 'valor', 'link']
-      },
-      {
-        name: 'Cobrança - Vencido',
-        content: `{nome}, seu boleto de {valor} está vencido há {dias_vencido} dias.
-
-🚨 URGENTE: Regularize sua situação
-💰 Valor atualizado: {valor_atualizado}
-📞 Em caso de dúvidas: {telefone}
-
-Acesse: {link}`,
-        variables: ['nome', 'valor', 'dias_vencido', 'valor_atualizado', 'telefone', 'link']
-      }
-    ],
-    email: [
-      {
-        name: 'E-mail Formal - Primeira Cobrança',
-        content: `Prezado(a) {nome},
-
-Esperamos que este e-mail o(a) encontre bem.
-
-Informamos que o boleto referente ao condomínio no valor de {valor} encontra-se em aberto, com vencimento para {data_vencimento}.
-
-Para sua comodidade, disponibilizamos o link direto para pagamento:
-{link}
-
-Atenciosamente,
-FFP Advogados`,
-        variables: ['nome', 'valor', 'data_vencimento', 'link']
-      },
-      {
-        name: 'E-mail - Segunda Via',
-        content: `{nome},
-
-Segue segunda via do seu boleto:
-
-Valor: {valor}
-Vencimento: {data_vencimento}
-Link: {link}
-
-Caso já tenha efetuado o pagamento, desconsidere este e-mail.
-
-Atenciosamente,
-Equipe de Cobrança`,
-        variables: ['nome', 'valor', 'data_vencimento', 'link']
-      }
-    ],
-    sms: [
-      {
-        name: 'SMS - Lembrete',
-        content: `{nome}, seu boleto de {valor} vence em {dias} dias. Acesse: {link_curto}`,
-        variables: ['nome', 'valor', 'dias', 'link_curto']
-      },
-      {
-        name: 'SMS - Vencido',
-        content: `URGENTE: {nome}, boleto vencido de {valor}. Regularize: {link_curto}`,
-        variables: ['nome', 'valor', 'link_curto']
-      }
-    ]
-  };
+  // Use DB templates
+  const { grouped: messageTemplates } = useMessageTemplatesByType();
 
   
   const toggleFullscreen = () => {
@@ -831,45 +751,46 @@ Equipe de Cobrança`,
           </TabsContent>
 
           <TabsContent value="templates">
+            <div className="mb-4 flex justify-end">
+              <Link to="/portal/corporativo/whatsapp">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <MessageCircle className="w-4 h-4" />
+                  Gerenciar Templates
+                </Button>
+              </Link>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* WhatsApp Templates */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-ffp-navy flex items-center">
-                      <MessageCircle className="w-5 h-5 mr-2 text-green-600" />
-                      WhatsApp
-                    </CardTitle>
-                    <Button variant="outline" size="sm">
-                      <Plus className="w-4 h-4 mr-1" />
-                      Novo
-                    </Button>
-                  </div>
+                  <CardTitle className="text-ffp-navy flex items-center">
+                    <MessageCircle className="w-5 h-5 mr-2 text-green-600" />
+                    WhatsApp ({messageTemplates.whatsapp.length})
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {messageTemplates.whatsapp.map((template, index) => (
-                    <div key={index} className="border rounded-lg p-3 space-y-2">
+                  {messageTemplates.whatsapp.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum template cadastrado</p>
+                  ) : messageTemplates.whatsapp.map((template) => (
+                    <div key={template.id} className="border rounded-lg p-3 space-y-2">
                       <div className="flex justify-between items-center">
                         <h4 className="font-medium text-sm">{template.name}</h4>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm">
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Wand2 className="w-3 h-3" />
-                          </Button>
-                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => navigator.clipboard.writeText(template.content)}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
                       </div>
-                      <div className="text-xs bg-gray-50 p-2 rounded">
+                      <div className="text-xs bg-muted p-2 rounded">
                         {template.content.substring(0, 100)}...
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        {template.variables.map((variable, i) => (
-                          <span key={i} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            {`{${variable}}`}
-                          </span>
-                        ))}
-                      </div>
+                      {template.variables && template.variables.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {template.variables.map((variable, i) => (
+                            <span key={i} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                              {variable}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </CardContent>
@@ -878,41 +799,34 @@ Equipe de Cobrança`,
               {/* E-mail Templates */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-ffp-navy flex items-center">
-                      <Mail className="w-5 h-5 mr-2 text-blue-600" />
-                      E-mail
-                    </CardTitle>
-                    <Button variant="outline" size="sm">
-                      <Plus className="w-4 h-4 mr-1" />
-                      Novo
-                    </Button>
-                  </div>
+                  <CardTitle className="text-ffp-navy flex items-center">
+                    <Mail className="w-5 h-5 mr-2 text-blue-600" />
+                    E-mail ({messageTemplates.email.length})
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {messageTemplates.email.map((template, index) => (
-                    <div key={index} className="border rounded-lg p-3 space-y-2">
+                  {messageTemplates.email.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum template cadastrado</p>
+                  ) : messageTemplates.email.map((template) => (
+                    <div key={template.id} className="border rounded-lg p-3 space-y-2">
                       <div className="flex justify-between items-center">
                         <h4 className="font-medium text-sm">{template.name}</h4>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm">
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Wand2 className="w-3 h-3" />
-                          </Button>
-                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => navigator.clipboard.writeText(template.content)}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
                       </div>
-                      <div className="text-xs bg-gray-50 p-2 rounded">
+                      <div className="text-xs bg-muted p-2 rounded">
                         {template.content.substring(0, 100)}...
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        {template.variables.map((variable, i) => (
-                          <span key={i} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            {`{${variable}}`}
-                          </span>
-                        ))}
-                      </div>
+                      {template.variables && template.variables.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {template.variables.map((variable, i) => (
+                            <span key={i} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                              {variable}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </CardContent>
@@ -921,41 +835,34 @@ Equipe de Cobrança`,
               {/* SMS Templates */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-ffp-navy flex items-center">
-                      <FileText className="w-5 h-5 mr-2 text-purple-600" />
-                      SMS
-                    </CardTitle>
-                    <Button variant="outline" size="sm">
-                      <Plus className="w-4 h-4 mr-1" />
-                      Novo
-                    </Button>
-                  </div>
+                  <CardTitle className="text-ffp-navy flex items-center">
+                    <FileText className="w-5 h-5 mr-2 text-purple-600" />
+                    SMS ({messageTemplates.sms.length})
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {messageTemplates.sms.map((template, index) => (
-                    <div key={index} className="border rounded-lg p-3 space-y-2">
+                  {messageTemplates.sms.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum template cadastrado</p>
+                  ) : messageTemplates.sms.map((template) => (
+                    <div key={template.id} className="border rounded-lg p-3 space-y-2">
                       <div className="flex justify-between items-center">
                         <h4 className="font-medium text-sm">{template.name}</h4>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm">
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Wand2 className="w-3 h-3" />
-                          </Button>
-                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => navigator.clipboard.writeText(template.content)}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
                       </div>
-                      <div className="text-xs bg-gray-50 p-2 rounded">
+                      <div className="text-xs bg-muted p-2 rounded">
                         {template.content}
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        {template.variables.map((variable, i) => (
-                          <span key={i} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            {`{${variable}}`}
-                          </span>
-                        ))}
-                      </div>
+                      {template.variables && template.variables.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {template.variables.map((variable, i) => (
+                            <span key={i} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                              {variable}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </CardContent>
