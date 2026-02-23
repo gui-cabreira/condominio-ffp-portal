@@ -183,6 +183,30 @@ Equipe FFP Advogados
     const successCount = Object.values(results).filter((r: any) => r?.success).length;
     const totalAttempts = Object.values(results).filter((r: any) => r !== null).length;
 
+    // Gerar notificação para operadores
+    try {
+      const { data: adminUsers } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['admin', 'assistant']);
+
+      if (adminUsers && adminUsers.length > 0) {
+        const notifs = adminUsers.map((u: any) => ({
+          user_id: u.user_id,
+          title: `Cobrança enviada - ${chargeData.owner_name}`,
+          message: `Cobrança de ${formatCurrency(charge.amount)} enviada via ${channel} para ${chargeData.unit_number} - ${chargeData.condominium_name}`,
+          type: successCount > 0 ? 'success' : 'error',
+          category: 'charge',
+          action_url: '/portal/corporativo/crm',
+          metadata: { charge_id: chargeId, channel, results_summary: { sent: successCount, failed: totalAttempts - successCount } }
+        }));
+
+        await supabase.from('notifications').insert(notifs);
+      }
+    } catch (notifError) {
+      console.error('⚠️ Erro ao criar notificações:', notifError);
+    }
+
     return new Response(
       JSON.stringify({
         success: successCount > 0,
