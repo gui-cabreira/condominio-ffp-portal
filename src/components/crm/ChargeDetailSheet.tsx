@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -71,6 +72,7 @@ interface ChargeDetailSheetProps {
 
 export function ChargeDetailSheet({ charge, open, onOpenChange, onSendNotification, onChargeUpdated }: ChargeDetailSheetProps) {
   const [confirmPaymentOpen, setConfirmPaymentOpen] = useState(false);
+  const navigate = useNavigate();
   
   if (!charge) return null;
 
@@ -196,6 +198,22 @@ export function ChargeDetailSheet({ charge, open, onOpenChange, onSendNotificati
                       Email
                     </Button>
                   </div>
+                  
+                  {/* Open Chat button */}
+                  {contactPhone && (
+                    <Button 
+                      size="sm" 
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate(`/portal/corporativo/whatsapp?phone=${encodeURIComponent(contactPhone)}`);
+                      }}
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Abrir Chat ao Vivo
+                    </Button>
+                  )}
                   
                   {charge.status !== 'paid' && (
                     <Button 
