@@ -2,18 +2,17 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Configuração intrínseca do servidor UAZAPI
-const UAZAPI_SERVER_URL = "https://appnow.uazapi.com";
+const UAZAPI_SERVER_URL = Deno.env.get("UAZAPI_SERVER_URL") || "https://appnow.uazapi.com";
 
 interface SSERequest {
-  action: 'connect' | 'fetch_history' | 'fetch_profile_picture' | 'sync_contacts';
-  instanceId: string;
-  apiKey: string;
+  action: "sync_chats" | "sync_messages" | "fetch_profile_picture";
+  instanceToken: string;
   phone?: string;
-  count?: number;
+  limit?: number;
+  offset?: number;
 }
 
 Deno.serve(async (req) => {
@@ -25,257 +24,255 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    
-    const body: SSERequest = await req.json();
-    const { action, instanceId, apiKey } = body;
 
-    console.log("UAZAPI SSE action:", action, "instance:", instanceId);
+    const body: SSERequest = await req.json();
+    const { action, instanceToken } = body;
+
+    console.log(`[UAZAPI Sync] Action: ${action}`);
 
     switch (action) {
-      case 'fetch_history': {
-        // Buscar histórico de conversas de um número
-        const { phone, count = 50 } = body;
-        
-        if (!phone) {
-          return new Response(
-            JSON.stringify({ success: false, error: "Número não informado" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      case "sync_chats": {
+        // UAZAPI v2: POST /chat/find with "token" header
+        const limit = body.limit || 100;
+        const offset = body.offset || 0;
 
-        // Formatar número para JID
-        const jid = phone.includes('@') ? phone : `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
-
-        const response = await fetch(`${UAZAPI_SERVER_URL}/chat/fetchMessages/${instanceId}`, {
-          method: 'POST',
+        const response = await fetch(`${UAZAPI_SERVER_URL}/chat/find`, {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'apikey': apiKey,
+            "Content-Type": "application/json",
+            token: instanceToken,
           },
           body: JSON.stringify({
-            remoteJid: jid,
-            limit: count,
+            operator: "AND",
+            sort: "-wa_lastMsgTimestamp",
+            limit,
+            offset,
+            wa_isGroup: false,
           }),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Erro ao buscar histórico:", errorText);
-          return new Response(
-            JSON.stringify({ success: false, error: "Falha ao buscar histórico" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          console.error("[UAZAPI Sync] Error fetching chats:", errorText);
+          return jsonResponse({ success: false, error: "Falha ao buscar chats", details: errorText }, 500);
         }
 
-        const messages = await response.json();
+        const result = await response.json();
+        const chats = result.chats || result || [];
 
-        // Salvar mensagens no banco
-        const { data: dbInstance } = await supabase
-          .from('uazapi_instances')
-          .select('id')
-          .eq('instance_id', instanceId)
-          .single();
-
-        if (dbInstance && Array.isArray(messages)) {
-          // Buscar ou criar conversa
-          const phoneClean = phone.replace(/\D/g, '');
-          let { data: conversation } = await supabase
-            .from('whatsapp_conversations')
-            .select('id')
-            .eq('phone_number', phoneClean)
-            .single();
-
-          if (!conversation) {
-            const { data: newConv } = await supabase
-              .from('whatsapp_conversations')
-              .insert({
-                phone_number: phoneClean,
-                status: 'active',
-              })
-              .select('id')
-              .single();
-            conversation = newConv;
-          }
-
-          if (conversation) {
-            // Inserir mensagens
-            for (const msg of messages) {
-              const existingMsg = await supabase
-                .from('whatsapp_messages')
-                .select('id')
-                .eq('uazapi_message_id', msg.key?.id)
-                .single();
-
-              if (!existingMsg.data) {
-                await supabase
-                  .from('whatsapp_messages')
-                  .insert({
-                    conversation_id: conversation.id,
-                    uazapi_message_id: msg.key?.id,
-                    direction: msg.key?.fromMe ? 'outgoing' : 'incoming',
-                    content: msg.message?.conversation || 
-                             msg.message?.extendedTextMessage?.text ||
-                             '[mídia]',
-                    message_type: msg.messageType || 'text',
-                    status: 'delivered',
-                    created_at: new Date(msg.messageTimestamp * 1000).toISOString(),
-                  });
-              }
-            }
-          }
+        console.log(`[UAZAPI Sync] Found ${Array.isArray(chats) ? chats.length : 0} chats`);
+        if (Array.isArray(chats) && chats.length > 0) {
+          console.log(`[UAZAPI Sync] Sample chat:`, JSON.stringify(chats[0]).substring(0, 500));
         }
 
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            messages: messages,
-            count: Array.isArray(messages) ? messages.length : 0 
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      case 'fetch_profile_picture': {
-        // Buscar foto de perfil
-        const { phone } = body;
-        
-        if (!phone) {
-          return new Response(
-            JSON.stringify({ success: false, error: "Número não informado" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        const jid = phone.includes('@') ? phone : `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
-
-        const response = await fetch(`${UAZAPI_SERVER_URL}/chat/fetchProfilePictureUrl/${instanceId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': apiKey,
-          },
-          body: JSON.stringify({
-            number: jid,
-          }),
-        });
-
-        if (!response.ok) {
-          return new Response(
-            JSON.stringify({ success: false, error: "Foto não disponível" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        const data = await response.json();
-
-        return new Response(
-          JSON.stringify({ success: true, pictureUrl: data.profilePictureUrl || data.picture }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      case 'sync_contacts': {
-        // Sincronizar contatos/conversas da instância
-        const response = await fetch(`${UAZAPI_SERVER_URL}/chat/fetchChats/${instanceId}`, {
-          method: 'GET',
-          headers: {
-            'apikey': apiKey,
-          },
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Erro ao sincronizar contatos:", errorText);
-          return new Response(
-            JSON.stringify({ success: false, error: "Falha ao sincronizar" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        const chats = await response.json();
-
-        // Salvar contatos no banco
         let syncedCount = 0;
+        let updatedCount = 0;
+
         if (Array.isArray(chats)) {
           for (const chat of chats) {
-            const phone = chat.id?.replace('@s.whatsapp.net', '').replace('@g.us', '');
-            if (!phone || chat.id?.includes('@g.us')) continue; // Ignorar grupos
+            // Extract phone - try multiple fields
+            const rawPhone = chat.phone || chat.wa_chatid?.replace("@s.whatsapp.net", "") || chat.wa_fastid?.split(":")[1] || "";
+            const phone = rawPhone.replace("@s.whatsapp.net", "").replace("@g.us", "").replace(/\D/g, "");
+
+            // Skip empty, groups, or status broadcasts
+            if (!phone || phone.length < 8 || (chat.wa_chatid || "").includes("@g.us") || (chat.wa_isGroup === true)) continue;
+
+            const contactName = chat.wa_contactName || chat.wa_name || chat.name || chat.lead_name || null;
+            const lastMsgTs = chat.wa_lastMsgTimestamp;
+            const lastMsgTimestamp = lastMsgTs
+              ? new Date(lastMsgTs > 9999999999 ? lastMsgTs : lastMsgTs * 1000).toISOString()
+              : null;
+            // Validate timestamp is reasonable (between 2020 and 2030)
+            const validTimestamp = lastMsgTimestamp && new Date(lastMsgTimestamp).getFullYear() >= 2020 && new Date(lastMsgTimestamp).getFullYear() <= 2030
+              ? lastMsgTimestamp : null;
+            const unreadCount = chat.wa_unreadCount || 0;
 
             const { data: existing } = await supabase
-              .from('whatsapp_conversations')
-              .select('id')
-              .eq('phone_number', phone)
+              .from("whatsapp_conversations")
+              .select("id, contact_name")
+              .eq("phone_number", phone)
               .single();
 
             if (!existing) {
-              await supabase
-                .from('whatsapp_conversations')
-                .insert({
-                  phone_number: phone,
-                  contact_name: chat.name || chat.pushName || null,
-                  status: 'active',
-                  last_message_at: chat.conversationTimestamp 
-                    ? new Date(chat.conversationTimestamp * 1000).toISOString()
-                    : null,
-                });
-              syncedCount++;
+              const { error: insertError } = await supabase.from("whatsapp_conversations").insert({
+                phone_number: phone,
+                contact_name: contactName,
+                status: "active",
+                last_message_at: validTimestamp,
+                unread_count: unreadCount,
+                last_message_preview: chat.wa_lastMessageTextVote || null,
+              });
+              if (insertError) {
+                console.error(`[UAZAPI Sync] Insert error for ${phone}:`, JSON.stringify(insertError));
+              } else {
+                syncedCount++;
+              }
             } else {
-              // Atualizar nome se disponível
-              if (chat.name || chat.pushName) {
-                await supabase
-                  .from('whatsapp_conversations')
-                  .update({
-                    contact_name: chat.name || chat.pushName,
-                  })
-                  .eq('id', existing.id);
+              // Update existing conversation
+              const updates: Record<string, unknown> = {};
+              if (contactName && contactName !== existing.contact_name) updates.contact_name = contactName;
+              if (lastMsgTimestamp) updates.last_message_at = lastMsgTimestamp;
+              if (unreadCount > 0) updates.unread_count = unreadCount;
+
+              if (Object.keys(updates).length > 0) {
+                await supabase.from("whatsapp_conversations").update(updates).eq("id", existing.id);
+                updatedCount++;
               }
             }
           }
         }
 
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            total: Array.isArray(chats) ? chats.length : 0,
-            synced: syncedCount 
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return jsonResponse({
+          success: true,
+          total: Array.isArray(chats) ? chats.length : 0,
+          synced: syncedCount,
+          updated: updatedCount,
+          pagination: result.pagination || null,
+        });
       }
 
-      case 'connect': {
-        // Conectar ao SSE para receber eventos em tempo real
-        // Esta é uma conexão persistente que precisa ser mantida pelo cliente
-        // Por limitações de edge functions, retornamos instruções para o cliente
-        
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            message: "Para conexão SSE em tempo real, use o webhook configurado",
-            webhookUrl: `${supabaseUrl}/functions/v1/uazapi-webhook`,
-            events: [
-              'messages.upsert',
-              'messages.update', 
-              'connection.update',
-              'chats.update',
-              'presence.update'
-            ]
+      case "sync_messages": {
+        const { phone } = body;
+        if (!phone) {
+          return jsonResponse({ success: false, error: "Número não informado" }, 400);
+        }
+
+        const phoneClean = phone.replace(/\D/g, "");
+        const chatid = `${phoneClean}@s.whatsapp.net`;
+        const limit = body.limit || 50;
+
+        // UAZAPI v2: POST /message/find with "token" header
+        const response = await fetch(`${UAZAPI_SERVER_URL}/message/find`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            token: instanceToken,
+          },
+          body: JSON.stringify({
+            chatid,
+            limit,
+            offset: 0,
           }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("[UAZAPI Sync] Error fetching messages:", errorText);
+          return jsonResponse({ success: false, error: "Falha ao buscar mensagens" }, 500);
+        }
+
+        const result = await response.json();
+        const messages = result.messages || result || [];
+
+        console.log(`[UAZAPI Sync] Found ${Array.isArray(messages) ? messages.length : 0} messages for ${phoneClean}`);
+
+        // Ensure conversation exists
+        let { data: conversation } = await supabase
+          .from("whatsapp_conversations")
+          .select("id")
+          .eq("phone_number", phoneClean)
+          .single();
+
+        if (!conversation) {
+          const { data: newConv } = await supabase
+            .from("whatsapp_conversations")
+            .insert({ phone_number: phoneClean, status: "active" })
+            .select("id")
+            .single();
+          conversation = newConv;
+        }
+
+        if (!conversation) {
+          return jsonResponse({ success: false, error: "Falha ao criar conversa" }, 500);
+        }
+
+        let importedCount = 0;
+
+        if (Array.isArray(messages)) {
+          for (const msg of messages) {
+            const msgId = msg.messageid || msg.id;
+            if (!msgId) continue;
+
+            // Check if already imported
+            const { data: existingMsg } = await supabase
+              .from("whatsapp_messages")
+              .select("id")
+              .eq("uazapi_message_id", msgId)
+              .single();
+
+            if (existingMsg) continue;
+
+            const content = msg.text || msg.convertOptions || "[mídia]";
+            const direction = msg.fromMe ? "outbound" : "inbound";
+            const messageType = msg.messageType || "text";
+            const mediaUrl = msg.fileURL || null;
+            const timestamp = msg.messageTimestamp
+              ? new Date(msg.messageTimestamp > 9999999999 ? msg.messageTimestamp : msg.messageTimestamp * 1000).toISOString()
+              : new Date().toISOString();
+
+            const { error } = await supabase.from("whatsapp_messages").insert({
+              conversation_id: conversation.id,
+              uazapi_message_id: msgId,
+              direction,
+              content,
+              message_type: messageType,
+              media_url: mediaUrl,
+              status: "delivered",
+              created_at: timestamp,
+              sender_phone: msg.sender?.replace("@s.whatsapp.net", "") || null,
+            });
+
+            if (!error) importedCount++;
+          }
+
+          // Update conversation last message
+          if (messages.length > 0) {
+            const lastMsg = messages[0]; // Most recent
+            await supabase
+              .from("whatsapp_conversations")
+              .update({
+                last_message_at: lastMsg.messageTimestamp
+                  ? new Date(lastMsg.messageTimestamp > 9999999999 ? lastMsg.messageTimestamp : lastMsg.messageTimestamp * 1000).toISOString()
+                  : new Date().toISOString(),
+                last_message_preview: lastMsg.text || "[mídia]",
+                last_message_from: lastMsg.fromMe ? "system" : "customer",
+              })
+              .eq("id", conversation.id);
+          }
+        }
+
+        return jsonResponse({
+          success: true,
+          conversationId: conversation.id,
+          total: Array.isArray(messages) ? messages.length : 0,
+          imported: importedCount,
+          hasMore: result.hasMore || false,
+        });
+      }
+
+      case "fetch_profile_picture": {
+        const { phone } = body;
+        if (!phone) {
+          return jsonResponse({ success: false, error: "Número não informado" }, 400);
+        }
+
+        // UAZAPI v2 doesn't have a specific profile pic endpoint in the spec
+        // But the chat data already includes image/imagePreview
+        return jsonResponse({ success: true, pictureUrl: null, message: "Use chat data for profile pictures" });
       }
 
       default:
-        return new Response(
-          JSON.stringify({ success: false, error: "Ação inválida" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return jsonResponse({ success: false, error: "Ação inválida" }, 400);
     }
   } catch (error) {
-    console.error("Erro no uazapi-sse:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error("[UAZAPI Sync] Error:", error);
+    return jsonResponse({ success: false, error: error.message }, 500);
   }
 });
+
+function jsonResponse(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
