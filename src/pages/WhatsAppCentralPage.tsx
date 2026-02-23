@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { CorporateLayout } from '@/components/CorporateLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -104,6 +105,7 @@ interface WhatsAppInstance {
 export default function WhatsAppCentralPage() {
   const queryClient = useQueryClient();
   const { user, userRoles } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messageInput, setMessageInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -272,6 +274,22 @@ export default function WhatsAppCentralPage() {
       toast.error('Erro ao enviar mensagem');
     },
   });
+
+  // Auto-select conversation from query param (e.g., from CRM)
+  useEffect(() => {
+    const phoneParam = searchParams.get('phone');
+    if (phoneParam && conversations && conversations.length > 0 && !selectedConversation) {
+      const cleanPhone = phoneParam.replace(/\D/g, '');
+      const found = conversations.find(c => c.phone_number.replace(/\D/g, '').includes(cleanPhone));
+      if (found) {
+        setSelectedConversation(found);
+        setActiveTab('chat');
+        // Clear param after selecting
+        searchParams.delete('phone');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [conversations, searchParams]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -748,35 +766,113 @@ export default function WhatsAppCentralPage() {
                       )}
                     </TabsContent>
 
-                    <TabsContent value="charges" className="m-0 p-3">
+                    <TabsContent value="charges" className="m-0 p-3 space-y-3">
                       {context?.charges.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground text-sm">
                           Nenhuma cobrança encontrada
                         </div>
                       ) : (
-                        context?.charges.map((charge) => (
-                          <Card key={charge.id} className="mb-2">
+                        <>
+                          {/* Total do débito */}
+                          <Card className="border-destructive/30 bg-destructive/5">
                             <CardContent className="p-3">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-medium text-sm">
-                                  R$ {charge.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Débito Total</span>
+                                <span className="font-bold text-destructive">
+                                  R$ {context?.charges.reduce((sum, c) => sum + c.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </span>
-                                <Badge variant={charge.status === 'paid' ? 'default' : 'destructive'} className="text-xs">
-                                  {charge.status === 'paid' ? 'Pago' : 'Pendente'}
-                                </Badge>
                               </div>
-                              <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                Venc: {format(new Date(charge.due_date), 'dd/MM/yyyy')}
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {context?.charges.filter(c => c.status !== 'paid').length} cobrança(s) pendente(s)
                               </div>
-                              {charge.pipeline_stage && (
-                                <Badge variant="outline" className="text-xs mt-1">
-                                  {charge.pipeline_stage}
-                                </Badge>
-                              )}
                             </CardContent>
                           </Card>
-                        ))
+
+                          {/* Quick send actions */}
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 text-xs"
+                              onClick={async () => {
+                                const pendingCharge = context?.charges.find(c => c.status !== 'paid');
+                                if (!pendingCharge) return;
+                                try {
+                                  await supabase.functions.invoke('send-charge-notification', {
+                                    body: { chargeId: pendingCharge.id, channel: 'whatsapp' }
+                                  });
+                                  toast.success('Cobrança enviada via WhatsApp');
+                                } catch { toast.error('Erro ao enviar'); }
+                              }}
+                            >
+                              <Send className="h-3 w-3 mr-1" />
+                              WhatsApp
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 text-xs"
+                              onClick={async () => {
+                                const pendingCharge = context?.charges.find(c => c.status !== 'paid');
+                                if (!pendingCharge) return;
+                                try {
+                                  await supabase.functions.invoke('send-charge-notification', {
+                                    body: { chargeId: pendingCharge.id, channel: 'email' }
+                                  });
+                                  toast.success('Cobrança enviada via Email');
+                                } catch { toast.error('Erro ao enviar'); }
+                              }}
+                            >
+                              <FileText className="h-3 w-3 mr-1" />
+                              Email
+                            </Button>
+                          </div>
+
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="w-full text-xs gap-1"
+                            onClick={async () => {
+                              const pendingCharge = context?.charges.find(c => c.status !== 'paid');
+                              if (!pendingCharge) return;
+                              try {
+                                await supabase.functions.invoke('calculate-fees', {
+                                  body: { chargeId: pendingCharge.id }
+                                });
+                                queryClient.invalidateQueries({ queryKey: ['conversation-context'] });
+                                toast.success('Valores atualizados');
+                              } catch { toast.error('Erro ao calcular'); }
+                            }}
+                          >
+                            <DollarSign className="h-3 w-3" />
+                            Atualizar Juros/Multa
+                          </Button>
+
+                          {/* Charge list */}
+                          {context?.charges.map((charge) => (
+                            <Card key={charge.id} className="mb-0">
+                              <CardContent className="p-3">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-medium text-sm">
+                                    R$ {charge.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </span>
+                                  <Badge variant={charge.status === 'paid' ? 'default' : 'destructive'} className="text-xs">
+                                    {charge.status === 'paid' ? 'Pago' : charge.status === 'overdue' ? 'Vencido' : 'Pendente'}
+                                  </Badge>
+                                </div>
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  Venc: {format(new Date(charge.due_date), 'dd/MM/yyyy')}
+                                </div>
+                                {charge.pipeline_stage && (
+                                  <Badge variant="outline" className="text-xs mt-1">
+                                    {charge.pipeline_stage}
+                                  </Badge>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </>
                       )}
                     </TabsContent>
 
