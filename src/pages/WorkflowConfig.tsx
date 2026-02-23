@@ -447,16 +447,9 @@ Equipe de Cobrança`,
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               {!isFullscreen && (
-                <>
-                  <Link to="/portal/corporativo/dashboard" className="mr-4">
-                    <ArrowLeft className="w-5 h-5 text-ffp-navy hover:text-ffp-gold" />
-                  </Link>
-                  <img 
-                    src="/lovable-uploads/d3faa2c9-dd61-45a5-a799-5fbb7fef4f58.png" 
-                    alt="FFP Advogados" 
-                    className="h-8 w-auto mr-3"
-                  />
-                </>
+                <Link to="/portal/corporativo/dashboard" className="mr-4">
+                  <ArrowLeft className="w-5 h-5 text-ffp-navy hover:text-ffp-gold" />
+                </Link>
               )}
               <h1 className="text-xl font-semibold text-ffp-navy">
                 {isFullscreen ? `${workflowName} - Modo Tela Cheia` : 'Configuração de Workflow'}
