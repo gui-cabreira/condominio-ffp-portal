@@ -30,6 +30,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { ConnectionWizard } from '@/components/whatsapp/ConnectionWizard';
 import { KnowledgeBase } from '@/components/whatsapp/KnowledgeBase';
+import { MessageTemplates } from '@/components/whatsapp/MessageTemplates';
 import { ConversationActions, MessageActions } from '@/components/whatsapp/ConversationActions';
 
 interface Conversation {
@@ -378,10 +379,14 @@ export default function WhatsAppCentralPage() {
             <div className="flex items-center gap-2">
               {/* Main tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mr-4">
-                <TabsList className="grid grid-cols-3 w-auto">
+                <TabsList className="grid grid-cols-4 w-auto">
                   <TabsTrigger value="chat" className="gap-1 text-xs px-3">
                     <MessageSquare className="h-3 w-3" />
                     Conversas
+                  </TabsTrigger>
+                  <TabsTrigger value="templates" className="gap-1 text-xs px-3">
+                    <FileText className="h-3 w-3" />
+                    Templates
                   </TabsTrigger>
                   <TabsTrigger value="knowledge" className="gap-1 text-xs px-3">
                     <Brain className="h-3 w-3" />
@@ -902,6 +907,11 @@ export default function WhatsAppCentralPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Templates Tab */}
+        {activeTab === 'templates' && (
+          <MessageTemplates />
         )}
 
         {/* Knowledge Base Tab */}
