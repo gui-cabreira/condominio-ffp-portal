@@ -1,7 +1,8 @@
 import { 
-  Home, Building2, FileText, Users, Settings, LogOut, Menu, BarChart3, 
+  Home, Building2, FileText, Users, Settings, LogOut, BarChart3, 
   Upload, UserPlus, Building, Server, MessageSquare, Cog, Headphones, 
-  Workflow, TrendingUp, Shield, ChevronDown, Kanban, Key, Bell
+  Workflow, TrendingUp, Shield, ChevronDown, Kanban, Key, Bell,
+  PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -22,7 +23,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
-import { NotificationBell } from '@/components/NotificationBell';
 
 interface MenuCategory {
   label: string;
@@ -142,34 +142,41 @@ export function AppSidebar() {
           "flex items-center gap-3",
           collapsed ? "justify-center" : "justify-between"
         )}>
-          {!collapsed && (
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-lg bg-sidebar-primary/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-sidebar-primary font-bold text-lg">F</span>
+          {!collapsed ? (
+            <>
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-9 h-9 rounded-lg bg-sidebar-primary/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sidebar-primary font-bold text-lg">F</span>
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-semibold text-sidebar-foreground truncate">FFP Advogados</span>
+                  <span className="text-xs text-sidebar-muted truncate">Sistema de Gestão</span>
+                </div>
               </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-sidebar-foreground truncate">FFP Advogados</span>
-                <span className="text-xs text-sidebar-muted truncate">Sistema de Gestão</span>
-              </div>
-            </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+                className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex-shrink-0 h-8 w-8"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleSidebar}
+                  className="w-9 h-9 rounded-lg bg-sidebar-primary/20 hover:bg-sidebar-primary/30 text-sidebar-primary mx-auto"
+                >
+                  <PanelLeftOpen className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Expandir menu</TooltipContent>
+            </Tooltip>
           )}
-          {collapsed && (
-            <div className="w-9 h-9 rounded-lg bg-sidebar-primary/20 flex items-center justify-center">
-              <span className="text-sidebar-primary font-bold text-lg">F</span>
-            </div>
-          )}
-          <NotificationBell />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className={cn(
-              "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex-shrink-0",
-              collapsed && "hidden"
-            )}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
         </div>
       </SidebarHeader>
 
