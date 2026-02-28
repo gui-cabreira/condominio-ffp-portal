@@ -73,6 +73,8 @@ interface ConversationContext {
     block: string | null;
     owner_name: string | null;
     owner_phone: string | null;
+    tenant_name: string | null;
+    tenant_phone: string | null;
   } | null;
   condominium: {
     id: string;
@@ -141,9 +143,10 @@ export default function WhatsAppCentralPage() {
       const chatsUpdated = result?.chats?.updated || 0;
       const msgsImported = result?.messagesImported || 0;
       const avatarsUpdated = result?.avatarsUpdated || 0;
+      const contactsLinked = result?.linked?.linked || 0;
 
       toast.success(
-        `Sync completo! ${chatsSynced} novas conversas, ${chatsUpdated} atualizadas, ${msgsImported} mensagens, ${avatarsUpdated} avatares`
+        `Sync completo! ${chatsSynced} novas, ${chatsUpdated} atualizadas, ${msgsImported} msgs, ${avatarsUpdated} avatares, ${contactsLinked} vinculados`
       );
 
       queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
@@ -289,7 +292,7 @@ export default function WhatsAppCentralPage() {
     enabled: !!selectedConversation,
   });
 
-  // Fetch conversation context (unit, charges, timeline)
+  // Fetch conversation context (unit, charges, timeline) - search by unit_id OR phone number
   const { data: context } = useQuery({
     queryKey: ['conversation-context', selectedConversation?.id],
     queryFn: async () => {
@@ -302,33 +305,63 @@ export default function WhatsAppCentralPage() {
         timeline: [],
       };
 
+      let unitData: any = null;
+
       if (selectedConversation.unit_id) {
         const { data: unit } = await supabase
           .from('units')
-          .select('id, unit_number, block, owner_name, owner_phone, condominium_id')
+          .select('id, unit_number, block, owner_name, owner_phone, tenant_name, tenant_phone, condominium_id')
           .eq('id', selectedConversation.unit_id)
           .single();
-        
-        if (unit) {
-          result.unit = unit;
-          
-          const { data: condo } = await supabase
-            .from('condominiums')
-            .select('id, name')
-            .eq('id', unit.condominium_id)
-            .single();
-          
-          result.condominium = condo;
+        unitData = unit;
+      }
 
-          const { data: charges } = await supabase
-            .from('charges')
-            .select('id, amount, due_date, status, pipeline_stage')
-            .eq('unit_id', unit.id)
-            .order('due_date', { ascending: false })
-            .limit(10);
+      // If no unit_id, try to find by phone number
+      if (!unitData) {
+        const phoneClean = selectedConversation.phone_number.replace(/\D/g, '');
+        // Try different phone formats
+        const phoneSuffixes = [phoneClean, phoneClean.replace(/^55/, ''), `55${phoneClean}`];
+        
+        for (const phone of phoneSuffixes) {
+          if (phone.length < 8) continue;
+          const suffix = phone.slice(-9);
           
-          result.charges = charges || [];
+          const { data: units } = await supabase
+            .from('units')
+            .select('id, unit_number, block, owner_name, owner_phone, tenant_name, tenant_phone, condominium_id')
+            .or(`owner_phone.ilike.%${suffix},tenant_phone.ilike.%${suffix}`);
+          
+          if (units && units.length > 0) {
+            unitData = units[0];
+            // Auto-link the conversation
+            await supabase
+              .from('whatsapp_conversations')
+              .update({ unit_id: unitData.id, condominium_id: unitData.condominium_id })
+              .eq('id', selectedConversation.id);
+            break;
+          }
         }
+      }
+      
+      if (unitData) {
+        result.unit = unitData;
+        
+        const { data: condo } = await supabase
+          .from('condominiums')
+          .select('id, name')
+          .eq('id', unitData.condominium_id)
+          .single();
+        
+        result.condominium = condo;
+
+        const { data: charges } = await supabase
+          .from('charges')
+          .select('id, amount, due_date, status, pipeline_stage')
+          .eq('unit_id', unitData.id)
+          .order('due_date', { ascending: false })
+          .limit(10);
+        
+        result.charges = charges || [];
       }
 
       if (selectedConversation.charge_id) {
@@ -1057,6 +1090,12 @@ export default function WhatsAppCentralPage() {
                                 {context.unit.owner_name}
                               </p>
                             )}
+                            {context.unit.tenant_name && (
+                              <p>
+                                <span className="text-muted-foreground">Inquilino:</span>{' '}
+                                {context.unit.tenant_name}
+                              </p>
+                            )}
                           </CardContent>
                         </Card>
                       )}
@@ -1078,9 +1117,31 @@ export default function WhatsAppCentralPage() {
 
                       {/* No context */}
                       {!context?.unit && !context?.condominium && (
-                        <div className="text-center py-4 text-muted-foreground text-sm">
-                          <AlertCircle className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                          Contato não identificado no sistema
+                        <div className="text-center py-4 text-muted-foreground text-sm space-y-3">
+                          <AlertCircle className="h-6 w-6 mx-auto opacity-50" />
+                          <p>Contato não vinculado a nenhuma unidade</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 text-xs"
+                            onClick={async () => {
+                              try {
+                                toast.info('Buscando vínculos...');
+                                const { data, error } = await supabase.functions.invoke('uazapi-sse', {
+                                  body: { action: 'link_contacts', instanceToken: '' },
+                                });
+                                if (error) throw error;
+                                toast.success(`${data?.linked || 0} contatos vinculados de ${data?.total || 0}`);
+                                queryClient.invalidateQueries({ queryKey: ['conversation-context'] });
+                                queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
+                              } catch {
+                                toast.error('Erro ao vincular contatos');
+                              }
+                            }}
+                          >
+                            <Zap className="h-3 w-3" />
+                            Vincular Contatos
+                          </Button>
                         </div>
                       )}
                     </TabsContent>
