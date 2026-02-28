@@ -509,6 +509,7 @@ const AtendimentoPage = () => {
     }
   };
 
+  const handleApplyWorkflow = async () => {
     if (!selectedConversation) return;
 
     const pendingCharge = selectedConversation.charges?.find(c => c.status === 'pending' || c.status === 'overdue');
@@ -545,7 +546,6 @@ const AtendimentoPage = () => {
 
       const workflow = workflows[0];
 
-      // Criar execução do workflow
       const { data: execution, error: execError } = await supabase
         .from('workflow_executions')
         .insert({
@@ -559,7 +559,6 @@ const AtendimentoPage = () => {
 
       if (execError) throw execError;
 
-      // Chamar edge function para executar
       const { error: invokeError } = await supabase.functions.invoke('execute-workflow', {
         body: { executionId: execution.id }
       });
@@ -980,7 +979,7 @@ const AtendimentoPage = () => {
                 variant="secondary" 
                 size="sm" 
                 className="shrink-0 gap-1.5 font-medium shadow-sm hover:shadow-md transition-shadow"
-                onClick={applyWorkflow}
+                onClick={handleApplyWorkflow}
                 disabled={sending}
               >
                 <Play className="h-4 w-4" />
@@ -1345,6 +1344,6 @@ const AtendimentoPage = () => {
       </Dialog>
     </div>
   );
-};
+}
 
 export default AtendimentoPage;
