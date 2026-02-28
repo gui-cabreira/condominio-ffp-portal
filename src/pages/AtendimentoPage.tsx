@@ -85,6 +85,8 @@ const AtendimentoPage = () => {
   const [agentActive, setAgentActive] = useState(true);
   const [agentThinking, setAgentThinking] = useState(false);
   const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
+  const [expandedChargeId, setExpandedChargeId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadConversations();
@@ -316,6 +318,65 @@ const AtendimentoPage = () => {
       });
     } finally {
       setSending(false);
+    }
+  };
+
+  const sendBoletoForCharge = async (chargeId: string) => {
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-charge-notification', {
+        body: { chargeId, channel: 'whatsapp' }
+      });
+      if (error) throw error;
+      toast({ title: 'Boleto enviado', description: 'O boleto foi enviado via WhatsApp' });
+      if (selectedConversation) await loadMessages(selectedConversation.id);
+    } catch (error: any) {
+      console.error('Error sending boleto:', error);
+      toast({ title: 'Erro', description: 'Erro ao enviar boleto', variant: 'destructive' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleFileAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedConversation) return;
+    
+    setSending(true);
+    try {
+      // Upload to storage
+      const fileName = `${Date.now()}_${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('boletos')
+        .upload(`attachments/${fileName}`, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('boletos')
+        .getPublicUrl(`attachments/${fileName}`);
+
+      // Send via WhatsApp
+      const { error } = await supabase.functions.invoke('send-whatsapp-message', {
+        body: {
+          phone: selectedConversation.phone_number,
+          message: file.name,
+          conversationId: selectedConversation.id,
+          mediaUrl: urlData.publicUrl,
+          mediaType: file.type.startsWith('image/') ? 'image' : 'document',
+        }
+      });
+
+      if (error) throw error;
+
+      toast({ title: 'Arquivo enviado', description: `${file.name} enviado com sucesso` });
+      await loadMessages(selectedConversation.id);
+    } catch (error: any) {
+      console.error('Error attaching file:', error);
+      toast({ title: 'Erro', description: 'Erro ao enviar arquivo', variant: 'destructive' });
+    } finally {
+      setSending(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -739,10 +800,18 @@ const AtendimentoPage = () => {
                 variant="secondary" 
                 size="sm"
                 className="shrink-0 gap-1.5 font-medium shadow-sm hover:shadow-md transition-shadow"
+                onClick={() => fileInputRef.current?.click()}
               >
                 <Paperclip className="h-4 w-4" />
                 Anexar
               </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                onChange={handleFileAttach}
+              />
               <Button 
                 variant="secondary" 
                 size="sm" 
@@ -986,15 +1055,35 @@ const AtendimentoPage = () => {
                         Venc: {new Date(charge.due_date).toLocaleDateString('pt-BR')}
                       </p>
                       <div className="flex gap-2 mt-2">
-                        <Button size="sm" variant="outline" className="text-xs h-7 flex-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-xs h-7 flex-1"
+                          onClick={() => sendBoletoForCharge(charge.id)}
+                          disabled={sending}
+                        >
                           <FileText className="h-3 w-3 mr-1" />
-                          Boleto
+                          Enviar Boleto
                         </Button>
-                        <Button size="sm" variant="outline" className="text-xs h-7 flex-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-xs h-7 flex-1"
+                          onClick={() => setExpandedChargeId(expandedChargeId === charge.id ? null : charge.id)}
+                        >
                           <Eye className="h-3 w-3 mr-1" />
                           Detalhes
                         </Button>
                       </div>
+                      {expandedChargeId === charge.id && (
+                        <div className="mt-2 pt-2 border-t space-y-1 text-xs text-muted-foreground">
+                          <p>ID: {charge.id.slice(0, 8)}...</p>
+                          <p>Valor: {formatCurrency(charge.amount)}</p>
+                          <p>Vencimento: {new Date(charge.due_date).toLocaleDateString('pt-BR')}</p>
+                          <p>Status: {charge.status}</p>
+                          <p>Ref: {charge.reference_month || '-'}</p>
+                        </div>
+                      )}
                     </Card>
                   ))}
                 </div>
