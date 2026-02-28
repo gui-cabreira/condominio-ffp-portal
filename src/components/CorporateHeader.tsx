@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, Bell } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileDialog } from './ProfileDialog';
 import { LogoutScreen } from './LogoutScreen';
+import { NotificationBell } from './NotificationBell';
 import { useNavigate } from 'react-router-dom';
 
 export function CorporateHeader() {
@@ -85,7 +86,9 @@ export function CorporateHeader() {
           </h1>
         </div>
 
-        <DropdownMenu>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <DropdownMenu>
           <DropdownMenuTrigger className="focus:outline-none">
             <div className="flex items-center gap-3 hover:bg-accent p-2 rounded-lg transition-colors">
               <div className="text-right hidden sm:block">
@@ -114,6 +117,7 @@ export function CorporateHeader() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </header>
 
       <ProfileDialog
