@@ -468,8 +468,10 @@ const AtendimentoPage = () => {
               <div
                 key={conv.id}
                 onClick={() => setSelectedConversation(conv)}
-                className={`p-4 border-b cursor-pointer hover:bg-accent transition-colors ${
-                  selectedConversation?.id === conv.id ? 'bg-accent' : ''
+                className={`p-4 border-b cursor-pointer transition-all duration-200 ${
+                  selectedConversation?.id === conv.id 
+                    ? 'bg-primary/10 border-l-4 border-l-primary' 
+                    : 'hover:bg-accent/80 hover:shadow-sm hover:border-l-4 hover:border-l-primary/40'
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -679,35 +681,51 @@ const AtendimentoPage = () => {
             </ScrollArea>
 
             {/* Ações Rápidas */}
-            <div className="p-2 bg-card border-t flex items-center gap-2 overflow-x-auto">
+            <div className="px-4 py-3 bg-card border-t flex items-center gap-3 overflow-x-auto">
               <Button 
-                variant="outline" 
+                variant="secondary" 
                 size="sm"
+                className="shrink-0 gap-1.5 font-medium shadow-sm hover:shadow-md transition-shadow"
                 onClick={sendChargeDetails}
                 disabled={sending}
               >
-                <FileText className="h-4 w-4 mr-1" />
+                <FileText className="h-4 w-4" />
                 Enviar Cobrança
               </Button>
-              <Button variant="outline" size="sm" onClick={() => triggerAgentAction('calculate_fees')}>
-                <Calculator className="h-4 w-4 mr-1" />
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="shrink-0 gap-1.5 font-medium shadow-sm hover:shadow-md transition-shadow"
+                onClick={() => triggerAgentAction('calculate_fees')}
+              >
+                <Calculator className="h-4 w-4" />
                 Calcular
               </Button>
-              <Button variant="outline" size="sm">
-                <Paperclip className="h-4 w-4 mr-1" />
+              <Button 
+                variant="secondary" 
+                size="sm"
+                className="shrink-0 gap-1.5 font-medium shadow-sm hover:shadow-md transition-shadow"
+              >
+                <Paperclip className="h-4 w-4" />
                 Anexar
               </Button>
-              <Button variant="outline" size="sm" onClick={() => triggerAgentAction('propose_negotiation')}>
-                <DollarSign className="h-4 w-4 mr-1" />
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="shrink-0 gap-1.5 font-medium shadow-sm hover:shadow-md transition-shadow"
+                onClick={() => triggerAgentAction('propose_negotiation')}
+              >
+                <DollarSign className="h-4 w-4" />
                 Negociar
               </Button>
               <Button 
-                variant="outline" 
+                variant="secondary" 
                 size="sm" 
+                className="shrink-0 gap-1.5 font-medium shadow-sm hover:shadow-md transition-shadow"
                 onClick={applyWorkflow}
                 disabled={sending}
               >
-                <Play className="h-4 w-4 mr-1" />
+                <Play className="h-4 w-4" />
                 Aplicar Workflow
               </Button>
             </div>
