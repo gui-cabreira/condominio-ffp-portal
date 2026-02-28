@@ -277,12 +277,48 @@ const AtendimentoPage = () => {
 
       if (error) throw error;
 
-      toast({
-        title: 'Ação executada',
-        description: `O agente executou: ${action}`
-      });
+      // Show detailed feedback based on action result
+      const result = data?.result;
+      if (result?.error) {
+        toast({
+          title: 'Atenção',
+          description: result.error,
+          variant: 'destructive'
+        });
+      } else if (action === 'calculate_fees' && result) {
+        toast({
+          title: '🧮 Cálculo Atualizado',
+          description: `Principal: R$ ${result.principal?.toFixed(2)} | Multa: R$ ${result.fineAmount?.toFixed(2)} | Juros: R$ ${result.interestAmount?.toFixed(2)} | Total: R$ ${result.totalAmount?.toFixed(2)} (${result.daysLate} dias de atraso)`,
+        });
+      } else if (action === 'propose_negotiation' && result) {
+        toast({
+          title: '💰 Proposta Enviada',
+          description: `Débito: R$ ${result.totalDebt?.toFixed(2)} → Com desconto: R$ ${result.discountedAmount?.toFixed(2)} (${result.discountPercent}% off) · Até ${result.maxInstallments}x de R$ ${result.installmentValue?.toFixed(2)}`,
+        });
+      } else if (action === 'send_boleto' && result) {
+        toast({
+          title: '📄 Boleto Enviado',
+          description: `Cobrança de R$ ${result.amount?.toFixed(2)} enviada via WhatsApp`,
+        });
+      } else if (action === 'request_proof') {
+        toast({
+          title: '📎 Solicitação Enviada',
+          description: 'Comprovante solicitado ao devedor via WhatsApp',
+        });
+      } else if (action === 'escalate_human') {
+        toast({
+          title: '🧑 Escalado',
+          description: 'Conversa transferida para atendente humano. Notificações enviadas.',
+        });
+      } else {
+        toast({
+          title: 'Ação executada',
+          description: `Ação ${action} executada com sucesso`
+        });
+      }
 
       await loadMessages(selectedConversation.id);
+      await loadConversations();
     } catch (error) {
       console.error('Error triggering agent:', error);
       toast({
