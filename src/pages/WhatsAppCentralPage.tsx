@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { 
@@ -17,7 +17,8 @@ import {
   Clock, CheckCheck, Check, AlertCircle, Bot, Zap, 
   FileText, DollarSign, Calendar, History, Sparkles,
   Filter, RefreshCw, MoreVertical, Pause, Play, Plus,
-  Settings, Wifi, WifiOff, QrCode, Trash2, ExternalLink, Brain, BookOpen
+  Settings, Wifi, WifiOff, QrCode, Trash2, ExternalLink, Brain, BookOpen,
+  Download, Image as ImageIcon
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -47,6 +48,7 @@ interface Conversation {
   unit_id: string | null;
   charge_id: string | null;
   condominium_id: string | null;
+  avatar_url: string | null;
 }
 
 interface Message {
@@ -60,6 +62,8 @@ interface Message {
   delivered_at: string | null;
   read_at: string | null;
   remote_jid?: string | null;
+  caption?: string | null;
+  status?: string | null;
 }
 
 interface ConversationContext {
@@ -119,45 +123,28 @@ export default function WhatsAppCentralPage() {
 
   const isAdmin = userRoles?.includes('admin');
 
-  // Sync conversations from UAZAPI
+  // Full sync from UAZAPI (chats + messages + avatars)
   const handleSyncConversations = async () => {
     if (!activeInstance || isSyncing) return;
     setIsSyncing(true);
     try {
       toast.info('Sincronizando conversas do WhatsApp...');
       
-      // Step 1: Sync chats list
-      const { data: chatResult, error: chatError } = await supabase.functions.invoke('uazapi-sse', {
-        body: { action: 'sync_chats', instanceToken: activeInstance.api_key, limit: 200 },
+      // Use sync_all for comprehensive sync
+      const { data: result, error } = await supabase.functions.invoke('uazapi-sse', {
+        body: { action: 'sync_all', instanceToken: activeInstance.api_key, limit: 200 },
       });
 
-      if (chatError) throw chatError;
+      if (error) throw error;
 
-      const syncedChats = chatResult?.synced || 0;
-      const updatedChats = chatResult?.updated || 0;
-      const totalChats = chatResult?.total || 0;
+      const chatsSynced = result?.chats?.synced || 0;
+      const chatsUpdated = result?.chats?.updated || 0;
+      const msgsImported = result?.messagesImported || 0;
+      const avatarsUpdated = result?.avatarsUpdated || 0;
 
-      toast.success(`Sincronizado: ${syncedChats} novas conversas, ${updatedChats} atualizadas (${totalChats} total)`);
-
-      // Step 2: Sync recent messages for each conversation
-      const { data: conversations } = await supabase
-        .from('whatsapp_conversations')
-        .select('phone_number')
-        .order('last_message_at', { ascending: false })
-        .limit(20);
-
-      if (conversations && conversations.length > 0) {
-        let totalImported = 0;
-        for (const conv of conversations) {
-          const { data: msgResult } = await supabase.functions.invoke('uazapi-sse', {
-            body: { action: 'sync_messages', instanceToken: activeInstance.api_key, phone: conv.phone_number, limit: 30 },
-          });
-          totalImported += msgResult?.imported || 0;
-        }
-        if (totalImported > 0) {
-          toast.success(`${totalImported} mensagens importadas`);
-        }
-      }
+      toast.success(
+        `Sync completo! ${chatsSynced} novas conversas, ${chatsUpdated} atualizadas, ${msgsImported} mensagens, ${avatarsUpdated} avatares`
+      );
 
       queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
       queryClient.invalidateQueries({ queryKey: ['whatsapp-messages'] });
@@ -169,7 +156,47 @@ export default function WhatsAppCentralPage() {
     }
   };
 
-  // Fetch WhatsApp instances - todas as instâncias
+  // Fetch avatar for a specific conversation
+  const handleFetchAvatar = async (conv: Conversation) => {
+    if (!activeInstance) return;
+    try {
+      const { data } = await supabase.functions.invoke('uazapi-sse', {
+        body: { action: 'fetch_profile_picture', instanceToken: activeInstance.api_key, phone: conv.phone_number },
+      });
+      if (data?.avatarUrl) {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
+        toast.success('Avatar atualizado!');
+      } else {
+        toast.info('Avatar não disponível para este contato');
+      }
+    } catch {
+      toast.error('Erro ao buscar avatar');
+    }
+  };
+
+  // Sync messages for current conversation
+  const handleSyncMessages = async () => {
+    if (!activeInstance || !selectedConversation) return;
+    try {
+      toast.info('Importando mensagens...');
+      const { data, error } = await supabase.functions.invoke('uazapi-sse', {
+        body: { 
+          action: 'sync_messages', 
+          instanceToken: activeInstance.api_key, 
+          phone: selectedConversation.phone_number,
+          limit: 100 
+        },
+      });
+      if (error) throw error;
+      const imported = data?.imported || 0;
+      toast.success(`${imported} mensagens importadas`);
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-messages', selectedConversation.id] });
+    } catch {
+      toast.error('Erro ao importar mensagens');
+    }
+  };
+
+  // Fetch WhatsApp instances
   const { data: instances, isLoading: loadingInstances } = useQuery({
     queryKey: ['whatsapp-instances'],
     queryFn: async () => {
@@ -183,7 +210,7 @@ export default function WhatsAppCentralPage() {
     },
   });
 
-  // Active instance (default or first one)
+  // Active instance
   const activeInstance = selectedInstance || instances?.find(i => i.is_default) || instances?.[0];
   const hasConnectedInstance = instances && instances.length > 0 && instances.some(i => i.status === 'connected');
 
@@ -202,7 +229,6 @@ export default function WhatsAppCentralPage() {
           const newPhone = data.phone || null;
           const newName = data.profileName || instance.name;
           
-          // Update DB if status changed
           if (newStatus !== instance.status || newPhone !== instance.phone_number || newName !== instance.name) {
             await supabase
               .from('uazapi_instances')
@@ -276,7 +302,6 @@ export default function WhatsAppCentralPage() {
         timeline: [],
       };
 
-      // Fetch unit data
       if (selectedConversation.unit_id) {
         const { data: unit } = await supabase
           .from('units')
@@ -287,7 +312,6 @@ export default function WhatsAppCentralPage() {
         if (unit) {
           result.unit = unit;
           
-          // Fetch condominium
           const { data: condo } = await supabase
             .from('condominiums')
             .select('id, name')
@@ -296,7 +320,6 @@ export default function WhatsAppCentralPage() {
           
           result.condominium = condo;
 
-          // Fetch charges for this unit
           const { data: charges } = await supabase
             .from('charges')
             .select('id, amount, due_date, status, pipeline_stage')
@@ -308,7 +331,6 @@ export default function WhatsAppCentralPage() {
         }
       }
 
-      // Fetch charge timeline if there's a charge_id
       if (selectedConversation.charge_id) {
         const { data: timeline } = await supabase
           .from('charge_timeline')
@@ -330,23 +352,11 @@ export default function WhatsAppCentralPage() {
     mutationFn: async (content: string) => {
       if (!selectedConversation || !activeInstance) throw new Error('No conversation or instance selected');
 
-      // Insert message in database
-      const { error: insertError } = await supabase
-        .from('whatsapp_messages')
-        .insert({
-          conversation_id: selectedConversation.id,
-          content,
-          direction: 'outbound',
-          message_type: 'text',
-        });
-
-      if (insertError) throw insertError;
-
-      // Call edge function to send via UAZAPI
       const { error: sendError } = await supabase.functions.invoke('send-whatsapp-message', {
         body: {
           phone: selectedConversation.phone_number,
           message: content,
+          conversationId: selectedConversation.id,
           instanceId: activeInstance.instance_id,
           instanceToken: activeInstance.api_key,
         },
@@ -365,7 +375,7 @@ export default function WhatsAppCentralPage() {
     },
   });
 
-  // Auto-select conversation from query param (e.g., from CRM)
+  // Auto-select conversation from query param
   useEffect(() => {
     const phoneParam = searchParams.get('phone');
     if (phoneParam && conversations && conversations.length > 0 && !selectedConversation) {
@@ -374,14 +384,13 @@ export default function WhatsAppCentralPage() {
       if (found) {
         setSelectedConversation(found);
         setActiveTab('chat');
-        // Clear param after selecting
         searchParams.delete('phone');
         setSearchParams(searchParams, { replace: true });
       }
     }
   }, [conversations, searchParams]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -392,13 +401,16 @@ export default function WhatsAppCentralPage() {
       .channel('whatsapp-messages-realtime')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'whatsapp_messages',
-        },
+        { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' },
         () => {
           queryClient.invalidateQueries({ queryKey: ['whatsapp-messages'] });
+          queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'whatsapp_conversations' },
+        () => {
           queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
         }
       )
@@ -408,6 +420,19 @@ export default function WhatsAppCentralPage() {
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
+
+  // Mark as read when selecting conversation
+  useEffect(() => {
+    if (selectedConversation && selectedConversation.unread_count && selectedConversation.unread_count > 0) {
+      supabase
+        .from('whatsapp_conversations')
+        .update({ unread_count: 0 })
+        .eq('id', selectedConversation.id)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
+        });
+    }
+  }, [selectedConversation?.id]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -428,6 +453,9 @@ export default function WhatsAppCentralPage() {
   const getMessageStatus = (msg: Message) => {
     if (msg.read_at) return { icon: CheckCheck, color: 'text-blue-500', label: 'Lido' };
     if (msg.delivered_at) return { icon: CheckCheck, color: 'text-muted-foreground', label: 'Entregue' };
+    if (msg.status === 'read') return { icon: CheckCheck, color: 'text-blue-500', label: 'Lido' };
+    if (msg.status === 'delivered') return { icon: CheckCheck, color: 'text-muted-foreground', label: 'Entregue' };
+    if (msg.status === 'failed') return { icon: AlertCircle, color: 'text-destructive', label: 'Falhou' };
     return { icon: Check, color: 'text-muted-foreground', label: 'Enviado' };
   };
 
@@ -446,6 +474,73 @@ export default function WhatsAppCentralPage() {
     queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
     queryClient.invalidateQueries({ queryKey: ['whatsapp-messages'] });
     setSelectedConversation(null);
+  };
+
+  const formatPhoneDisplay = (phone: string) => {
+    const p = phone.replace(/\D/g, '');
+    if (p.length === 13) return p.replace(/(\d{2})(\d{2})(\d{5})(\d{4})/, '+$1 ($2) $3-$4');
+    if (p.length === 12) return p.replace(/(\d{2})(\d{2})(\d{4})(\d{4})/, '+$1 ($2) $3-$4');
+    if (p.length === 11) return p.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    return phone;
+  };
+
+  const renderMediaContent = (msg: Message) => {
+    if (!msg.media_url) return null;
+    
+    switch (msg.message_type) {
+      case 'image':
+        return (
+          <img
+            src={msg.media_url}
+            alt="Imagem"
+            className="max-w-full rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => window.open(msg.media_url!, '_blank')}
+            loading="lazy"
+          />
+        );
+      case 'video':
+        return (
+          <video
+            src={msg.media_url}
+            controls
+            className="max-w-full rounded-lg mb-2"
+            preload="metadata"
+          />
+        );
+      case 'audio':
+        return (
+          <audio
+            src={msg.media_url}
+            controls
+            className="w-full mb-2"
+            preload="metadata"
+          />
+        );
+      case 'document':
+        return (
+          <a
+            href={msg.media_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 p-2 rounded bg-background/50 mb-2 hover:bg-background/80 transition-colors"
+          >
+            <FileText className="h-5 w-5" />
+            <span className="text-sm underline">{msg.caption || 'Documento'}</span>
+            <Download className="h-4 w-4 ml-auto" />
+          </a>
+        );
+      case 'sticker':
+        return (
+          <img
+            src={msg.media_url}
+            alt="Figurinha"
+            className="max-w-[150px] mb-2"
+            loading="lazy"
+          />
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -501,7 +596,7 @@ export default function WhatsAppCentralPage() {
                       <span className="max-w-[150px] truncate">{activeInstance?.name || 'Selecionar'}</span>
                       {activeInstance?.phone_number && (
                         <span className="text-muted-foreground text-xs">
-                          ({activeInstance.phone_number.replace(/(\d{2})(\d{2})(\d{5})(\d{4})/, '+$1 ($2) $3-$4')})
+                          ({formatPhoneDisplay(activeInstance.phone_number)})
                         </span>
                       )}
                     </Button>
@@ -522,7 +617,7 @@ export default function WhatsAppCentralPage() {
                           <div className="flex flex-col">
                             <span className="text-sm">{instance.name}</span>
                             {instance.phone_number && (
-                              <span className="text-xs text-muted-foreground">{instance.phone_number}</span>
+                              <span className="text-xs text-muted-foreground">{formatPhoneDisplay(instance.phone_number)}</span>
                             )}
                           </div>
                         </div>
@@ -563,11 +658,11 @@ export default function WhatsAppCentralPage() {
                   size="sm" 
                   onClick={handleSyncConversations}
                   disabled={isSyncing}
-                  title="Importar conversas do WhatsApp"
+                  title="Sincronizar tudo do WhatsApp (conversas, mensagens, avatares)"
                   className="gap-1"
                 >
-                  <History className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                  {isSyncing ? 'Sync...' : 'Sync'}
+                  <Download className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Sincronizando...' : 'Sync Completo'}
                 </Button>
               )}
             </div>
@@ -613,18 +708,19 @@ export default function WhatsAppCentralPage() {
                   </div>
                 ) : filteredConversations?.length === 0 ? (
                   <div className="text-center py-8 space-y-3">
+                    <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground/30" />
                     <p className="text-muted-foreground text-sm">
                       Nenhuma conversa encontrada
                     </p>
                     {activeInstance?.status === 'connected' && (
                       <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
                         onClick={handleSyncConversations}
                         disabled={isSyncing}
                         className="gap-2"
                       >
-                        <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                        <Download className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
                         {isSyncing ? 'Sincronizando...' : 'Importar do WhatsApp'}
                       </Button>
                     )}
@@ -640,18 +736,29 @@ export default function WhatsAppCentralPage() {
                         }`}
                       >
                         <div className="flex items-start gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarFallback className="bg-green-500/10 text-green-600">
-                              {conv.contact_name?.[0] || conv.phone_number.slice(-2)}
-                            </AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage 
+                                src={conv.avatar_url || undefined} 
+                                alt={conv.contact_name || conv.phone_number}
+                              />
+                              <AvatarFallback className="bg-green-500/10 text-green-600 text-sm">
+                                {conv.contact_name?.[0]?.toUpperCase() || conv.phone_number.slice(-2)}
+                              </AvatarFallback>
+                            </Avatar>
+                            {conv.unread_count && conv.unread_count > 0 && (
+                              <span className="absolute -top-1 -right-1 h-5 w-5 bg-green-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                                {conv.unread_count > 99 ? '99+' : conv.unread_count}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center justify-between mb-0.5">
                               <span className="font-medium text-sm truncate">
-                                {conv.contact_name || conv.phone_number}
+                                {conv.contact_name || formatPhoneDisplay(conv.phone_number)}
                               </span>
                               {conv.last_message_at && (
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
                                   {formatDistanceToNow(new Date(conv.last_message_at), { 
                                     addSuffix: false, 
                                     locale: ptBR 
@@ -659,19 +766,29 @@ export default function WhatsAppCentralPage() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {conv.last_message_preview || 'Sem mensagens'}
-                            </p>
+                            {conv.contact_name && (
+                              <p className="text-xs text-muted-foreground mb-0.5">
+                                {formatPhoneDisplay(conv.phone_number)}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-1">
+                              {conv.last_message_from === 'system' || conv.last_message_from === 'bot' ? (
+                                <CheckCheck className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                              ) : null}
+                              <p className="text-xs text-muted-foreground truncate">
+                                {conv.last_message_preview || 'Sem mensagens'}
+                              </p>
+                            </div>
                             <div className="flex items-center gap-1 mt-1">
-                              {conv.unread_count && conv.unread_count > 0 && (
-                                <Badge variant="default" className="h-5 text-xs">
-                                  {conv.unread_count}
+                              {conv.awaiting_response_type && (
+                                <Badge variant="outline" className="h-4 text-[10px] px-1 gap-0.5">
+                                  <Clock className="h-2.5 w-2.5" />
+                                  {conv.awaiting_response_type}
                                 </Badge>
                               )}
-                              {conv.awaiting_response_type && (
-                                <Badge variant="outline" className="h-5 text-xs gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {conv.awaiting_response_type}
+                              {conv.status === 'escalated' && (
+                                <Badge variant="destructive" className="h-4 text-[10px] px-1">
+                                  Escalado
                                 </Badge>
                               )}
                             </div>
@@ -692,17 +809,21 @@ export default function WhatsAppCentralPage() {
                   <div className="p-3 border-b flex items-center justify-between bg-background">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
+                        <AvatarImage 
+                          src={selectedConversation.avatar_url || undefined}
+                          alt={selectedConversation.contact_name || selectedConversation.phone_number}
+                        />
                         <AvatarFallback className="bg-green-500/10 text-green-600">
-                          {selectedConversation.contact_name?.[0] || selectedConversation.phone_number.slice(-2)}
+                          {selectedConversation.contact_name?.[0]?.toUpperCase() || selectedConversation.phone_number.slice(-2)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="font-medium">
-                          {selectedConversation.contact_name || selectedConversation.phone_number}
+                          {selectedConversation.contact_name || formatPhoneDisplay(selectedConversation.phone_number)}
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-2">
                           <Phone className="h-3 w-3" />
-                          {selectedConversation.phone_number}
+                          {formatPhoneDisplay(selectedConversation.phone_number)}
                           {context?.condominium && (
                             <>
                               <span>•</span>
@@ -715,6 +836,26 @@ export default function WhatsAppCentralPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(selectedConversation.status)}
+                      {/* Sync messages button */}
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={handleSyncMessages}
+                        title="Importar histórico de mensagens"
+                      >
+                        <History className="h-4 w-4" />
+                      </Button>
+                      {/* Fetch avatar button */}
+                      {!selectedConversation.avatar_url && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleFetchAvatar(selectedConversation)}
+                          title="Buscar foto do contato"
+                        >
+                          <ImageIcon className="h-4 w-4" />
+                        </Button>
+                      )}
                       {activeInstance && (
                         <ConversationActions
                           conversationId={selectedConversation.id}
@@ -732,8 +873,15 @@ export default function WhatsAppCentralPage() {
                         <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
                       </div>
                     ) : messages?.length === 0 ? (
-                      <div className="flex items-center justify-center h-full text-muted-foreground">
-                        Nenhuma mensagem ainda
+                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
+                        <MessageSquare className="h-10 w-10 opacity-30" />
+                        <p>Nenhuma mensagem ainda</p>
+                        {activeInstance?.status === 'connected' && (
+                          <Button variant="outline" size="sm" onClick={handleSyncMessages} className="gap-2">
+                            <Download className="h-4 w-4" />
+                            Importar Histórico
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -766,14 +914,20 @@ export default function WhatsAppCentralPage() {
                                       : 'bg-muted'
                                   }`}
                                 >
-                                  {msg.media_url && (
-                                    <img
-                                      src={msg.media_url}
-                                      alt="Mídia"
-                                      className="max-w-full rounded mb-2"
-                                    />
+                                  {/* Media content */}
+                                  {renderMediaContent(msg)}
+                                  
+                                  {/* Text content */}
+                                  {msg.content && msg.content !== '[Imagem]' && msg.content !== '[Áudio]' && msg.content !== '[Vídeo]' && msg.content !== '[Figurinha]' && msg.content !== '[Documento]' && msg.content !== '[Localização]' && msg.content !== '[Contato]' && (
+                                    <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                                   )}
-                                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                  
+                                  {/* Caption for media */}
+                                  {msg.caption && msg.caption !== msg.content && (
+                                    <p className="text-sm whitespace-pre-wrap break-words mt-1">{msg.caption}</p>
+                                  )}
+                                  
+                                  {/* Timestamp + status */}
                                   <div className={`flex items-center justify-end gap-1 mt-1 ${
                                     isOutbound ? 'text-white/70' : 'text-muted-foreground'
                                   }`}>
@@ -848,6 +1002,40 @@ export default function WhatsAppCentralPage() {
 
                   <ScrollArea className="flex-1">
                     <TabsContent value="context" className="m-0 p-3 space-y-4">
+                      {/* Contact Card */}
+                      <Card>
+                        <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+                          <Avatar className="h-20 w-20">
+                            <AvatarImage
+                              src={selectedConversation.avatar_url || undefined}
+                              alt={selectedConversation.contact_name || ''}
+                            />
+                            <AvatarFallback className="bg-green-500/10 text-green-600 text-2xl">
+                              {selectedConversation.contact_name?.[0]?.toUpperCase() || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-semibold">
+                              {selectedConversation.contact_name || 'Contato Desconhecido'}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatPhoneDisplay(selectedConversation.phone_number)}
+                            </p>
+                          </div>
+                          {!selectedConversation.avatar_url && activeInstance && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleFetchAvatar(selectedConversation)}
+                              className="gap-1 text-xs"
+                            >
+                              <ImageIcon className="h-3 w-3" />
+                              Buscar Foto
+                            </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+
                       {/* Unit Info */}
                       {context?.unit && (
                         <Card>
@@ -890,8 +1078,8 @@ export default function WhatsAppCentralPage() {
 
                       {/* No context */}
                       {!context?.unit && !context?.condominium && (
-                        <div className="text-center py-8 text-muted-foreground text-sm">
-                          <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <div className="text-center py-4 text-muted-foreground text-sm">
+                          <AlertCircle className="h-6 w-6 mx-auto mb-2 opacity-50" />
                           Contato não identificado no sistema
                         </div>
                       )}
@@ -904,7 +1092,7 @@ export default function WhatsAppCentralPage() {
                         </div>
                       ) : (
                         <>
-                          {/* Total do débito */}
+                          {/* Total */}
                           <Card className="border-destructive/30 bg-destructive/5">
                             <CardContent className="p-3">
                               <div className="flex items-center justify-between">
@@ -919,7 +1107,7 @@ export default function WhatsAppCentralPage() {
                             </CardContent>
                           </Card>
 
-                          {/* Quick send actions */}
+                          {/* Quick actions */}
                           <div className="flex gap-2">
                             <Button
                               size="sm"
@@ -1106,7 +1294,7 @@ export default function WhatsAppCentralPage() {
                                 )}
                               </div>
                               <p className="text-sm text-muted-foreground">
-                                {instance.phone_number || 'Número não conectado'}
+                                {instance.phone_number ? formatPhoneDisplay(instance.phone_number) : 'Número não conectado'}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
                                 <Badge variant="secondary" className="text-xs">
@@ -1147,14 +1335,12 @@ export default function WhatsAppCentralPage() {
                                   onClick={async () => {
                                     if (!confirm('Tem certeza que deseja excluir esta instância?')) return;
                                     try {
-                                      // Desconectar e excluir
                                       await supabase.functions.invoke('uazapi-connect', {
                                         body: {
                                           action: 'disconnect',
                                           instanceToken: instance.api_key,
                                         },
                                       });
-                                      // Remover do banco
                                       await supabase
                                         .from('uazapi_instances')
                                         .delete()
