@@ -11,15 +11,18 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSidebar } from '@/components/ui/sidebar';
 import { 
   MessageSquare, Search, Phone, Mail, Send, Paperclip, 
   FileText, Calculator, Clock, CheckCircle, AlertCircle,
   User, Building2, DollarSign, Bot, Zap, Play, Pause,
   RefreshCw, ChevronRight, ArrowRight, Brain, Sparkles,
   Upload, Eye, FileImage, Download, Image as ImageIcon,
-  CheckCheck, Check, Video, Music, UserPlus, Target
+  CheckCheck, Check, Video, Music, UserPlus, Target,
+  ArrowDownCircle, Link2
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import RegisterContactDialog from '@/components/RegisterContactDialog';
@@ -74,6 +77,7 @@ interface AgentAction {
 
 const AtendimentoPage = () => {
   const { toast } = useToast();
+  const { setOpen } = useSidebar();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -87,6 +91,20 @@ const AtendimentoPage = () => {
   const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
   const [expandedChargeId, setExpandedChargeId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const boletoInputRef = useRef<HTMLInputElement>(null);
+  const [suggestedUnits, setSuggestedUnits] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [baixaDialogOpen, setBaixaDialogOpen] = useState(false);
+  const [baixaChargeId, setBaixaChargeId] = useState<string | null>(null);
+  const [baixaPaymentDate, setBaixaPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [baixaNotes, setBaixaNotes] = useState('');
+  const [uploadingBoleto, setUploadingBoleto] = useState(false);
+  const [uploadChargeId, setUploadChargeId] = useState<string | null>(null);
+
+  // Auto-collapse sidebar when entering Atendimento
+  useEffect(() => {
+    setOpen(false);
+  }, []);
 
   useEffect(() => {
     loadConversations();
@@ -380,7 +398,117 @@ const AtendimentoPage = () => {
     }
   };
 
-  const applyWorkflow = async () => {
+  // Smart contact suggestion - match contact_name to units owner_name
+  const findSuggestedUnits = async (contactName: string | null) => {
+    if (!contactName || contactName.length < 3) {
+      setSuggestedUnits([]);
+      return;
+    }
+    const { data } = await supabase
+      .from('units')
+      .select('id, unit_number, owner_name, owner_phone, condominium_id, condominiums(name)')
+      .or(`owner_name.ilike.%${contactName}%,owner_phone.ilike.%${contactName}%`)
+      .limit(5);
+    setSuggestedUnits(data || []);
+    if (data && data.length > 0) setShowSuggestions(true);
+  };
+
+  // When selecting a conversation without unit_id, try to find suggestions
+  useEffect(() => {
+    if (selectedConversation && !selectedConversation.unit_id) {
+      findSuggestedUnits(selectedConversation.contact_name);
+    } else {
+      setShowSuggestions(false);
+      setSuggestedUnits([]);
+    }
+  }, [selectedConversation?.id]);
+
+  const linkSuggestedUnit = async (unitId: string, condoId: string) => {
+    if (!selectedConversation) return;
+    await supabase
+      .from('whatsapp_conversations')
+      .update({ unit_id: unitId, condominium_id: condoId })
+      .eq('id', selectedConversation.id);
+    toast({ title: 'Contato vinculado!', description: 'Unidade associada com sucesso.' });
+    setShowSuggestions(false);
+    loadConversations();
+  };
+
+  // Dar baixa (confirm payment)
+  const handleDarBaixa = async () => {
+    if (!baixaChargeId) return;
+    setSending(true);
+    try {
+      const { error } = await supabase
+        .from('charges')
+        .update({
+          status: 'paid' as any,
+          payment_date: baixaPaymentDate,
+        })
+        .eq('id', baixaChargeId);
+      if (error) throw error;
+
+      // Add timeline entry
+      await supabase.from('charge_timeline').insert({
+        charge_id: baixaChargeId,
+        event_type: 'payment_confirmed',
+        event_data: {
+          payment_date: baixaPaymentDate,
+          notes: baixaNotes,
+          confirmed_via: 'atendimento_crm',
+        },
+      });
+
+      toast({ title: 'Baixa realizada!', description: 'Pagamento confirmado com sucesso.' });
+      setBaixaDialogOpen(false);
+      setBaixaChargeId(null);
+      setBaixaNotes('');
+      loadConversations();
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Upload boleto and link to charge
+  const handleBoletoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadChargeId) return;
+    setUploadingBoleto(true);
+    try {
+      const fileName = `${uploadChargeId}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('boletos')
+        .upload(fileName, file);
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('boletos')
+        .getPublicUrl(fileName);
+
+      await supabase
+        .from('charges')
+        .update({ boleto_url: urlData.publicUrl })
+        .eq('id', uploadChargeId);
+
+      await supabase.from('charge_timeline').insert({
+        charge_id: uploadChargeId,
+        event_type: 'boleto_attached',
+        event_data: { file_name: file.name, url: urlData.publicUrl },
+      });
+
+      toast({ title: 'Boleto anexado!', description: `${file.name} vinculado à cobrança.` });
+      setUploadChargeId(null);
+      loadConversations();
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    } finally {
+      setUploadingBoleto(false);
+      if (boletoInputRef.current) boletoInputRef.current.value = '';
+    }
+  };
+
     if (!selectedConversation) return;
 
     const pendingCharge = selectedConversation.charges?.find(c => c.status === 'pending' || c.status === 'overdue');
@@ -660,6 +788,33 @@ const AtendimentoPage = () => {
                 </Button>
               </div>
             </div>
+
+            {/* Smart Suggestion Banner */}
+            {showSuggestions && suggestedUnits.length > 0 && (
+              <div className="px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
+                <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-1.5 flex items-center gap-1">
+                  <Target className="h-3 w-3" />
+                  Possível correspondência encontrada:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {suggestedUnits.map((u: any) => (
+                    <Button
+                      key={u.id}
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs gap-1 border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                      onClick={() => linkSuggestedUnit(u.id, u.condominium_id)}
+                    >
+                      <Link2 className="h-3 w-3" />
+                      {(u.condominiums as any)?.name} - Un. {u.unit_number} ({u.owner_name})
+                    </Button>
+                  ))}
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowSuggestions(false)}>
+                    Ignorar
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Mensagens */}
             <ScrollArea className="flex-1 p-4">
@@ -1054,11 +1209,11 @@ const AtendimentoPage = () => {
                       <p className="text-xs text-muted-foreground">
                         Venc: {new Date(charge.due_date).toLocaleDateString('pt-BR')}
                       </p>
-                      <div className="flex gap-2 mt-2">
+                      <div className="grid grid-cols-2 gap-1.5 mt-2">
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          className="text-xs h-7 flex-1"
+                          className="text-xs h-7"
                           onClick={() => sendBoletoForCharge(charge.id)}
                           disabled={sending}
                         >
@@ -1068,11 +1223,36 @@ const AtendimentoPage = () => {
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          className="text-xs h-7 flex-1"
+                          className="text-xs h-7"
+                          onClick={() => {
+                            setUploadChargeId(charge.id);
+                            boletoInputRef.current?.click();
+                          }}
+                          disabled={uploadingBoleto}
+                        >
+                          <Upload className="h-3 w-3 mr-1" />
+                          Anexar Boleto
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-xs h-7"
                           onClick={() => setExpandedChargeId(expandedChargeId === charge.id ? null : charge.id)}
                         >
                           <Eye className="h-3 w-3 mr-1" />
                           Detalhes
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="default" 
+                          className="text-xs h-7"
+                          onClick={() => {
+                            setBaixaChargeId(charge.id);
+                            setBaixaDialogOpen(true);
+                          }}
+                        >
+                          <ArrowDownCircle className="h-3 w-3 mr-1" />
+                          Dar Baixa
                         </Button>
                       </div>
                       {expandedChargeId === charge.id && (
@@ -1113,6 +1293,56 @@ const AtendimentoPage = () => {
           }}
         />
       )}
+
+      {/* Hidden boleto upload input */}
+      <input
+        ref={boletoInputRef}
+        type="file"
+        className="hidden"
+        accept=".pdf,image/*"
+        onChange={handleBoletoUpload}
+      />
+
+      {/* Dar Baixa Dialog */}
+      <Dialog open={baixaDialogOpen} onOpenChange={setBaixaDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowDownCircle className="h-5 w-5" />
+              Confirmar Pagamento
+            </DialogTitle>
+            <DialogDescription>
+              Informe a data do pagamento para dar baixa nesta cobrança.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-sm">Data do Pagamento</Label>
+              <Input
+                type="date"
+                value={baixaPaymentDate}
+                onChange={(e) => setBaixaPaymentDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-sm">Observações (opcional)</Label>
+              <Textarea
+                placeholder="Ex: Pago via PIX, comprovante recebido..."
+                value={baixaNotes}
+                onChange={(e) => setBaixaNotes(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBaixaDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleDarBaixa} disabled={sending}>
+              {sending ? <RefreshCw className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+              Confirmar Baixa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
