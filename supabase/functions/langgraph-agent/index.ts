@@ -39,6 +39,18 @@ Deno.serve(async (req) => {
     // 1. Buscar contexto da conversa
     const context = await gatherContext(supabase, conversationId, phone);
 
+    // Check if this is a SYSTEM_ACTION (triggered by operator buttons)
+    const systemActionMatch = message.match(/^\[SYSTEM_ACTION:(\w+)\]$/);
+    if (systemActionMatch) {
+      const actionType = systemActionMatch[1];
+      console.log(`⚡ System action detected: ${actionType}`);
+      const result = await handleSystemAction(supabase, context, actionType, conversationId);
+      return new Response(
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
     // 2. Identificar intenção usando Lovable AI com scoring e pipeline
     const intent = await identifyIntentWithScoring(message, context);
 
@@ -209,6 +221,152 @@ function determineNewPipelineStage(intent: any, currentStage: string): string {
   }
   
   return currentStage;
+}
+
+// Handle SYSTEM_ACTION commands from operator buttons
+async function handleSystemAction(
+  supabase: any,
+  context: ConversationContext,
+  actionType: string,
+  conversationId: string
+) {
+  console.log(`⚡ Handling system action: ${actionType}`);
+
+  switch (actionType) {
+    case 'calculate_fees': {
+      if (context.charges.length === 0) {
+        return { success: true, action: 'calculate_fees', result: { error: 'Nenhuma cobrança pendente encontrada.' } };
+      }
+      const charge = context.charges[0];
+      const today = new Date();
+      const dueDate = new Date(charge.due_date);
+      const daysLate = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+      const principal = parseFloat(charge.amount);
+      const fineRate = parseFloat(charge.fees_rate || 2) / 100;
+      const interestRate = parseFloat(charge.interest_rate || 1) / 100;
+      const fineAmount = daysLate > 0 ? principal * fineRate : 0;
+      const monthsLate = Math.max(1, Math.ceil(daysLate / 30));
+      const interestAmount = daysLate > 0 ? principal * interestRate * monthsLate : 0;
+      const totalAmount = principal + fineAmount + interestAmount;
+
+      // Update charge with calculated fees
+      await supabase
+        .from('charges')
+        .update({
+          fine_amount: fineAmount,
+          interest_amount: interestAmount,
+          total_with_fees: totalAmount,
+        })
+        .eq('id', charge.id);
+
+      return {
+        success: true,
+        action: 'calculate_fees',
+        result: {
+          chargeId: charge.id,
+          principal,
+          daysLate,
+          monthsLate,
+          fineRate: fineRate * 100,
+          interestRate: interestRate * 100,
+          fineAmount: Number(fineAmount.toFixed(2)),
+          interestAmount: Number(interestAmount.toFixed(2)),
+          totalAmount: Number(totalAmount.toFixed(2)),
+          dueDate: charge.due_date,
+          referenceMonth: charge.reference_month,
+        },
+      };
+    }
+
+    case 'send_boleto': {
+      if (context.charges.length === 0) {
+        return { success: true, action: 'send_boleto', result: { error: 'Nenhuma cobrança pendente.' } };
+      }
+      const charge = context.charges[0];
+      // Create boleto request
+      await supabase.from('boleto_requests').insert({
+        charge_id: charge.id,
+        conversation_id: conversationId,
+        requested_by: 'operator',
+        status: 'pending',
+      });
+
+      // Send notification via WhatsApp
+      const totalAmount = parseFloat(charge.total_with_fees || charge.amount);
+      const msg = `📄 *Cobrança - ${context.unit?.condominiums?.name || ''}*\n\n📍 Unidade: ${context.unit?.unit_number || 'N/D'}\n💰 Valor: R$ ${totalAmount.toFixed(2)}\n📅 Vencimento: ${new Date(charge.due_date).toLocaleDateString('pt-BR')}\n${charge.boleto_url ? `\n🔗 Boleto: ${charge.boleto_url}` : ''}${charge.pix_code ? `\n📱 PIX: ${charge.pix_code}` : ''}\n\nDúvidas? Estamos à disposição!`;
+
+      await sendWhatsAppMessage(supabase, conversationId, context.conversation.phone_number, msg);
+
+      return {
+        success: true,
+        action: 'send_boleto',
+        result: {
+          chargeId: charge.id,
+          amount: totalAmount,
+          sent: true,
+          hasBoleto: !!charge.boleto_url,
+          hasPix: !!charge.pix_code,
+        },
+      };
+    }
+
+    case 'propose_negotiation': {
+      if (context.charges.length === 0) {
+        return { success: true, action: 'propose_negotiation', result: { error: 'Nenhuma cobrança pendente.' } };
+      }
+
+      const { data: params } = await supabase.from('negotiation_parameters').select('*');
+      const paramMap: Record<string, string> = {};
+      params?.forEach((p: any) => { paramMap[p.parameter_key] = p.parameter_value; });
+
+      const maxDiscount = parseFloat(paramMap['max_discount'] || '10');
+      const maxInstallments = parseInt(paramMap['max_installments'] || '6');
+      const totalDebt = context.charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+      const discountPercent = Math.min(5, maxDiscount);
+      const discountedAmount = totalDebt * (1 - discountPercent / 100);
+
+      // Send proposal via WhatsApp
+      const proposalMsg = `💰 *Proposta de Negociação*\n\n📋 Débito total: R$ ${totalDebt.toFixed(2)}\n💵 Com desconto (${discountPercent}%): R$ ${discountedAmount.toFixed(2)}\n📊 Até ${maxInstallments}x de R$ ${(discountedAmount / maxInstallments).toFixed(2)}\n\nDeseja negociar? Responda *SIM* para prosseguir.`;
+
+      await sendWhatsAppMessage(supabase, conversationId, context.conversation.phone_number, proposalMsg);
+
+      return {
+        success: true,
+        action: 'propose_negotiation',
+        result: {
+          totalDebt: Number(totalDebt.toFixed(2)),
+          discountPercent,
+          discountedAmount: Number(discountedAmount.toFixed(2)),
+          maxInstallments,
+          installmentValue: Number((discountedAmount / maxInstallments).toFixed(2)),
+          sent: true,
+        },
+      };
+    }
+
+    case 'request_proof': {
+      const msg = `📎 Por favor, envie o comprovante de pagamento (foto ou PDF) para que possamos confirmar a quitação.\n\n🕐 Aguardando seu comprovante...`;
+      await sendWhatsAppMessage(supabase, conversationId, context.conversation.phone_number, msg);
+
+      await supabase.from('whatsapp_conversations').update({
+        status: 'waiting_proof',
+        awaiting_response_type: 'proof',
+      }).eq('id', conversationId);
+
+      return { success: true, action: 'request_proof', result: { sent: true } };
+    }
+
+    case 'escalate_human': {
+      const result = await handleRequestHuman(supabase, context, { type: 'request_human', confidence: 1.0, entities: {} });
+      const msg = `🧑 Um de nossos atendentes irá assumir esta conversa em breve. Por favor, aguarde.\n\nObrigado pela paciência! 🙏`;
+      await sendWhatsAppMessage(supabase, conversationId, context.conversation.phone_number, msg);
+
+      return { success: true, action: 'escalate_human', result: { escalated: true } };
+    }
+
+    default:
+      return { success: false, action: actionType, result: { error: `Ação desconhecida: ${actionType}` } };
+  }
 }
 
 // Buscar contexto da conversa
