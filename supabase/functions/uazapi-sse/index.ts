@@ -8,7 +8,7 @@ const corsHeaders = {
 const UAZAPI_SERVER_URL = Deno.env.get("UAZAPI_SERVER_URL") || "https://appnow.uazapi.com";
 
 interface SSERequest {
-  action: "sync_chats" | "sync_messages" | "fetch_profile_picture" | "sync_all";
+  action: "sync_chats" | "sync_messages" | "fetch_profile_picture" | "sync_all" | "link_contacts";
   instanceToken: string;
   phone?: string;
   limit?: number;
@@ -84,12 +84,21 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Auto-link contacts to units/charges/condominiums
+        const linkResult = await linkContactsInternal(supabase);
+
         return jsonResponse({
           success: true,
           chats: chatResult,
           messagesImported: totalMsgsImported,
           avatarsUpdated,
+          linked: linkResult,
         });
+      }
+
+      case "link_contacts": {
+        const result = await linkContactsInternal(supabase);
+        return jsonResponse(result);
       }
 
       default:
@@ -350,6 +359,114 @@ async function fetchAvatarUrl(token: string, phone: string): Promise<string | nu
     console.error(`[UAZAPI Sync] Error fetching avatar for ${phone}:`, err);
     return null;
   }
+}
+
+// ========== LINK CONTACTS ==========
+async function linkContactsInternal(supabase: any) {
+  // Get all conversations without unit_id
+  const { data: unlinkedConvs } = await supabase
+    .from("whatsapp_conversations")
+    .select("id, phone_number, contact_name")
+    .is("unit_id", null)
+    .order("last_message_at", { ascending: false });
+
+  if (!unlinkedConvs || unlinkedConvs.length === 0) {
+    return { success: true, linked: 0, total: 0 };
+  }
+
+  // Get all units with phone numbers
+  const { data: units } = await supabase
+    .from("units")
+    .select("id, owner_phone, tenant_phone, owner_name, tenant_name, unit_number, block, tower, condominium_id");
+
+  if (!units || units.length === 0) {
+    return { success: true, linked: 0, total: unlinkedConvs.length, message: "Nenhuma unidade cadastrada com telefone" };
+  }
+
+  // Build phone -> unit map (normalize phones to digits only)
+  const phoneToUnit = new Map<string, any>();
+  for (const unit of units) {
+    if (unit.owner_phone) {
+      const normalized = normalizePhone(unit.owner_phone);
+      if (normalized) phoneToUnit.set(normalized, unit);
+    }
+    if (unit.tenant_phone) {
+      const normalized = normalizePhone(unit.tenant_phone);
+      if (normalized) phoneToUnit.set(normalized, unit);
+    }
+  }
+
+  let linkedCount = 0;
+
+  for (const conv of unlinkedConvs) {
+    const convPhone = normalizePhone(conv.phone_number);
+    if (!convPhone) continue;
+
+    // Try exact match first
+    let matchedUnit = phoneToUnit.get(convPhone);
+
+    // Try without country code (55)
+    if (!matchedUnit && convPhone.startsWith("55")) {
+      matchedUnit = phoneToUnit.get(convPhone.substring(2));
+    }
+
+    // Try adding country code
+    if (!matchedUnit && !convPhone.startsWith("55")) {
+      matchedUnit = phoneToUnit.get("55" + convPhone);
+    }
+
+    // Try last 8-9 digits matching
+    if (!matchedUnit && convPhone.length >= 8) {
+      const suffix = convPhone.slice(-9);
+      for (const [phone, unit] of phoneToUnit.entries()) {
+        if (phone.endsWith(suffix)) {
+          matchedUnit = unit;
+          break;
+        }
+      }
+    }
+
+    if (matchedUnit) {
+      // Get pending charges for this unit
+      const { data: charges } = await supabase
+        .from("charges")
+        .select("id")
+        .eq("unit_id", matchedUnit.id)
+        .neq("status", "paid")
+        .order("due_date", { ascending: true })
+        .limit(1);
+
+      const updates: Record<string, unknown> = {
+        unit_id: matchedUnit.id,
+        condominium_id: matchedUnit.condominium_id,
+      };
+
+      if (charges && charges.length > 0) {
+        updates.charge_id = charges[0].id;
+      }
+
+      // Update contact_name with owner/tenant name if not set
+      if (!conv.contact_name || conv.contact_name === conv.phone_number) {
+        updates.contact_name = matchedUnit.tenant_name || matchedUnit.owner_name || conv.contact_name;
+      }
+
+      const { error } = await supabase
+        .from("whatsapp_conversations")
+        .update(updates)
+        .eq("id", conv.id);
+
+      if (!error) linkedCount++;
+      else console.error(`[Link] Error linking ${conv.phone_number}:`, JSON.stringify(error));
+    }
+  }
+
+  console.log(`[UAZAPI Link] Linked ${linkedCount}/${unlinkedConvs.length} conversations`);
+  return { success: true, linked: linkedCount, total: unlinkedConvs.length };
+}
+
+function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 8 ? digits : "";
 }
 
 // ========== HELPERS ==========
