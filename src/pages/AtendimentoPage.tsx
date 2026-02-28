@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -17,7 +17,8 @@ import {
   FileText, Calculator, Clock, CheckCircle, AlertCircle,
   User, Building2, DollarSign, Bot, Zap, Play, Pause,
   RefreshCw, ChevronRight, ArrowRight, Brain, Sparkles,
-  Upload, Eye, FileImage
+  Upload, Eye, FileImage, Download, Image as ImageIcon,
+  CheckCheck, Check, Video, Music
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 
@@ -30,6 +31,7 @@ interface Conversation {
   status: string;
   unread_count: number;
   unit_id: string | null;
+  avatar_url: string | null;
   unit?: {
     unit_number: string;
     owner_name: string | null;
@@ -55,6 +57,7 @@ interface Message {
   message_type: string;
   status: string;
   media_url: string | null;
+  caption: string | null;
   sender_phone: string | null;
 }
 
@@ -133,6 +136,7 @@ const AtendimentoPage = () => {
           status,
           unread_count,
           unit_id,
+          avatar_url,
           units (
             unit_number,
             owner_name,
@@ -471,6 +475,7 @@ const AtendimentoPage = () => {
                 <div className="flex items-start gap-3">
                   <div className="relative">
                     <Avatar className="h-10 w-10">
+                      <AvatarImage src={conv.avatar_url || undefined} alt={conv.contact_name || ''} />
                       <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                         {conv.contact_name?.[0] || conv.phone_number?.[0] || '?'}
                       </AvatarFallback>
@@ -524,6 +529,7 @@ const AtendimentoPage = () => {
             <div className="p-4 bg-card border-b flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
+                  <AvatarImage src={selectedConversation.avatar_url || undefined} alt={selectedConversation.contact_name || ''} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {selectedConversation.contact_name?.[0] || selectedConversation.phone_number?.[0]}
                   </AvatarFallback>
@@ -560,59 +566,114 @@ const AtendimentoPage = () => {
 
             {/* Mensagens */}
             <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4 max-w-3xl mx-auto">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
-                  >
+              <div className="space-y-3 max-w-3xl mx-auto">
+                {messages.map((msg) => {
+                  const isOutbound = msg.direction === 'outbound';
+                  const isMediaPlaceholder = ['[Imagem]', '[Áudio]', '[Vídeo]', '[Figurinha]', '[Documento]', '[Localização]', '[Contato]', '[mídia]'].includes(msg.content || '');
+                  
+                  return (
                     <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
-                        msg.direction === 'outbound'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
+                      key={msg.id}
+                      className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}
                     >
-                      {msg.message_type === 'image' && msg.media_url && (
-                        <div className="mb-2">
+                      <div
+                        className={`max-w-[70%] rounded-lg p-3 ${
+                          isOutbound
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        {/* Image */}
+                        {msg.message_type === 'image' && msg.media_url && (
                           <img 
                             src={msg.media_url} 
                             alt="Imagem" 
-                            className="max-w-full rounded cursor-pointer hover:opacity-90"
+                            className="max-w-full rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() => window.open(msg.media_url!, '_blank')}
+                            loading="lazy"
                           />
-                        </div>
-                      )}
-                      {msg.message_type === 'document' && msg.media_url && (
-                        <a 
-                          href={msg.media_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm underline mb-2"
-                        >
-                          <FileText className="h-4 w-4" />
-                          Ver documento
-                        </a>
-                      )}
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                      <div className={`flex items-center gap-1 text-xs mt-1 ${
-                        msg.direction === 'outbound' ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                      }`}>
-                        <span>
-                          {new Date(msg.created_at).toLocaleTimeString('pt-BR', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </span>
-                        {msg.direction === 'outbound' && (
-                          <span className="ml-1">
-                            {msg.status === 'read' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : '✓'}
-                          </span>
                         )}
+
+                        {/* Video */}
+                        {msg.message_type === 'video' && msg.media_url && (
+                          <video
+                            src={msg.media_url}
+                            controls
+                            className="max-w-full rounded-lg mb-2"
+                            preload="metadata"
+                          />
+                        )}
+
+                        {/* Audio */}
+                        {msg.message_type === 'audio' && msg.media_url && (
+                          <audio
+                            src={msg.media_url}
+                            controls
+                            className="w-full mb-2"
+                            preload="metadata"
+                          />
+                        )}
+
+                        {/* Document */}
+                        {msg.message_type === 'document' && msg.media_url && (
+                          <a 
+                            href={msg.media_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-2 rounded bg-background/50 mb-2 hover:bg-background/80 transition-colors"
+                          >
+                            <FileText className="h-5 w-5 flex-shrink-0" />
+                            <span className="text-sm underline truncate">{msg.caption || 'Documento'}</span>
+                            <Download className="h-4 w-4 ml-auto flex-shrink-0" />
+                          </a>
+                        )}
+
+                        {/* Sticker */}
+                        {msg.message_type === 'sticker' && msg.media_url && (
+                          <img
+                            src={msg.media_url}
+                            alt="Figurinha"
+                            className="max-w-[150px] mb-2"
+                            loading="lazy"
+                          />
+                        )}
+
+                        {/* Text content (skip media placeholders) */}
+                        {msg.content && !isMediaPlaceholder && (
+                          <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                        )}
+
+                        {/* Caption for media */}
+                        {msg.caption && msg.caption !== msg.content && (
+                          <p className="text-sm whitespace-pre-wrap break-words mt-1">{msg.caption}</p>
+                        )}
+
+                        {/* Timestamp + status */}
+                        <div className={`flex items-center justify-end gap-1 text-xs mt-1 ${
+                          isOutbound ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                        }`}>
+                          <span>
+                            {new Date(msg.created_at).toLocaleTimeString('pt-BR', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                          {isOutbound && (
+                            msg.status === 'read' ? (
+                              <CheckCheck className="h-3 w-3 text-blue-400" />
+                            ) : msg.status === 'delivered' ? (
+                              <CheckCheck className="h-3 w-3" />
+                            ) : msg.status === 'failed' ? (
+                              <AlertCircle className="h-3 w-3 text-destructive" />
+                            ) : (
+                              <Check className="h-3 w-3" />
+                            )
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
