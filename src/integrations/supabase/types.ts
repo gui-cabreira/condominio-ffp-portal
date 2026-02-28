@@ -2650,6 +2650,7 @@ export type Database = {
           ai_intent_confidence: number | null
           ai_recovery_score: number | null
           assigned_to: string | null
+          avatar_url: string | null
           awaiting_response_type: string | null
           charge_id: string | null
           condominium_id: string | null
@@ -2673,6 +2674,7 @@ export type Database = {
           ai_intent_confidence?: number | null
           ai_recovery_score?: number | null
           assigned_to?: string | null
+          avatar_url?: string | null
           awaiting_response_type?: string | null
           charge_id?: string | null
           condominium_id?: string | null
@@ -2696,6 +2698,7 @@ export type Database = {
           ai_intent_confidence?: number | null
           ai_recovery_score?: number | null
           assigned_to?: string | null
+          avatar_url?: string | null
           awaiting_response_type?: string | null
           charge_id?: string | null
           condominium_id?: string | null
