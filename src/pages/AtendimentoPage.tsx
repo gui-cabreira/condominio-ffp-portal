@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -18,9 +19,10 @@ import {
   User, Building2, DollarSign, Bot, Zap, Play, Pause,
   RefreshCw, ChevronRight, ArrowRight, Brain, Sparkles,
   Upload, Eye, FileImage, Download, Image as ImageIcon,
-  CheckCheck, Check, Video, Music
+  CheckCheck, Check, Video, Music, UserPlus, Target
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
+import RegisterContactDialog from '@/components/RegisterContactDialog';
 
 interface Conversation {
   id: string;
@@ -32,6 +34,8 @@ interface Conversation {
   unread_count: number;
   unit_id: string | null;
   avatar_url: string | null;
+  ai_intent: string | null;
+  ai_intent_confidence: number | null;
   unit?: {
     unit_number: string;
     owner_name: string | null;
@@ -80,6 +84,7 @@ const AtendimentoPage = () => {
   const [sending, setSending] = useState(false);
   const [agentActive, setAgentActive] = useState(true);
   const [agentThinking, setAgentThinking] = useState(false);
+  const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
 
   useEffect(() => {
     loadConversations();
@@ -137,6 +142,8 @@ const AtendimentoPage = () => {
           unread_count,
           unit_id,
           avatar_url,
+          ai_intent,
+          ai_intent_confidence,
           units (
             unit_number,
             owner_name,
@@ -416,8 +423,22 @@ const AtendimentoPage = () => {
       case 'waiting': case 'waiting_proof': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
       case 'resolved': case 'closed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       case 'escalated': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+      default: return 'bg-muted text-muted-foreground';
     }
+  };
+
+  const getIntentLabel = (intent: string | null) => {
+    if (!intent) return null;
+    const map: Record<string, { label: string; color: string }> = {
+      'quer_boleto': { label: '📄 Quer Boleto', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
+      'negociacao': { label: '🤝 Negociação', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+      'esclarecimento': { label: '❓ Dúvida', color: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300' },
+      'comprovante': { label: '🧾 Comprovante', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
+      'reclamacao': { label: '⚠️ Reclamação', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+      'saudacao': { label: '👋 Saudação', color: 'bg-muted text-muted-foreground' },
+      'pagamento': { label: '💰 Pagamento', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
+    };
+    return map[intent] || { label: `🔹 ${intent}`, color: 'bg-muted text-muted-foreground' };
   };
 
   const agentActions: AgentAction[] = [
@@ -505,13 +526,26 @@ const AtendimentoPage = () => {
                     <p className="text-xs text-muted-foreground truncate">
                       {conv.last_message_preview || 'Sem mensagens'}
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge className={`text-xs ${getStatusColor(conv.status)}`}>
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(conv.status)}`}>
                         {conv.status}
                       </Badge>
+                      {conv.ai_intent && (() => {
+                        const intentInfo = getIntentLabel(conv.ai_intent);
+                        return intentInfo ? (
+                          <Badge className={`text-[10px] px-1.5 py-0 ${intentInfo.color}`}>
+                            {intentInfo.label}
+                          </Badge>
+                        ) : null;
+                      })()}
                       {conv.charges && conv.charges.length > 0 && (
-                        <Badge variant="outline" className="text-xs text-destructive border-destructive/30">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-destructive border-destructive/30">
                           {formatCurrency(conv.charges.reduce((s, c) => s + Number(c.amount), 0))}
+                        </Badge>
+                      )}
+                      {!conv.unit_id && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-dashed">
+                          Não vinculado
                         </Badge>
                       )}
                     </div>
@@ -727,6 +761,16 @@ const AtendimentoPage = () => {
               >
                 <Play className="h-4 w-4" />
                 Aplicar Workflow
+              </Button>
+              <Separator orientation="vertical" className="h-6" />
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="shrink-0 gap-1.5 font-medium shadow-sm hover:shadow-md transition-shadow"
+                onClick={() => setRegisterDialogOpen(true)}
+              >
+                <UserPlus className="h-4 w-4" />
+                Cadastrar
               </Button>
             </div>
 
@@ -963,6 +1007,22 @@ const AtendimentoPage = () => {
             </TabsContent>
           </Tabs>
         </div>
+      )}
+      {selectedConversation && (
+        <RegisterContactDialog
+          open={registerDialogOpen}
+          onOpenChange={setRegisterDialogOpen}
+          conversationId={selectedConversation.id}
+          phoneNumber={selectedConversation.phone_number}
+          contactName={selectedConversation.contact_name}
+          onComplete={() => {
+            loadConversations();
+            if (selectedConversation) {
+              // Reload the selected conversation
+              loadConversations();
+            }
+          }}
+        />
       )}
     </div>
   );
