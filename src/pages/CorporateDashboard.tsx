@@ -1,411 +1,458 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { LogOut, FileText, DollarSign, Users, Calendar, Search, Plus, Filter, Building2, Settings, BarChart3, TrendingUp, AlertTriangle, Clock, RefreshCw, Zap, Upload, UserPlus } from 'lucide-react';
+import { 
+  FileText, DollarSign, Users, Building2, TrendingUp, 
+  AlertTriangle, Clock, MessageSquare, ArrowRight, 
+  CalendarClock, Phone, ChevronRight, Zap, Bell, 
+  CheckCircle, XCircle, BarChart3
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, ComposedChart } from 'recharts';
-import StatisticsAgent from '@/components/StatisticsAgent';
-import WeeklyReports from '@/components/WeeklyReports';
-import { useDashboardStats, useCondominiums, useMonthlyData, useStatusData, useCommunicationData, useWeeklyPerformance, useConversionFunnel } from '@/hooks/useDashboardData';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/lib/formatters';
+import { useDashboardStats, useCondominiums, useMonthlyData, useStatusData } from '@/hooks/useDashboardData';
+import { cn } from '@/lib/utils';
+
+// Hook: cobranças vencidas urgentes
+function useOverdueCharges() {
+  return useQuery({
+    queryKey: ['overdue-charges-dashboard'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('charges')
+        .select('id, amount, due_date, description, reference_month, unit_id, units(unit_number, owner_name, condominiums(name))')
+        .eq('status', 'overdue')
+        .order('due_date', { ascending: true })
+        .limit(10);
+      return data || [];
+    },
+  });
+}
+
+// Hook: últimas conversas WhatsApp com atividade
+function useRecentConversations() {
+  return useQuery({
+    queryKey: ['recent-conversations-dashboard'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('whatsapp_conversations')
+        .select('id, phone_number, contact_name, last_message_preview, last_message_at, unread_count, ai_intent, status')
+        .order('last_message_at', { ascending: false })
+        .limit(8);
+      return data || [];
+    },
+  });
+}
+
+// Hook: notificações recentes do usuário
+function useRecentNotifications(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['recent-notifications-dashboard', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId!)
+        .eq('read', false)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      return data || [];
+    },
+  });
+}
+
+function formatTimeAgo(dateStr: string | null) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Agora';
+  if (mins < 60) return `${mins}min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+}
+
+function getDaysOverdue(dueDateStr: string) {
+  const due = new Date(dueDateStr);
+  const now = new Date();
+  return Math.max(0, Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+function getIntentBadge(intent: string | null) {
+  switch (intent) {
+    case 'boleto_request': return { label: '📄 Boleto', variant: 'default' as const };
+    case 'negotiation': return { label: '🤝 Acordo', variant: 'secondary' as const };
+    case 'payment_proof': return { label: '🧾 Comprovante', variant: 'outline' as const };
+    case 'complaint': return { label: '😤 Reclamação', variant: 'destructive' as const };
+    default: return null;
+  }
+}
 
 const CorporateDashboard = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Buscar dados reais
+  const { user } = useAuth();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: condominiums, isLoading: condosLoading } = useCondominiums();
-  const { data: monthlyData, isLoading: monthlyLoading } = useMonthlyData();
-  const { data: statusData, isLoading: statusLoading } = useStatusData();
-  const { data: communicationData, isLoading: commLoading } = useCommunicationData();
-  const { data: weeklyPerformanceData, isLoading: weeklyLoading } = useWeeklyPerformance();
-  const { data: conversionFunnelData, isLoading: funnelLoading } = useConversionFunnel();
+  const { data: monthlyData } = useMonthlyData();
+  const { data: statusData } = useStatusData();
+  const { data: overdueCharges } = useOverdueCharges();
+  const { data: recentConversations } = useRecentConversations();
+  const { data: recentNotifications } = useRecentNotifications(user?.id);
 
-  // Dados estáticos temporários para gráficos adicionais
-  const paymentMethodsData = [
-    { method: 'PIX', value: 45, color: '#22c55e' },
-    { method: 'Boleto', value: 35, color: '#3b82f6' },
-    { method: 'Cartão', value: 15, color: '#f59e0b' },
-    { method: 'Transferência', value: 5, color: '#8b5cf6' },
-  ];
-
-  const automationStatusData = [
-    { name: 'Boletos Atualizados', count: 450, status: 'success' },
-    { name: 'Pendentes Sync', count: 12, status: 'warning' },
-    { name: 'Falhas', count: 3, status: 'error' },
-  ];
-
-  const resolutionTimeData = [
-    { range: '0-3 dias', count: 45, percentage: 35 },
-    { range: '4-7 dias', count: 38, percentage: 30 },
-    { range: '8-15 dias', count: 25, percentage: 20 },
-    { range: '16-30 dias', count: 12, percentage: 10 },
-    { range: '30+ dias', count: 6, percentage: 5 },
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pago': return 'text-green-600 bg-green-100';
-      case 'Pendente': return 'text-yellow-600 bg-yellow-100';
-      case 'Vencido': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  const isLoading = statsLoading || condosLoading || monthlyLoading || statusLoading || commLoading || weeklyLoading || funnelLoading;
-
-  if (isLoading) {
+  if (statsLoading || condosLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
+  const urgentCount = (overdueCharges?.length || 0) + (recentNotifications?.length || 0);
+
   return (
     <div className="p-4 md:p-6 w-full">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header com Ações */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Dashboard Corporativo</h1>
-            <p className="text-muted-foreground mt-1">Visão completa da operação</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Visão geral da operação</p>
           </div>
-          <div className="flex gap-2">
-            <Link to="/portal/corporativo/condominios">
-              <Button variant="outline" className="flex items-center">
-                <Building2 className="w-4 h-4 mr-2" />
-                Condomínios
-              </Button>
-            </Link>
+          <div className="flex gap-2 flex-wrap">
             <Link to="/portal/corporativo/cobrancas">
-              <Button variant="outline" className="flex items-center">
-                <DollarSign className="w-4 h-4 mr-2" />
-                Cobranças
-              </Button>
+              <Button variant="outline" size="sm"><FileText className="w-4 h-4 mr-1.5" />Cobranças</Button>
             </Link>
-            <Link to="/portal/corporativo/backoffice">
-              <Button variant="outline" className="flex items-center">
-                <Upload className="w-4 h-4 mr-2" />
-                Backoffice
-              </Button>
+            <Link to="/portal/corporativo/atendimento">
+              <Button variant="outline" size="sm"><MessageSquare className="w-4 h-4 mr-1.5" />Atendimento</Button>
             </Link>
-            <Link to="/portal/corporativo/usuarios">
-              <Button variant="outline" className="flex items-center">
-                <Users className="w-4 h-4 mr-2" />
-                Usuários
-              </Button>
-            </Link>
-            <Link to="/portal/corporativo/workflow">
-              <Button className="bg-ffp-gold hover:bg-ffp-gold-dark text-ffp-navy">
-                <Settings className="w-4 h-4 mr-2" />
-                Configurações
-              </Button>
+            <Link to="/portal/corporativo/crm">
+              <Button size="sm" className="bg-primary text-primary-foreground"><BarChart3 className="w-4 h-4 mr-1.5" />CRM Pipeline</Button>
             </Link>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total em Cobrança</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-ffp-navy">
-                R$ {stats?.totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        {/* Alertas Urgentes */}
+        {urgentCount > 0 && (
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                <CardTitle className="text-base text-destructive">Atenção Necessária</CardTitle>
+                <Badge variant="destructive" className="ml-auto">{urgentCount} itens</Badge>
               </div>
-              <p className="text-xs text-muted-foreground">Valores pendentes</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Condomínios</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-ffp-navy">{stats?.condominiumsCount}</div>
-              <p className="text-xs text-muted-foreground">{stats?.unitsCount} unidades</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(recentNotifications || []).slice(0, 3).map((n: any) => (
+                  <Link key={n.id} to={n.action_url || '/portal/corporativo/notificacoes'} className="flex items-start gap-2 p-2 rounded-lg hover:bg-destructive/10 transition-colors">
+                    <Bell className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{n.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{n.message}</p>
+                    </div>
+                  </Link>
+                ))}
+                {(overdueCharges || []).slice(0, 3).map((charge: any) => {
+                  const days = getDaysOverdue(charge.due_date);
+                  return (
+                    <Link key={charge.id} to="/portal/corporativo/cobrancas" className="flex items-start gap-2 p-2 rounded-lg hover:bg-destructive/10 transition-colors">
+                      <Clock className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {(charge.units as any)?.condominiums?.name} - Un. {(charge.units as any)?.unit_number}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatCurrency(charge.amount)} · Vencida há {days} dias
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
+        )}
 
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Taxa de Sucesso</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-ffp-navy">{stats?.successRate}%</div>
-              <p className="text-xs text-muted-foreground">Cobranças pagas</p>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-muted-foreground">Total em Cobrança</span>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="text-xl font-bold text-foreground">
+                R$ {stats?.totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Pendentes</p>
             </CardContent>
           </Card>
-
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Automação</CardTitle>
-              <RefreshCw className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-ffp-navy">{stats?.automationRate}%</div>
-              <p className="text-xs text-muted-foreground">Taxa de sucesso</p>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-muted-foreground">Condomínios</span>
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="text-xl font-bold text-foreground">{stats?.condominiumsCount}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{stats?.unitsCount} unidades</p>
             </CardContent>
           </Card>
-
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tempo Médio</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-ffp-navy">{stats?.avgResolutionDays} dias</div>
-              <p className="text-xs text-muted-foreground">Para resolução</p>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-muted-foreground">Taxa de Sucesso</span>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="text-xl font-bold text-foreground">{stats?.successRate}%</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Cobranças pagas</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-muted-foreground">Automação</span>
+                <Zap className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="text-xl font-bold text-foreground">{stats?.automationRate}%</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Taxa de sucesso</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-muted-foreground">Tempo Médio</span>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="text-xl font-bold text-foreground">{stats?.avgResolutionDays}d</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Resolução</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Gráficos Principais */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+        {/* Main Grid: Cobranças vencidas + Conversas recentes */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Cobranças Vencidas */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <CardTitle className="text-base">Cobranças Vencidas</CardTitle>
+                </div>
+                <Link to="/portal/corporativo/cobrancas">
+                  <Button variant="ghost" size="sm" className="text-xs gap-1">
+                    Ver todas <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ScrollArea className="max-h-[320px]">
+                {(!overdueCharges || overdueCharges.length === 0) ? (
+                  <div className="p-6 text-center text-muted-foreground">
+                    <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Nenhuma cobrança vencida</p>
+                  </div>
+                ) : (
+                  overdueCharges.map((charge: any) => {
+                    const days = getDaysOverdue(charge.due_date);
+                    return (
+                      <div key={charge.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full flex-shrink-0",
+                          days > 30 ? "bg-destructive" : days > 15 ? "bg-orange-500" : "bg-yellow-500"
+                        )} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {(charge.units as any)?.owner_name || 'Sem proprietário'}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {(charge.units as any)?.condominiums?.name} · Un. {(charge.units as any)?.unit_number}
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-sm font-semibold">{formatCurrency(charge.amount)}</p>
+                          <p className="text-[10px] text-destructive font-medium">{days}d vencida</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          {/* Mensagens Recentes WhatsApp */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-base">Mensagens Recentes</CardTitle>
+                </div>
+                <Link to="/portal/corporativo/atendimento">
+                  <Button variant="ghost" size="sm" className="text-xs gap-1">
+                    Atendimento <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ScrollArea className="max-h-[320px]">
+                {(!recentConversations || recentConversations.length === 0) ? (
+                  <div className="p-6 text-center text-muted-foreground">
+                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Nenhuma conversa recente</p>
+                  </div>
+                ) : (
+                  recentConversations.map((conv: any) => {
+                    const intentBadge = getIntentBadge(conv.ai_intent);
+                    return (
+                      <Link 
+                        key={conv.id} 
+                        to="/portal/corporativo/atendimento" 
+                        className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors"
+                      >
+                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-semibold text-primary">
+                            {(conv.contact_name || conv.phone_number)?.[0]?.toUpperCase() || '?'}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium truncate">
+                              {conv.contact_name || conv.phone_number}
+                            </p>
+                            {conv.unread_count > 0 && (
+                              <span className="h-4 min-w-[16px] px-1 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center">
+                                {conv.unread_count}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{conv.last_message_preview}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className="text-[10px] text-muted-foreground">{formatTimeAgo(conv.last_message_at)}</span>
+                          {intentBadge && (
+                            <Badge variant={intentBadge.variant} className="text-[10px] h-4 px-1.5">
+                              {intentBadge.label}
+                            </Badge>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Gráficos */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Arrecadação Mensal */}
-          <Card className="xl:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-ffp-navy">Arrecadação Mensal</CardTitle>
-              <CardDescription>Valores arrecadados vs esperados</CardDescription>
+          <Card className="lg:col-span-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Arrecadação Mensal</CardTitle>
+              <CardDescription>Esperado vs Arrecadado</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={monthlyData || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`R$ ${value.toLocaleString()}`, '']} />
-                  <Bar dataKey="expected" fill="#ddd" name="Esperado" />
-                  <Bar dataKey="collected" fill="#1f2937" name="Arrecadado" />
-                </BarChart>
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={monthlyData || []}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis className="text-xs" />
+                  <Tooltip formatter={(value: any) => [`R$ ${Number(value).toLocaleString('pt-BR')}`, '']} />
+                  <Area type="monotone" dataKey="expected" stroke="hsl(var(--muted-foreground))" fill="hsl(var(--muted) / 0.3)" name="Esperado" />
+                  <Area type="monotone" dataKey="collected" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.2)" name="Arrecadado" />
+                </AreaChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
           {/* Status dos Pagamentos */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-ffp-navy">Status dos Pagamentos</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Status Pagamentos</CardTitle>
               <CardDescription>Distribuição atual</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
                   <Pie
                     data={statusData || []}
                     cx="50%"
                     cy="50%"
-                    outerRadius={80}
+                    innerRadius={45}
+                    outerRadius={70}
                     dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}%`}
+                    paddingAngle={3}
                   >
-                    {(statusData || []).map((entry, index) => (
+                    {(statusData || []).map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Performance Semanal */}
-          <Card className="xl:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-ffp-navy">Performance Semanal</CardTitle>
-              <CardDescription>Evolução dos resultados</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={weeklyPerformanceData || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="week" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="enviados" stackId="1" stroke="#ddd" fill="#ddd" name="Enviados" />
-                  <Area type="monotone" dataKey="respondidos" stackId="1" stroke="#f59e0b" fill="#f59e0b" name="Respondidos" />
-                  <Area type="monotone" dataKey="pagos" stackId="1" stroke="#22c55e" fill="#22c55e" name="Pagos" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Funil de Conversão */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-ffp-navy">Funil de Conversão</CardTitle>
-              <CardDescription>Jornada do cliente</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {(conversionFunnelData || []).map((stage, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{stage.stage}</span>
-                      <span className="text-sm text-gray-600">{stage.count} ({stage.percentage}%)</span>
-                    </div>
-                    <Progress value={stage.percentage} className="h-2" />
+              <div className="flex justify-center gap-4 mt-2">
+                {(statusData || []).map((entry: any) => (
+                  <div key={entry.name} className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                    <span className="text-xs text-muted-foreground">{entry.name} {entry.value}%</span>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
-
-          {/* Eficácia da Comunicação */}
-          <Card className="xl:col-span-3">
-            <CardHeader>
-              <CardTitle className="text-ffp-navy">Eficácia da Comunicação</CardTitle>
-              <CardDescription>Performance dos canais de cobrança</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={communicationData} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="method" type="category" />
-                  <Tooltip />
-                  <Bar dataKey="sent" fill="#ddd" name="Enviado" />
-                  <Bar dataKey="opened" fill="#f59e0b" name="Aberto" />
-                  <Bar dataKey="responded" fill="#22c55e" name="Respondido" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Tempo de Resolução */}
-          <Card className="xl:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-ffp-navy">Tempo de Resolução</CardTitle>
-              <CardDescription>Dias até o pagamento</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <ComposedChart data={resolutionTimeData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="range" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Bar yAxisId="left" dataKey="count" fill="#1f2937" name="Quantidade" />
-                  <Line yAxisId="right" type="monotone" dataKey="percentage" stroke="#f59e0b" strokeWidth={2} name="%" />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Métodos de Pagamento */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-ffp-navy">Métodos de Pagamento</CardTitle>
-              <CardDescription>Preferências</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={paymentMethodsData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}%`}
-                  >
-                    {paymentMethodsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Status da Automação */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {automationStatusData.map((item, index) => (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{item.name}</CardTitle>
-                <div className={`w-3 h-3 rounded-full ${
-                  item.status === 'success' ? 'bg-green-500' : 
-                  item.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-                }`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-ffp-navy">{item.count}</div>
-                <Button variant="outline" size="sm" className="mt-4 w-full">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Sincronizar
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
         </div>
 
         {/* Condomínios em Destaque */}
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex justify-between items-center">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-ffp-navy">Condomínios em Destaque</CardTitle>
-                <CardDescription>Últimos condomínios cadastrados ou com atividade</CardDescription>
+                <CardTitle className="text-base">Condomínios</CardTitle>
+                <CardDescription>Performance de cobrança por condomínio</CardDescription>
               </div>
               <Link to="/portal/corporativo/condominios">
-                <Button variant="outline">
-                  Ver Todos
-                </Button>
+                <Button variant="outline" size="sm">Ver Todos</Button>
               </Link>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {(condominiums || []).slice(0, 6).map((condo) => (
-                <Card key={condo.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-semibold text-ffp-navy">{condo.name}</h3>
-                        <p className="text-sm text-gray-600">{condo.totalUnits} unidades</p>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {(condominiums || []).slice(0, 6).map((condo: any) => (
+                <Link key={condo.id} to={`/portal/corporativo/condominio/${condo.id}`}>
+                  <div className="p-3 rounded-lg border hover:shadow-md hover:border-primary/30 transition-all">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-semibold truncate">{condo.name}</h3>
+                        <p className="text-xs text-muted-foreground">{condo.totalUnits} unidades</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-ffp-navy">{condo.pendingAmount}</p>
-                      </div>
+                      <p className="text-sm font-semibold text-primary flex-shrink-0">{condo.pendingAmount}</p>
                     </div>
-                    
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">Pagamento</span>
-                        <span className="text-xs font-medium">{condo.efficiency}%</span>
+                        <span className="text-[11px] text-muted-foreground">Pagamento</span>
+                        <span className="text-[11px] font-medium">{condo.efficiency}%</span>
                       </div>
                       <Progress value={condo.efficiency} className="h-1.5" />
                     </div>
-
-                    <Link to={`/portal/corporativo/condominio/${condo.id}`} className="block mt-3">
-                      <Button variant="outline" size="sm" className="w-full">
-                        Ver Detalhes
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+                  </div>
+                </Link>
               ))}
             </div>
           </CardContent>
         </Card>
-
-        {/* Relatórios Semanais */}
-        <WeeklyReports />
-
-        {/* Statistics Agent */}
-        <StatisticsAgent />
       </div>
     </div>
   );
