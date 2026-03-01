@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Building2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Search, Edit, Trash2, Building2, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,7 @@ interface Condominium {
 }
 
 export default function CondominiumsPage() {
+  const navigate = useNavigate();
   const [condominiums, setCondominiums] = useState<Condominium[]>([]);
   const [administrators, setAdministrators] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -303,6 +305,9 @@ export default function CondominiumsPage() {
                   <TableCell>{condo.administrators?.name || '-'}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/portal/corporativo/condominio/${condo.id}`)}>
+                        <Eye className="h-3 w-3" />
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => handleEdit(condo)}>
                         <Edit className="h-3 w-3" />
                       </Button>
