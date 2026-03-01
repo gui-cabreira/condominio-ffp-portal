@@ -90,7 +90,7 @@ export function CorporateHeader() {
           <NotificationBell />
           <DropdownMenu>
           <DropdownMenuTrigger className="focus:outline-none">
-            <div className="flex items-center gap-3 hover:bg-accent p-2 rounded-lg transition-colors">
+            <div className="flex items-center gap-3 hover:bg-muted p-2 rounded-lg transition-colors">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium">{getDisplayName()}</p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
