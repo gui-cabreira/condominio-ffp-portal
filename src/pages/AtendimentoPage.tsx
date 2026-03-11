@@ -654,6 +654,17 @@ const AtendimentoPage = () => {
   const getIntentLabel = (intent: string | null) => {
     if (!intent) return null;
     const map: Record<string, { label: string; color: string }> = {
+      // Nomes do langgraph-agent v2
+      'request_boleto': { label: '📄 Quer Boleto', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
+      'request_negotiation': { label: '🤝 Negociação', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+      'ask_question': { label: '❓ Dúvida', color: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300' },
+      'upload_proof': { label: '🧾 Comprovante', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
+      'confirm_payment': { label: '💰 Pagamento Confirmado', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
+      'payment_intent': { label: '💳 Intenção Pgto', color: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300' },
+      'dispute': { label: '⚠️ Contestação', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+      'request_human': { label: '👤 Escalar Humano', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' },
+      'general': { label: '💬 Geral', color: 'bg-muted text-muted-foreground' },
+      // Fallbacks legados
       'quer_boleto': { label: '📄 Quer Boleto', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
       'negociacao': { label: '🤝 Negociação', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
       'esclarecimento': { label: '❓ Dúvida', color: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300' },
