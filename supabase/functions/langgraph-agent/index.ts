@@ -1061,6 +1061,8 @@ async function sendWhatsAppMessage(
   console.log('📤 Enviando mensagem via WhatsApp...');
 
   try {
+    // send-whatsapp-message já insere em whatsapp_messages e atualiza whatsapp_conversations
+    // NÃO duplicar inserções aqui
     const { error } = await supabase.functions.invoke('send-whatsapp-message', {
       body: { phone, message: text, conversationId },
     });
@@ -1069,27 +1071,6 @@ async function sendWhatsAppMessage(
       console.error('Erro ao enviar mensagem:', error);
       return;
     }
-
-    await supabase
-      .from('whatsapp_messages')
-      .insert({
-        conversation_id: conversationId,
-        direction: 'outbound',
-        sender_phone: 'system',
-        recipient_phone: phone,
-        message_type: 'text',
-        content: text,
-        status: 'sent',
-      });
-
-    await supabase
-      .from('whatsapp_conversations')
-      .update({
-        last_message_at: new Date().toISOString(),
-        last_message_from: 'bot',
-        last_message_preview: text.substring(0, 100),
-      })
-      .eq('id', conversationId);
 
     console.log('✅ Mensagem enviada com sucesso');
   } catch (error) {
