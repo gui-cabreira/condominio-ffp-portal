@@ -19,18 +19,6 @@ export function CorporateLayout({ children }: CorporateLayoutProps) {
             <main className="flex-1 overflow-x-hidden overflow-y-auto">
               {children}
             </main>
-            {/* Footer com crédito AppNow */}
-            <footer className="bg-card border-t py-3 px-4 text-center text-xs text-muted-foreground">
-              Desenvolvido por{' '}
-              <a 
-                href="https://appnow.com.br" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="text-primary hover:text-secondary transition-colors font-medium"
-              >
-                AppNow
-              </a>
-            </footer>
           </div>
         </div>
       </SidebarProvider>
